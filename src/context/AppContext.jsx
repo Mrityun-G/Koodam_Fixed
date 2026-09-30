@@ -323,6 +323,56 @@ const [activeOrder, setActiveOrder] = useState({
   // Firebase Active Order Listener
   // =========================================================
 
+  // Read inside Firebase callbacks, which would otherwise see a stale role
+  const roleRef = useRef(role);
+  roleRef.current = role;
+
+  // Last order state seen from Firebase, used to detect status changes
+  const lastOrderSnapshotRef = useRef(null);
+
+  // Status changes are made on the partner's device, so the member's
+  // notifications must be raised here, when the change arrives via Firebase.
+  const notifyMemberOfOrderChange = (previous, next) => {
+    const helperName = next.helperName || 'Your partner';
+    const serviceTitle = next.serviceTitle || 'your service';
+
+    if (
+      next.bookingStatus !== previous.bookingStatus &&
+      next.bookingStatus === 'ACCEPTED'
+    ) {
+      addNotification('member', {
+        title: 'Booking Accepted!',
+        desc: `${helperName} accepted your request for ${serviceTitle}.`,
+        screen: 'tracking',
+        tab: 'requests'
+      });
+      showToast(`${helperName} accepted your booking!`);
+    }
+
+    if (
+      next.bookingStatus !== previous.bookingStatus &&
+      next.bookingStatus === 'DECLINED'
+    ) {
+      addNotification('member', {
+        title: 'Booking Declined',
+        desc: `${helperName} declined your request.`
+      });
+      showToast(`${helperName} declined your booking.`);
+    }
+
+    if (
+      next.currentStep === 4 &&
+      (previous.currentStep ?? 0) < 4
+    ) {
+      addNotification('member', {
+        title: 'Work Started',
+        desc: `${helperName} verified your arrival code and has started the service.`,
+        screen: 'tracking',
+        tab: 'requests'
+      });
+    }
+  };
+
   useEffect(() => {
     if (
       !isFirebaseConfigured ||
@@ -337,12 +387,30 @@ const [activeOrder, setActiveOrder] = useState({
       `orders/${toDbKey(activeOrder.orderId)}`
     );
 
+    // The first snapshot is the baseline; only later changes notify
+    lastOrderSnapshotRef.current = null;
+
     const unsubscribe = onValue(
       orderRef,
       (snapshot) => {
         const val = snapshot.val();
 
         if (val) {
+          if (
+            lastOrderSnapshotRef.current &&
+            roleRef.current !== 'partner'
+          ) {
+            notifyMemberOfOrderChange(
+              lastOrderSnapshotRef.current,
+              val
+            );
+          }
+
+          lastOrderSnapshotRef.current = {
+            bookingStatus: val.bookingStatus,
+            currentStep: val.currentStep
+          };
+
           setActiveOrder((prev) => ({
             ...prev,
             ...val
@@ -481,10 +549,20 @@ const [activeOrder, setActiveOrder] = useState({
         },
 
         (err) => {
+          const messages = {
+            1: 'Location is blocked. Allow location for this site in your browser (and turn on Windows location services), then tap Start again.',
+            2: 'Your location is unavailable right now. Check that device location is turned on.',
+            3: 'Getting your location timed out. Please tap Start again.'
+          };
+
           showToast(
+            messages[err.code] ||
             `Location error: ${err.message}`
           );
 
+          // Stop the watch too, or it keeps running while the UI shows stopped
+          navigator.geolocation.clearWatch(watchId);
+          geoWatchIdRef.current = null;
           setIsSharingLocation(false);
         },
 
@@ -560,9 +638,13 @@ const [activeOrder, setActiveOrder] = useState({
       todayEarnings: 1850,
       completedJobs: 3,
       weeklyBalance: 9420,
-      rating: 4.9,
-      reviews: 184
+      // Derived from customer ratings on this partner's booking requests
+      rating: 0,
+      reviews: 0
     });
+
+  // Request IDs already known to be rated, so only new ratings notify
+  const knownRatedRequestIdsRef = useRef(null);
 
 
   const [hasIncomingJob, setHasIncomingJob] =
@@ -607,6 +689,76 @@ const [activeOrder, setActiveOrder] = useState({
     hasIncomingJob,
     incomingCountdown
   ]);
+
+// ==========================================
+// PARTNER: REVIEWS & RATING FROM BOOKING REQUESTS
+// ==========================================
+const syncPartnerReviews = (data) => {
+  const ratedRequests = Object.entries(data || {})
+    .map(([requestId, request]) => ({
+      requestId,
+      ...request
+    }))
+    .filter((request) => Number(request.rating) > 0)
+    .sort(
+      (a, b) =>
+        (b.ratedAt || 0) -
+        (a.ratedAt || 0)
+    );
+
+  setReviews(
+    ratedRequests.map((request) => ({
+      id: request.requestId,
+      orderId: request.requestId,
+      serviceTitle:
+        request.serviceTitle || 'Service Request',
+      stars: Number(request.rating),
+      feedback: request.feedback || '',
+      time: request.ratedAt
+        ? new Date(request.ratedAt).toLocaleDateString()
+        : ''
+    }))
+  );
+
+  const totalStars = ratedRequests.reduce(
+    (sum, request) => sum + Number(request.rating),
+    0
+  );
+
+  setPartnerStats((prev) => ({
+    ...prev,
+    reviews: ratedRequests.length,
+    rating: ratedRequests.length
+      ? Math.round(
+          (totalStars / ratedRequests.length) * 100
+        ) / 100
+      : 0
+  }));
+
+  // The first snapshot is the baseline; notify only for new ratings
+  if (knownRatedRequestIdsRef.current) {
+    ratedRequests
+      .filter(
+        (request) =>
+          !knownRatedRequestIdsRef.current.has(request.requestId)
+      )
+      .forEach((request) => {
+        addNotification('partner', {
+          title: 'New Rating Received',
+          desc:
+            `You were rated ${request.rating}★ for ${request.serviceTitle || 'a service'}${
+              request.feedback
+                ? `: "${request.feedback}"`
+                : '.'
+            }`
+        });
+      });
+  }
+
+  knownRatedRequestIdsRef.current = new Set(
+    ratedRequests.map((request) => request.requestId)
+  );
+};
 
 // ==========================================
 // PARTNER: LISTEN FOR INCOMING BOOKING REQUESTS
@@ -671,12 +823,16 @@ console.log(
 
 const requestsRef = ref(db, requestPath);
 
+      knownRatedRequestIdsRef.current = null;
+
       unsubscribe = onValue(
         requestsRef,
         (snapshot) => {
           const data = snapshot.val();
 
           console.log('📥 PARTNER BOOKING DATA:', data);
+
+          syncPartnerReviews(data);
 
           if (!data) {
             setHasIncomingJob(false);
@@ -923,10 +1079,26 @@ const requestsRef = ref(db, requestPath);
   // Navigation
   // =========================================================
 
+  // Member-only screens that a partner should see as a
+  // tab of the partner dashboard instead
+  const PARTNER_SCREEN_TABS = {
+    home: 'home',
+    profile: 'profile',
+    tracking: 'jobs'
+  };
+
   const navigateTo = (
     screen,
     tab = null
   ) => {
+    if (
+      role === 'partner' &&
+      PARTNER_SCREEN_TABS[screen]
+    ) {
+      tab = PARTNER_SCREEN_TABS[screen];
+      screen = 'partner';
+    }
+
     setCurrentScreen(screen);
 
     if (tab) {
@@ -1971,6 +2143,44 @@ const handleConfirmBooking = async () => {
         }
       );
 
+      // Save where the customer is so the partner can navigate there.
+      // Runs in the background; the booking never waits on it.
+      if (navigator.geolocation) {
+        const orderIdForLocation = createdRequestId;
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            update(
+              ref(
+                db,
+                `orders/${toDbKey(orderIdForLocation)}`
+              ),
+              {
+                customerLat: pos.coords.latitude,
+                customerLng: pos.coords.longitude
+              }
+            ).catch((error) => {
+              console.error(
+                '❌ Failed to save customer location:',
+                error
+              );
+            });
+          },
+          (error) => {
+            // The partner falls back to navigating by area name
+            console.warn(
+              'Customer location unavailable:',
+              error?.message
+            );
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 60000
+          }
+        );
+      }
+
       console.log(
         '✅ BOOKING REQUEST SAVED AS PENDING:',
         {
@@ -2180,14 +2390,7 @@ const verifyArrivalOtp = (code) => {
     feedback: ''
   });
 
-  // Notify customer that the service has started
-  addNotification('member', {
-    title: 'Work Started',
-    desc:
-      `${activeOrder.helperName} verified your arrival code and has started the service.`,
-    screen: 'tracking',
-    tab: 'requests'
-  });
+  // The customer is notified by their own Firebase order listener
 
   showToast(
     'Arrival code verified — work has started!'
@@ -2294,77 +2497,35 @@ const markPaymentCompleted = (paymentResponse = {}) => {
     });
 
 
-    setReviews(
-      (prev) => [
+    // Save the rating on the partner's booking request. The partner's
+    // device listens there and builds its reviews and rating from it.
+    const requestId =
+      activeOrder.requestId ||
+      activeOrder.orderId;
+
+    if (
+      isFirebaseConfigured &&
+      db &&
+      activeOrder.partnerId &&
+      requestId
+    ) {
+      update(
+        ref(
+          db,
+          `bookingRequests/${activeOrder.partnerId}/${requestId}`
+        ),
         {
-          id:
-            Date.now() +
-            Math.random(),
-
-          orderId:
-            activeOrder.orderId,
-
-          serviceTitle:
-            activeOrder.serviceTitle,
-
-          stars,
-
+          rating: stars,
           feedback,
-
-          time:
-            'Just now'
-        },
-
-        ...prev
-      ]
-    );
-
-
-    setPartnerStats(
-      (prev) => {
-
-        const totalScore =
-          prev.rating *
-          prev.reviews +
-          stars;
-
-
-        const newReviews =
-          prev.reviews + 1;
-
-
-        return {
-          ...prev,
-
-          rating:
-            Math.round(
-              (
-                totalScore /
-                newReviews
-              ) * 100
-            ) / 100,
-
-          reviews:
-            newReviews
-        };
-      }
-    );
-
-
-    addNotification(
-      'partner',
-      {
-        title:
-          'New Rating Received',
-
-        desc:
-          `You were rated ${stars}★ for ${activeOrder.serviceTitle}${
-            feedback
-              ? `: "${feedback}"`
-              : '.'
-          }`
-      }
-    );
+          ratedAt: Date.now()
+        }
+      ).catch((error) => {
+        console.error(
+          '❌ Failed to save rating:',
+          error
+        );
+      });
+    }
 
 
     showToast(
@@ -2476,16 +2637,7 @@ etaMinutes: 12,
 
     setChatPartner(acceptedPartnerName);
 
-    addNotification(
-      'member',
-      {
-        title: 'Booking Accepted!',
-        desc:
-          `${acceptedPartnerName} accepted your request for ${incomingJobDetails.title}.`,
-        screen: 'tracking',
-        tab: 'requests'
-      }
-    );
+    // The member is notified by their own Firebase order listener
 
     showToast(
       `Job accepted! ${acceptedPartnerName} is on the way.`
@@ -2552,14 +2704,7 @@ const declineIncomingJob = async () => {
 
   setHasIncomingJob(false);
 
-  addNotification(
-    'member',
-    {
-      title: 'Booking Declined',
-      desc:
-        `${partnerProfile?.name || 'The selected partner'} declined your request.`
-    }
-  );
+  // The member is notified by their own Firebase order listener
 
   showToast('Job request declined.');
 };
