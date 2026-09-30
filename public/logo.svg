@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="koodamGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A1A"/>
+      <stop offset="100%" stop-color="#FF5500"/>
+    </linearGradient>
+    <linearGradient id="navyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1B2A5E"/>
+      <stop offset="100%" stop-color="#111A3A"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#navyGrad)"/>
+  <circle cx="100" cy="62" r="22" fill="url(#koodamGrad)"/>
+  <path d="M54 148 C54 116, 76 100, 100 100 C124 100, 146 116, 146 148" fill="none" stroke="url(#koodamGrad)" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="58" cy="88" r="14" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="142" cy="88" r="14" fill="#FFFFFF" opacity="0.9"/>
+  <path d="M30 148 C30 128, 44 118, 58 118 C64 118, 70 120, 76 124" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+  <path d="M170 148 C170 128, 156 118, 142 118 C136 118, 130 120, 124 124" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+</svg>

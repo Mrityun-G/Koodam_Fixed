@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Material symbol fill utility */
+.symbol-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.symbol-outline {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+/* KOODAM horizontal date selector scrollbar */
+.date-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.date-scroll::-webkit-scrollbar-track {
+  background: #eff4ff;
+  border-radius: 10px;
+}
+
+.date-scroll::-webkit-scrollbar-thumb {
+  background: #ff6a00;
+  border-radius: 10px;
+}
+
+.date-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a14000;
+}
