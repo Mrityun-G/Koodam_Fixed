@@ -179,8 +179,7 @@ export const LiveTrackingScreen = () => {
 )}
 
           {/* Rate Your Experience Card (shown once service is completed) */}
-          {activeOrder.currentStep === 5 &&
-  activeOrder.paymentStatus === 'PAID' && (
+          {activeOrder.currentStep === 5 && (
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
               {activeOrder.rating ? (
                 <div className="flex flex-col items-center text-center gap-1 py-2">

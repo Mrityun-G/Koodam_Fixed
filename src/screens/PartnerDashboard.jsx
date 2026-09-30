@@ -25,7 +25,9 @@ export const PartnerDashboard = () => {
     verifyArrivalOtp,
     setChatPartner,
     setIsChatOpen,
-    logout
+    logout,
+    activeTab,
+    setActiveTab
   } = useApp();
 
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
@@ -35,7 +37,12 @@ export const PartnerDashboard = () => {
   // PARTNER BOTTOM NAVIGATION
   // ================================
 
-  const [partnerTab, setPartnerTab] = useState('home');
+  const PARTNER_TABS = ['home', 'jobs', 'services', 'earnings', 'profile'];
+
+  // Reopen on the tab we navigated back to (e.g. Profile after Edit Profile)
+  const [partnerTab, setPartnerTab] = useState(
+    PARTNER_TABS.includes(activeTab) ? activeTab : 'home'
+  );
   const rootRef = useRef(null);
 
   const partnerNavItems = [
@@ -48,6 +55,7 @@ export const PartnerDashboard = () => {
 
   const switchPartnerTab = (tabId) => {
     setPartnerTab(tabId);
+    setActiveTab(tabId);
     rootRef.current?.scrollIntoView({ block: 'start' });
   };
 
@@ -498,6 +506,26 @@ export const PartnerDashboard = () => {
     if (verifyArrivalOtp(arrivalInput)) {
       setArrivalInput('');
     }
+  };
+
+  // ================================
+  // NAVIGATION TO CUSTOMER
+  // ================================
+
+  const openNavigationToCustomer = () => {
+    const hasCoords =
+      activeOrder.customerLat != null &&
+      activeOrder.customerLng != null;
+
+    const destination = hasCoords
+      ? `${activeOrder.customerLat},${activeOrder.customerLng}`
+      : activeOrder.area || 'Indiranagar, Bengaluru';
+
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`,
+      '_blank',
+      'noopener'
+    );
   };
   return (
     <div
@@ -1216,6 +1244,39 @@ export const PartnerDashboard = () => {
             chevron_right
           </span>
         </button>
+
+        {activeOrder.bookingStatus === 'ACCEPTED' && (
+          <button
+            onClick={openNavigationToCustomer}
+            className="w-full flex items-center justify-between gap-3 bg-white rounded-2xl p-4 shadow-xs border border-slate-100 active:scale-[0.99] transition-all"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+
+              <div className="w-9 h-9 rounded-full bg-[#ff6a00]/15 text-[#a14000] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">
+                  navigation
+                </span>
+              </div>
+
+              <div className="min-w-0 text-left">
+
+                <p className="text-xs font-bold text-[#0b1c30]">
+                  Navigate to Customer
+                </p>
+
+                <p className="text-[11px] text-slate-500 truncate">
+                  {activeOrder.customerLat != null
+                    ? 'Directions to customer’s live location'
+                    : `Directions to ${activeOrder.area || 'customer area'}`}
+                </p>
+              </div>
+            </div>
+
+            <span className="material-symbols-outlined text-[18px] text-slate-400">
+              open_in_new
+            </span>
+          </button>
+        )}
 
         <section className="space-y-2 pt-1">
 
