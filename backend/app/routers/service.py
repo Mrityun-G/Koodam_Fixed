@@ -125,6 +125,9 @@ def get_partners_for_service(
             "vehicle_number": partner.vehicle_number,
             "is_online": partner.is_online,
             "is_verified": partner.is_verified,
+            "police_verified": (
+                partner.police_verification_status == "VERIFIED"
+            ),
             "latitude": partner.latitude,
             "longitude": partner.longitude
         })

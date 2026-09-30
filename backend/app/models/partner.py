@@ -39,6 +39,20 @@ class Partner(Base):
 
     is_verified = Column(Boolean, default=False)
 
+    # NOT_SUBMITTED -> UNDER_REVIEW -> VERIFIED / REJECTED
+    # Set to VERIFIED or REJECTED by an admin (e.g. in the Supabase table editor)
+    police_verification_status = Column(
+        String,
+        nullable=False,
+        default="NOT_SUBMITTED",
+        server_default="NOT_SUBMITTED"
+    )
+
+    police_rejection_reason = Column(String, nullable=True)
+
+    # How far the partner is willing to travel for a job
+    service_radius_km = Column(Integer, nullable=False, default=5)
+
     latitude = Column(Float, nullable=True)
 
     longitude = Column(Float, nullable=True)
