@@ -17,8 +17,16 @@ export const LiveTrackingScreen = () => {
     partnerLocation,
     destinationCoords,
     liveDistanceKm,
-    liveEtaMinutes
+    liveEtaMinutes,
+    respondToExtraCharge
   } = useApp();
+
+  const extraCharges = Object.entries(activeOrder.extraCharges || {}).sort(
+    ([, a], [, b]) => (a.createdAt || 0) - (b.createdAt || 0)
+  );
+  const hasPendingExtraCharges = extraCharges.some(
+    ([, charge]) => charge.status === 'PENDING'
+  );
 
   // Fall back to the simulated ETA until the partner's real device starts sharing GPS
   const displayEtaMinutes = liveEtaMinutes ?? activeOrder.etaMinutes;
@@ -136,6 +144,63 @@ export const LiveTrackingScreen = () => {
             </div>
           </div>
 
+          {/* Extra Parts Cost requested by the partner during the work */}
+          {extraCharges.length > 0 && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-amber-200 flex flex-col gap-3">
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined">build</span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-bold text-[#0b1c30]">Extra Parts Cost</h3>
+                  <p className="text-[11px] text-slate-500">
+                    {activeOrder.helperName || 'Your partner'} found parts needed for the job. Approved costs are added to your bill.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {extraCharges.map(([chargeId, charge]) => (
+                  <div key={chargeId} className="bg-[#f8f9ff] rounded-xl px-3 py-2.5 flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-[#0b1c30] truncate">{charge.item}</span>
+                      <span className="text-sm font-extrabold text-[#0b1c30] shrink-0">₹{charge.amount}</span>
+                    </div>
+
+                    {charge.status === 'PENDING' ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => respondToExtraCharge(chargeId, false)}
+                          className="flex-1 py-2 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold active:scale-95 transition-all"
+                        >
+                          Decline
+                        </button>
+                        <button
+                          onClick={() => respondToExtraCharge(chargeId, true)}
+                          className="flex-1 py-2 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all"
+                        >
+                          Approve
+                        </button>
+                      </div>
+                    ) : (
+                      <span
+                        className={`self-start text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          charge.status === 'APPROVED'
+                            ? 'bg-[#00ae78]/15 text-[#006c49]'
+                            : 'bg-red-50 text-red-500'
+                        }`}
+                      >
+                        {charge.status === 'APPROVED' ? 'Approved • added to bill' : 'Declined'}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Payment Required After Completion */}
 {activeOrder.currentStep === 5 &&
   activeOrder.paymentStatus !== 'PAID' && (
@@ -169,9 +234,16 @@ export const LiveTrackingScreen = () => {
         </span>
       </div>
 
+      {hasPendingExtraCharges && (
+        <p className="text-[11px] font-medium text-amber-700 text-center">
+          Approve or decline the extra parts cost above before paying.
+        </p>
+      )}
+
       <button
         onClick={() => navigateTo('payment')}
-        className="w-full py-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-sm font-bold shadow-md active:scale-95 transition-all"
+        disabled={hasPendingExtraCharges}
+        className="w-full py-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-bold shadow-md active:scale-95 transition-all"
       >
         Pay Now with Razorpay
       </button>
@@ -313,7 +385,10 @@ export const LiveTrackingScreen = () => {
 
               <button
                 onClick={() => {
-                  setChatPartner(activeOrder.helperName);
+                  setChatPartner({
+                    name: activeOrder.helperName,
+                    avatar: activeOrder.helperAvatar || ''
+                  });
                   setIsChatOpen(true);
                 }}
                 className="h-10 px-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all"

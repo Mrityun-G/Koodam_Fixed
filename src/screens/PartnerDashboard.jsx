@@ -27,11 +27,16 @@ export const PartnerDashboard = () => {
     setIsChatOpen,
     logout,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    requestExtraCharge,
+    partnerUpcomingJobs,
+    cycleServiceRadius
   } = useApp();
 
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [arrivalInput, setArrivalInput] = useState('');
+  const [extraItem, setExtraItem] = useState('');
+  const [extraAmount, setExtraAmount] = useState('');
 
   // ================================
   // PARTNER BOTTOM NAVIGATION
@@ -59,7 +64,7 @@ export const PartnerDashboard = () => {
     rootRef.current?.scrollIntoView({ block: 'start' });
   };
 
-  const SERVICE_RADIUS_KM = 5;
+  const SERVICE_RADIUS_KM = partnerStats.serviceRadiusKm || 5;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -76,33 +81,58 @@ export const PartnerDashboard = () => {
   };
 
   // ================================
-  // SCHEDULED JOBS (demo data)
+  // SCHEDULED JOBS (accepted bookings from Supabase)
   // ================================
 
-  const scheduledJobs = [
-    {
-      id: 'sched-1',
-      title: 'Fan Installation',
-      day: 'Today',
-      time: '2:00 PM',
-      price: 249,
-      icon: 'mode_fan',
-      tone: 'bg-[#dce1ff] text-[#4e5c92]',
-      customer: 'Vikram S.',
-      address: '4th Cross, HAL 2nd Stage'
-    },
-    {
-      id: 'sched-2',
-      title: 'Inverter Wiring & MCB Safety Check',
-      day: 'Tomorrow',
-      time: '11:00 AM',
-      price: 499,
-      icon: 'electric_bolt',
-      tone: 'bg-[#d3e4fe] text-[#a14000]',
-      customer: 'Ananya Rao',
-      address: '100ft Road Defence Colony'
-    }
+  const JOB_STYLES = [
+    { match: /electric/i, icon: 'electric_bolt', tone: 'bg-[#ffdbcc] text-[#a14000]' },
+    { match: /plumb/i, icon: 'plumbing', tone: 'bg-[#dce1ff] text-[#4e5c92]' },
+    { match: /clean/i, icon: 'cleaning_services', tone: 'bg-[#c8f7e1] text-[#006c49]' },
+    { match: /ac|appliance/i, icon: 'mode_fan', tone: 'bg-[#d3e4fe] text-[#05164b]' },
+    { match: /carpent|paint/i, icon: 'carpenter', tone: 'bg-amber-100 text-amber-700' }
   ];
+
+  const getJobDayLabel = (date) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    }
+
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    }
+
+    return date.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
+    });
+  };
+
+  const scheduledJobs = partnerUpcomingJobs.map((job) => {
+    const when = job.booking_time ? new Date(job.booking_time) : null;
+    const style =
+      JOB_STYLES.find((s) => s.match.test(`${job.category} ${job.title}`)) ||
+      { icon: 'home_repair_service', tone: 'bg-[#dce1ff] text-[#4e5c92]' };
+
+    return {
+      id: job.booking_id,
+      title: job.title,
+      day: when ? getJobDayLabel(when) : 'Scheduled',
+      time: when
+        ? when.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
+        : '',
+      price: Number(job.amount || 0),
+      icon: style.icon,
+      tone: style.tone,
+      status: job.status === 'IN_PROGRESS' ? 'In progress' : 'Confirmed',
+      customer: job.customer_name || 'KOODAM Customer',
+      address: job.address || 'Nearby'
+    };
+  });
 
   const nextJob = scheduledJobs[0];
 
@@ -509,6 +539,135 @@ export const PartnerDashboard = () => {
   };
 
   // ================================
+  // POLICE VERIFICATION
+  // ================================
+
+  const POLICE_STATUS = {
+    NOT_SUBMITTED: {
+      label: 'Upload your police clearance certificate (PDF, JPG or PNG, max 5 MB)',
+      tone: 'bg-slate-100 text-slate-500',
+      canUpload: true
+    },
+    UNDER_REVIEW: {
+      label: 'Certificate under review',
+      tone: 'bg-amber-100 text-amber-600',
+      canUpload: false
+    },
+    VERIFIED: {
+      label: 'Police verified',
+      tone: 'bg-[#00ae78]/15 text-[#006c49]',
+      canUpload: false
+    },
+    REJECTED: {
+      label: 'Certificate rejected',
+      tone: 'bg-red-50 text-red-500',
+      canUpload: true
+    }
+  };
+
+  const [policeVerification, setPoliceVerification] = useState({
+    status: 'NOT_SUBMITTED',
+    rejection_reason: null
+  });
+  const [isUploadingPolice, setIsUploadingPolice] = useState(false);
+  const policeFileInputRef = useRef(null);
+
+  const policeStatusInfo =
+    POLICE_STATUS[policeVerification.status] || POLICE_STATUS.NOT_SUBMITTED;
+
+  useEffect(() => {
+    if (!partnerProfile?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    fetch(`${BACKEND_URL}/partners/${partnerProfile.id}/police-verification`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (data && !cancelled) {
+          setPoliceVerification(data);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load police verification:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [partnerProfile?.id]);
+
+  const handlePoliceCertificateSelected = async (event) => {
+    const file = event.target.files?.[0];
+    // Allow picking the same file again after an error
+    event.target.value = '';
+
+    if (!file || !partnerProfile?.id) {
+      return;
+    }
+
+    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
+      showToast('Upload a PDF, JPG or PNG file.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File must be 5 MB or smaller.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setIsUploadingPolice(true);
+
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/partners/${partnerProfile.id}/police-verification`,
+        { method: 'POST', body: formData }
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.detail || 'Upload failed');
+      }
+
+      setPoliceVerification(data);
+      showToast('Police certificate submitted for review.');
+    } catch (error) {
+      console.error('Police certificate upload failed:', error);
+      showToast(error.message || 'Upload failed. Please try again.');
+    } finally {
+      setIsUploadingPolice(false);
+    }
+  };
+
+  // ================================
+  // EXTRA PARTS COST
+  // ================================
+
+  const EXTRA_CHARGE_STATUS = {
+    PENDING: { label: 'Awaiting approval', tone: 'bg-amber-100 text-amber-700' },
+    APPROVED: { label: 'Approved', tone: 'bg-[#00ae78]/15 text-[#006c49]' },
+    DECLINED: { label: 'Declined', tone: 'bg-red-50 text-red-500' }
+  };
+
+  const extraChargeList = Object.entries(
+    activeOrder.extraCharges || {}
+  ).sort(
+    ([, a], [, b]) => (a.createdAt || 0) - (b.createdAt || 0)
+  );
+
+  const handleRequestExtraCharge = () => {
+    if (requestExtraCharge(extraItem, extraAmount)) {
+      setExtraItem('');
+      setExtraAmount('');
+    }
+  };
+
+  // ================================
   // NAVIGATION TO CUSTOMER
   // ================================
 
@@ -578,6 +737,7 @@ export const PartnerDashboard = () => {
             </div>
           </button>
 
+          <div className="flex items-center gap-2 shrink-0">
           <button
             aria-label="Notifications"
             onClick={() =>
@@ -603,6 +763,27 @@ export const PartnerDashboard = () => {
               <span className="absolute top-1.5 right-2 w-2.5 h-2.5 rounded-full bg-[#ff6a00] ring-2 ring-[#eff4ff] animate-pulse" />
             )}
           </button>
+
+          {/* Partner Profile Avatar */}
+          <button
+            aria-label="Partner Profile"
+            onClick={() => switchPartnerTab('profile')}
+            title="View profile & settings"
+            className="w-10 h-10 flex items-center justify-center rounded-full p-0.5 hover:ring-2 hover:ring-[#ff6a00]/30 active:scale-95 transition-all"
+          >
+            {partnerProfile?.avatar ? (
+              <img
+                alt="Profile"
+                className="w-8 h-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200"
+                src={partnerProfile.avatar}
+              />
+            ) : (
+              <span className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] ring-1 ring-slate-200 flex items-center justify-center text-sm font-bold">
+                {(partnerProfile?.name || 'P').trim().charAt(0).toUpperCase()}
+              </span>
+            )}
+          </button>
+          </div>
         </div>
       </header>
 
@@ -618,51 +799,62 @@ export const PartnerDashboard = () => {
         {/* GREETING & ONLINE STATUS */}
         {/* ========================================= */}
 
-        <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex items-center justify-between gap-3">
+        <div
+          className={`relative overflow-hidden rounded-2xl p-4 text-white shadow-md transition-colors ${
+            isPartnerOnline
+              ? 'bg-gradient-to-r from-[#ff6a00] via-[#a14000] to-[#7b2f00]'
+              : 'bg-gradient-to-r from-slate-500 to-slate-700'
+          }`}
+        >
+          {/* Decorative circles */}
+          <div className="absolute -top-10 -right-8 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+          <div className="absolute -bottom-12 right-16 w-24 h-24 rounded-full bg-white/10 pointer-events-none" />
 
-          <div className="min-w-0">
+          <div className="relative flex items-center justify-between gap-3">
 
-            <h1 className="font-bold text-base text-[#0b1c30] truncate">
-              {getGreeting()}, {partnerProfile?.name || 'Partner'} 👋
-            </h1>
+            <div className="min-w-0">
 
-            <p className="text-[11px] text-[#5a4136] flex items-center gap-1.5 font-medium mt-1">
+              <p className="text-[11px] font-semibold text-white/80">
+                {getGreeting()} 👋
+              </p>
 
+              <h1 className="font-extrabold text-lg leading-tight truncate">
+                {partnerProfile?.name || 'Partner'}
+              </h1>
+            </div>
+
+            <button
+              aria-label="Toggle Online Status"
+              onClick={togglePartnerDuty}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-xs transition-all active:scale-95 shrink-0 shadow-sm ${
+                isPartnerOnline
+                  ? 'bg-white text-[#006c49]'
+                  : 'bg-white/20 text-white border border-white/40'
+              }`}
+            >
               <span
-                className={`w-2 h-2 rounded-full shrink-0 ${
+                className={`w-2.5 h-2.5 rounded-full ${
                   isPartnerOnline
                     ? 'bg-[#00ae78] animate-pulse'
-                    : 'bg-slate-400'
+                    : 'bg-white/70'
                 }`}
               />
 
               {isPartnerOnline
-                ? `Online • Receiving jobs within ${SERVICE_RADIUS_KM} km`
-                : 'Offline • Go online to receive jobs'}
-            </p>
+                ? 'ONLINE'
+                : 'OFFLINE'}
+            </button>
           </div>
 
-          <button
-            aria-label="Toggle Online Status"
-            onClick={togglePartnerDuty}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-xs transition-all active:scale-95 shrink-0 shadow-2xs border ${
-              isPartnerOnline
-                ? 'bg-[#00ae78]/15 text-[#006c49] border-[#00ae78]/30'
-                : 'bg-slate-100 text-slate-500 border-slate-200'
-            }`}
-          >
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                isPartnerOnline
-                  ? 'bg-[#00ae78]'
-                  : 'bg-slate-400'
-              }`}
-            />
+          <div className="relative mt-3 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full text-[11px] font-semibold">
+            <span className="material-symbols-outlined text-[14px]">
+              {isPartnerOnline ? 'radar' : 'bedtime'}
+            </span>
 
             {isPartnerOnline
-              ? 'ONLINE'
-              : 'OFFLINE'}
-          </button>
+              ? `Receiving jobs within ${SERVICE_RADIUS_KM} km`
+              : 'Go online to receive jobs'}
+          </div>
         </div>
 
         {/* ========================================= */}
@@ -770,7 +962,10 @@ export const PartnerDashboard = () => {
         <section className="space-y-2">
 
           <div className="px-1">
-            <h2 className="text-sm font-bold text-[#0b1c30]">
+            <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px] text-[#ff6a00]">
+                insights
+              </span>
               Today's Overview
             </h2>
           </div>
@@ -781,39 +976,48 @@ export const PartnerDashboard = () => {
                 label: "Today's Earnings",
                 value: `₹${Number(partnerStats.todayEarnings || 0).toLocaleString('en-IN')}`,
                 icon: 'currency_rupee',
-                tone: 'bg-[#ffdbcc] text-[#a14000]',
+                card: 'bg-gradient-to-br from-[#fff4ec] to-[#ffdbcc] border-[#ffc9ad]',
+                iconTone: 'bg-[#ff6a00] text-white',
+                valueTone: 'text-[#7b2f00]',
                 tab: 'earnings'
               },
               {
                 label: 'Jobs Completed',
                 value: partnerStats.completedJobs,
                 icon: 'task_alt',
-                tone: 'bg-[#00ae78]/15 text-[#006c49]',
+                card: 'bg-gradient-to-br from-[#ecfdf5] to-[#c8f7e1] border-[#a7ecd0]',
+                iconTone: 'bg-[#00ae78] text-white',
+                valueTone: 'text-[#006c49]',
                 tab: 'jobs'
               },
               {
                 label: 'Rating',
                 value: partnerStats.rating,
                 icon: 'star',
-                tone: 'bg-amber-100 text-amber-600',
+                card: 'bg-gradient-to-br from-[#fffbeb] to-[#fde9a8] border-[#fbd96b]',
+                iconTone: 'bg-amber-500 text-white',
+                valueTone: 'text-amber-800',
                 tab: 'profile'
               },
               {
-                label: 'Service Radius',
+                label: 'Service Radius • tap to change',
                 value: `${SERVICE_RADIUS_KM} km`,
+                onClick: cycleServiceRadius,
                 icon: 'radar',
-                tone: 'bg-[#dce1ff] text-[#4e5c92]',
+                card: 'bg-gradient-to-br from-[#eef0ff] to-[#dce1ff] border-[#c5ccff]',
+                iconTone: 'bg-[#4e5c92] text-white',
+                valueTone: 'text-[#05164b]',
                 tab: 'services'
               }
             ].map(stat => (
               <button
                 key={stat.label}
-                onClick={() => switchPartnerTab(stat.tab)}
-                className="bg-white rounded-2xl p-3.5 shadow-xs border border-slate-100 flex items-center gap-3 text-left active:scale-[0.98] transition-all"
+                onClick={stat.onClick || (() => switchPartnerTab(stat.tab))}
+                className={`rounded-2xl p-3.5 shadow-sm border flex items-center gap-3 text-left active:scale-[0.98] transition-all ${stat.card}`}
               >
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${stat.tone}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${stat.iconTone}`}>
                   <span
-                    className="material-symbols-outlined text-[18px]"
+                    className="material-symbols-outlined text-[20px]"
                     style={{
                       fontVariationSettings:
                         "'FILL' 1"
@@ -824,11 +1028,11 @@ export const PartnerDashboard = () => {
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-lg font-extrabold text-[#0b1c30] leading-none">
+                  <p className={`text-lg font-extrabold leading-none ${stat.valueTone}`}>
                     {stat.value}
                   </p>
 
-                  <p className="text-[10px] text-slate-500 mt-1 truncate">
+                  <p className="text-[10px] font-medium text-slate-600 mt-1 truncate">
                     {stat.label}
                   </p>
                 </div>
@@ -844,13 +1048,19 @@ export const PartnerDashboard = () => {
         <section className="space-y-2">
 
           <div className="px-1">
-            <h2 className="text-sm font-bold text-[#0b1c30]">
+            <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px] text-[#4e5c92]">
+                event_upcoming
+              </span>
               Next Job
             </h2>
           </div>
 
           {nextJob ? (
-            <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100">
+            <div className="relative overflow-hidden bg-white rounded-2xl p-4 pl-5 shadow-sm border border-slate-100">
+
+              {/* Colour accent strip */}
+              <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#ff6a00] to-[#a14000]" />
 
               <div className="flex items-start justify-between gap-3">
 
@@ -868,21 +1078,24 @@ export const PartnerDashboard = () => {
                     </h3>
 
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      {nextJob.day} • {nextJob.time}
+                      {[nextJob.day, nextJob.time].filter(Boolean).join(' • ')}
                     </p>
                   </div>
                 </div>
 
-                <span className="font-extrabold text-sm text-[#a14000] shrink-0">
+                <span className="font-extrabold text-sm text-[#006c49] bg-[#00ae78]/15 px-2.5 py-1 rounded-full shrink-0">
                   ₹{nextJob.price}
                 </span>
               </div>
 
               <button
                 onClick={() => switchPartnerTab('jobs')}
-                className="w-full mt-3 py-2.5 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[#a14000] text-xs font-bold border border-slate-200 active:scale-95 transition-all"
+                className="w-full mt-3 py-2.5 rounded-full bg-gradient-to-r from-[#ff6a00] to-[#a14000] hover:opacity-90 text-white text-xs font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
                 View Job
+                <span className="material-symbols-outlined text-[16px]">
+                  arrow_forward
+                </span>
               </button>
             </div>
           ) : (
@@ -1059,11 +1272,17 @@ export const PartnerDashboard = () => {
               <div className="flex items-center gap-2 min-w-0">
 
                 <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
-                  <img
-                    className="w-full h-full object-cover"
-                    alt={`Customer ${incomingJobDetails.customerName}`}
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZKnQP42EPG0JORpP5bTXuIreTz7lfmiiSke3JZzhdqFV7Pjd2tXztHMC9EFtcT5E4kJn8YRuq5kEZ2bY4nLB26pkktCdavk6F9afmmNcRO2-78-t3OIh-d6M4MEHLzSSTtgitcy1iLAAEEID2qFcx87ghwK_nevrbzFgkGapbKiIL-k7CKiXuYJOLFBuvsbd1Yh0UejQrUggO7n7AEewo0rMhrh8u93xBcXUG6Blrutcyp3EPmw7TGw"
-                  />
+                  {incomingJobDetails.customerAvatar ? (
+                    <img
+                      className="w-full h-full object-cover"
+                      alt={`Customer ${incomingJobDetails.customerName}`}
+                      src={incomingJobDetails.customerAvatar}
+                    />
+                  ) : (
+                    <span className="w-full h-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center text-xs font-bold">
+                      {(incomingJobDetails.customerName || 'C').trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
 
                 <div className="min-w-0">
@@ -1212,9 +1431,86 @@ export const PartnerDashboard = () => {
             </section>
           )}
 
+        {activeOrder.currentStep === 4 && (
+          <section className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
+
+            <div className="flex items-center gap-3">
+
+              <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">
+                  build
+                </span>
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#0b1c30]">
+                  Extra Parts Cost
+                </p>
+
+                <p className="text-[11px] text-slate-500">
+                  Need a costly component? Send the estimate for the customer to approve.
+                </p>
+              </div>
+            </div>
+
+            {extraChargeList.length > 0 && (
+              <div className="space-y-1.5">
+                {extraChargeList.map(([chargeId, charge]) => (
+                  <div
+                    key={chargeId}
+                    className="flex items-center justify-between gap-2 bg-[#f8f9ff] rounded-xl px-3 py-2"
+                  >
+                    <span className="text-xs text-[#0b1c30] truncate">
+                      {charge.item} • ₹{charge.amount}
+                    </span>
+
+                    <span
+                      className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${EXTRA_CHARGE_STATUS[charge.status]?.tone || 'bg-slate-100 text-slate-500'}`}
+                    >
+                      {EXTRA_CHARGE_STATUS[charge.status]?.label || charge.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <input
+                value={extraItem}
+                onChange={(e) => setExtraItem(e.target.value)}
+                placeholder="Part (e.g. Capacitor)"
+                className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+              />
+
+              <input
+                value={extraAmount}
+                onChange={(e) =>
+                  setExtraAmount(
+                    e.target.value.replace(/\D/g, '').slice(0, 6)
+                  )
+                }
+                placeholder="₹ Amount"
+                inputMode="numeric"
+                className="w-24 rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+              />
+            </div>
+
+            <button
+              onClick={handleRequestExtraCharge}
+              disabled={!extraItem.trim() || !extraAmount}
+              className="w-full py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all"
+            >
+              Send for Approval
+            </button>
+          </section>
+        )}
+
         <button
           onClick={() => {
-            setChatPartner(activeOrder?.customerName || 'KOODAM Customer');
+            setChatPartner({
+              name: activeOrder?.customerName || 'KOODAM Customer',
+              avatar: activeOrder?.customerAvatar || ''
+            });
             setIsChatOpen(true);
           }}
           className="w-full flex items-center justify-between gap-3 bg-white rounded-2xl p-4 shadow-xs border border-slate-100 active:scale-[0.99] transition-all"
@@ -1299,6 +1595,14 @@ export const PartnerDashboard = () => {
           </div>
 
           <div className="space-y-2">
+            {scheduledJobs.length === 0 && (
+              <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 text-center">
+                <p className="text-xs text-slate-400">
+                  No accepted jobs yet. Jobs you accept will appear here.
+                </p>
+              </div>
+            )}
+
             {scheduledJobs.map(job => (
               <div
                 key={job.id}
@@ -1319,14 +1623,14 @@ export const PartnerDashboard = () => {
                     <div className="flex items-center gap-1.5">
 
                       <span className="bg-[#eff4ff] text-[#0b1c30] text-[10px] px-2 py-0.5 rounded-full font-bold">
-                        {job.day}, {job.time}
+                        {[job.day, job.time].filter(Boolean).join(', ')}
                       </span>
 
                       <span className="text-[10px] text-[#006c49] font-semibold flex items-center gap-0.5">
 
                         <span className="w-1.5 h-1.5 rounded-full bg-[#00ae78]" />
 
-                        Confirmed
+                        {job.status}
                       </span>
                     </div>
 
@@ -1636,7 +1940,7 @@ export const PartnerDashboard = () => {
                 </div>
 
                 <p className="text-[11px] text-slate-400 mt-1 truncate">
-                  {partnerStats.reviews} reviews • 98% pos.
+                  {partnerStats.reviews} reviews
                 </p>
               </div>
             </div>
@@ -1786,6 +2090,51 @@ export const PartnerDashboard = () => {
                   {partnerProfile?.is_verified ? 'Verified' : 'Verification pending'}
                 </p>
               </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3.5">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${policeStatusInfo.tone}`}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  local_police
+                </span>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[#0b1c30]">
+                  Police Verification
+                </p>
+
+                <p className="text-[11px] text-slate-500">
+                  {policeStatusInfo.label}
+                  {policeVerification.status === 'REJECTED' &&
+                    policeVerification.rejection_reason &&
+                    `: ${policeVerification.rejection_reason}`}
+                </p>
+              </div>
+
+              <input
+                ref={policeFileInputRef}
+                type="file"
+                accept="application/pdf,image/jpeg,image/png"
+                onChange={handlePoliceCertificateSelected}
+                className="hidden"
+              />
+
+              {policeStatusInfo.canUpload && (
+                <button
+                  onClick={() => policeFileInputRef.current?.click()}
+                  disabled={isUploadingPolice}
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] disabled:opacity-50 text-[#a14000] text-[11px] font-bold active:scale-95 transition-all"
+                >
+                  {isUploadingPolice
+                    ? 'Uploading…'
+                    : policeVerification.status === 'REJECTED'
+                    ? 'Re-upload'
+                    : 'Upload'}
+                </button>
+              )}
             </div>
 
             <button
