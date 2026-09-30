@@ -14,7 +14,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithCredential
 } from 'firebase/auth';
 
 import {
@@ -35,6 +37,12 @@ import {
   haversineDistanceKm,
   estimateEtaMinutes
 } from '../lib/geo';
+
+import { supabase } from '../lib/supabase';
+
+// Which login page (member or partner) started a Google sign-in; kept in
+// storage because Google redirects away from the app and back
+const GOOGLE_ROLE_KEY = 'koodam-google-login-role';
 
 
 const AppContext = createContext(null);
@@ -1921,10 +1929,148 @@ const signIn = async (
 
 
   // =========================================================
+  // Google Sign-In (Supabase OAuth)
+  // =========================================================
+
+  // Step 1: remember which login page was used, then go to Google
+  const signInWithGoogle = async (targetRole) => {
+    try {
+      localStorage.setItem(GOOGLE_ROLE_KEY, targetRole);
+    } catch {
+      // Without storage the role can't survive the redirect; member is the fallback
+    }
+
+    setAuthLoading(true);
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { prompt: 'select_account' }
+      }
+    });
+
+    if (error) {
+      console.error('Google sign-in error:', error);
+      setAuthLoading(false);
+      showToast('Could not start Google sign-in. Please try again.');
+    }
+  };
+
+  // Step 2: Google sends the user back here with a Supabase session.
+  // The same Google login is used to sign in to Firebase, which the
+  // bookings, chat and live GPS data require.
+  const completeGoogleSignIn = async (session) => {
+    let targetRole = 'member';
+
+    try {
+      targetRole = localStorage.getItem(GOOGLE_ROLE_KEY) || 'member';
+      localStorage.removeItem(GOOGLE_ROLE_KEY);
+    } catch {
+      // Fall back to member
+    }
+
+    setAuthLoading(true);
+
+    try {
+      if (!session.provider_token) {
+        throw new Error('Google did not return an access token.');
+      }
+
+      if (!isFirebaseConfigured || !auth) {
+        throw new Error('Firebase is not configured.');
+      }
+
+      const credential = await signInWithCredential(
+        auth,
+        GoogleAuthProvider.credential(null, session.provider_token)
+      );
+
+      const googleUser = session.user?.user_metadata || {};
+
+      const backendUser = await syncUserWithBackend(
+        credential.user,
+        targetRole,
+        {
+          name: googleUser.full_name || googleUser.name,
+          avatar: googleUser.avatar_url || googleUser.picture
+        }
+      );
+
+      if (backendUser) {
+        if (targetRole === 'partner') {
+          setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
+        } else {
+          setUserProfile((prev) => ({ ...prev, ...backendUser }));
+        }
+      }
+
+      enterRole(targetRole);
+
+      showToast(
+        `Welcome to KOODAM, ${backendUser?.name || googleUser.full_name || 'there'}!`
+      );
+    } catch (err) {
+      console.error('Google sign-in could not be completed:', err);
+
+      await supabase.auth.signOut().catch(() => {});
+
+      showToast(
+        err?.code === 'auth/operation-not-allowed'
+          ? 'Google sign-in is not enabled in Firebase. Enable Google under Firebase Authentication > Sign-in method.'
+          : 'Google sign-in failed. Please try again.'
+      );
+
+      navigateTo(targetRole === 'partner' ? 'partnerLogin' : 'memberLogin');
+    } finally {
+      setAuthLoading(false);
+
+      // Remove the OAuth tokens/code from the address bar
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  };
+
+  useEffect(() => {
+    let handled = false;
+
+    const handle = (session) => {
+      // Only finish sign-ins this app started (the role key is set in step 1)
+      let pending = false;
+
+      try {
+        pending = Boolean(localStorage.getItem(GOOGLE_ROLE_KEY));
+      } catch {
+        pending = false;
+      }
+
+      if (!session || !pending || handled) {
+        return;
+      }
+
+      handled = true;
+      completeGoogleSignIn(session);
+    };
+
+    supabase.auth.getSession().then(({ data }) => handle(data.session));
+
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        handle(session);
+      }
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+
+  // =========================================================
   // Logout
   // =========================================================
 
   const logout = async () => {
+
+    // Also end a Google (Supabase) session, if there is one
+    await supabase.auth.signOut().catch(() => {});
 
     if (
       isFirebaseConfigured &&
@@ -3329,6 +3475,7 @@ return (
 
       signUp,
       signIn,
+      signInWithGoogle,
       logout,
       requestPasswordReset,
 
