@@ -25,6 +25,8 @@ class PartnerResponse(BaseModel):
     vehicle_number: Optional[str] = None
     is_online: bool
     is_verified: bool
+    police_verification_status: str = "NOT_SUBMITTED"
+    service_radius_km: int = 5
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 

@@ -11,6 +11,8 @@ from app.models.booking import Booking
 from app.models.review import Review
 from app.models.emergency import EmergencyRequest
 from app.models.partner_service import PartnerService
+from app.models.partner_document import PartnerDocument
+from app.models.booking_detail import BookingDetail, BookingExtraCharge
 
 from app.routers.user import router as user_router
 from app.routers.partner import router as partner_router
@@ -19,6 +21,7 @@ from app.routers.partner_service import router as partner_service_router
 from app.routers.booking import router as booking_router
 from app.routers.review import router as review_router
 from app.routers.emergency import router as emergency_router
+from app.routers.booking_sync import router as booking_sync_router
 
 
 app = FastAPI(title="KOODAM Backend")
@@ -46,10 +49,30 @@ app.include_router(partner_service_router)
 app.include_router(booking_router)
 app.include_router(review_router)
 app.include_router(emergency_router)
+app.include_router(booking_sync_router)
 
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+
+# create_all only creates missing tables; add columns introduced later
+# to tables that already exist
+with engine.begin() as connection:
+    connection.execute(text(
+        "ALTER TABLE partners "
+        "ADD COLUMN IF NOT EXISTS police_verification_status "
+        "VARCHAR NOT NULL DEFAULT 'NOT_SUBMITTED'"
+    ))
+    connection.execute(text(
+        "ALTER TABLE partners "
+        "ADD COLUMN IF NOT EXISTS police_rejection_reason VARCHAR"
+    ))
+    connection.execute(text(
+        "ALTER TABLE partners "
+        "ADD COLUMN IF NOT EXISTS service_radius_km "
+        "INTEGER NOT NULL DEFAULT 5"
+    ))
 
 
 @app.get("/")

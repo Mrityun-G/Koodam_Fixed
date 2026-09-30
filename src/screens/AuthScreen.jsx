@@ -127,6 +127,11 @@ const DOCUMENT_ACCENTS = {
     icon: 'text-violet-300',
     badge: 'bg-violet-400/20',
     border: 'border-violet-400/30 bg-violet-400/5 hover:border-violet-400/60 hover:bg-violet-400/10'
+  },
+  amber: {
+    icon: 'text-amber-300',
+    badge: 'bg-amber-400/20',
+    border: 'border-amber-400/30 bg-amber-400/5 hover:border-amber-400/60 hover:bg-amber-400/10'
   }
 };
 
@@ -171,7 +176,7 @@ const DocumentUpload = ({ icon: Icon, label, accent, file, onSelect, onRemove, e
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${accentCfg.badge}`}>
             <Icon size={22} className={accentCfg.icon} />
           </div>
-          <span className="text-xs font-semibold text-white/80">Tap to upload {label.toLowerCase()}</span>
+          <span className="text-xs font-semibold text-white/80">{`Tap to upload ${label.toLowerCase()}`}</span>
           <span className="text-[10px] text-white/40">Camera or Gallery · JPG, PNG or PDF · up to 5MB</span>
         </button>
       ) : (
@@ -229,15 +234,22 @@ export const AuthScreen = () => {
   const [aadhaarFile, setAadhaarFile] = useState(null);
   const [panFile, setPanFile] = useState(null);
   const [voterIdFile, setVoterIdFile] = useState(null);
+  // Optional at sign-up; it can also be uploaded later from the partner Profile
+  const [policeFile, setPoliceFile] = useState(null);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const aadhaarError = documentFileError(aadhaarFile);
   const panError = documentFileError(panFile);
   const voterIdError = documentFileError(voterIdFile);
+  const policeError = documentFileError(policeFile);
 
   const kycValid =
-    !isPartner || (isValidDocumentFile(aadhaarFile) && isValidDocumentFile(panFile) && isValidDocumentFile(voterIdFile));
+    !isPartner ||
+    (isValidDocumentFile(aadhaarFile) &&
+      isValidDocumentFile(panFile) &&
+      isValidDocumentFile(voterIdFile) &&
+      (!policeFile || isValidDocumentFile(policeFile)));
 
   const canSubmit = isSignup
     ? Boolean(name.trim()) &&
@@ -259,7 +271,9 @@ export const AuthScreen = () => {
     if (password.length < 6) return 'Password must be at least 6 characters.';
     if (password !== confirmPassword) return 'Passwords do not match.';
     if (!agreedToTerms) return 'Please agree to the Terms & Policy.';
-    if (!kycValid) return 'Upload valid Aadhaar, PAN & Voter ID documents.';
+    if (!kycValid) return policeError
+      ? 'Upload a valid police clearance certificate, or remove it.'
+      : 'Upload valid Aadhaar, PAN & Voter ID documents.';
     return null;
   })();
   const hasStartedForm = Boolean(name.trim() || email || phone.trim() || password || confirmPassword);
@@ -272,7 +286,7 @@ export const AuthScreen = () => {
         email: email.trim(),
         phone: phone.trim(),
         password,
-        ...(isPartner ? { aadhaarFile, panFile, voterIdFile } : {})
+        ...(isPartner ? { aadhaarFile, panFile, voterIdFile, policeFile } : {})
       });
     } else {
       signIn(role, { email: email.trim(), password });
@@ -423,6 +437,21 @@ export const AuthScreen = () => {
                   onRemove={() => setVoterIdFile(null)}
                   error={voterIdError}
                 />
+
+                <DocumentUpload
+                  icon={ShieldCheck}
+                  label="Police Clearance Certificate"
+                  accent="amber"
+                  file={policeFile}
+                  onSelect={setPoliceFile}
+                  onRemove={() => setPoliceFile(null)}
+                  error={policeError}
+                />
+
+                <p className="-mt-1 text-[10px] text-amber-200/80 leading-relaxed">
+                  Optional now — you can also upload it later from your Profile. Partners
+                  with a verified certificate get a Police Verified badge.
+                </p>
 
                 <p className="text-[10px] text-[#dce1ff]/70 leading-relaxed">
                   Used only to verify your identity as a service partner. Your documents are never shared with

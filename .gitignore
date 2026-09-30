@@ -1,0 +1,22 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+backend/env
+backend/.env
+backend/.env.*
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Dependencies
+node_modules/
+
+# Local tooling
+.token-optimizer/
+
+# Logs
+logs/
+# Build output
+dist/

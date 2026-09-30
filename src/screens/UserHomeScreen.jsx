@@ -162,6 +162,9 @@ useEffect(() => {
                 isVerified:
                   partner.is_verified,
 
+                policeVerified:
+                  Boolean(partner.police_verified),
+
                 badge:
                   partner.is_verified
                     ? 'Verified Partner'
@@ -536,6 +539,12 @@ useEffect(() => {
                         <span className="material-symbols-outlined text-[12px]">verified</span>
                         <span>{helper.badge}</span>
                       </span>
+                      {helper.policeVerified && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#6ffbbe] text-[#002113]">
+                          <span className="material-symbols-outlined text-[12px]">local_police</span>
+                          <span>Police Verified</span>
+                        </span>
+                      )}
                       <span className="text-[11px] text-slate-500 flex items-center gap-0.5">
                         <span className="material-symbols-outlined text-[13px]">near_me</span>
                         {helper.distance}
@@ -560,7 +569,10 @@ useEffect(() => {
                     <button
                       aria-label={`Chat with ${helper.name}`}
                       onClick={() => {
-                        setChatPartner(helper.name);
+                        setChatPartner({
+                          name: helper.name,
+                          avatar: helper.avatar || ''
+                        });
                         setIsChatOpen(true);
                       }}
                       className="w-9 h-9 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[#1b2a5e] flex items-center justify-center transition-colors"

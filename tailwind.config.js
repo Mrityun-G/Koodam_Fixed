@@ -75,18 +75,18 @@ export default {
         "gutter": "1rem"
       },
       fontFamily: {
-        sans: ["'Plus Jakarta Sans'", "sans-serif"],
-        "headline-lg-mobile": ["'Plus Jakarta Sans'", "sans-serif"],
-        "display-lg": ["'Plus Jakarta Sans'", "sans-serif"],
-        "label-lg": ["'Plus Jakarta Sans'", "sans-serif"],
-        "body-sm": ["'Plus Jakarta Sans'", "sans-serif"],
-        "body-lg": ["'Plus Jakarta Sans'", "sans-serif"],
-        "headline-sm": ["'Plus Jakarta Sans'", "sans-serif"],
-        "headline-lg": ["'Plus Jakarta Sans'", "sans-serif"],
-        "headline-md": ["'Plus Jakarta Sans'", "sans-serif"],
-        "label-sm": ["'Plus Jakarta Sans'", "sans-serif"],
-        "label-md": ["'Plus Jakarta Sans'", "sans-serif"],
-        "body-md": ["'Plus Jakarta Sans'", "sans-serif"]
+        sans: ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "headline-lg-mobile": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "display-lg": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "label-lg": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "body-sm": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "body-lg": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "headline-sm": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "headline-lg": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "headline-md": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "label-sm": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "label-md": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"],
+        "body-md": ["'Plus Jakarta Sans'", "'Noto Sans Tamil'", "'Noto Sans Kannada'", "sans-serif"]
       },
       fontSize: {
         "headline-lg-mobile": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],

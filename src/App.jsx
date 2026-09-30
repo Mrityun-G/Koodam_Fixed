@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { MobileFrame } from './components/MobileFrame';
 import { LandingScreen } from './screens/LandingScreen';
@@ -17,12 +17,19 @@ import { FAQScreen } from './screens/FAQScreen';
 import { TermsScreen } from './screens/TermsScreen';
 import { ChatModal } from './components/ChatModal';
 import { EmergencyModal } from './components/EmergencyModal';
+import { startDomTranslator } from './lib/domTranslator';
 
 const AppContent = () => {
-  const { currentScreen, toastMessage } = useApp();
+  const { currentScreen, toastMessage, language } = useApp();
+
+  // Show the whole app in the chosen language (English, Tamil or Kannada)
+  useEffect(
+    () => startDomTranslator(document.getElementById('root'), language),
+    [language]
+  );
 
   return (
-    <MobileFrame>
+    <MobileFrame overlay={<ChatModal />}>
       {/* Dynamic Screen Routing */}
       {currentScreen === 'landing' && <LandingScreen />}
       {currentScreen === 'welcome' && <WelcomeScreen />}
@@ -43,7 +50,6 @@ const AppContent = () => {
       {currentScreen === 'terms' && <TermsScreen />}
 
       {/* Global Modals & Overlays */}
-      <ChatModal />
       <EmergencyModal />
 
       {/* Global Tactile Toast Notification */}

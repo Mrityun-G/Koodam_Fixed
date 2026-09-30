@@ -9,7 +9,8 @@ export const ChatModal = () => {
     chatPartner,
     messages,
     sendChatMessage,
-    role
+    role,
+    activeOrder
   } = useApp();
 
   const myRole = role === 'partner' ? 'partner' : 'member';
@@ -17,14 +18,28 @@ export const ChatModal = () => {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef(null);
 
+  // The other person on the active booking: the partner for a member,
+  // the customer for a partner. Used when the chat was opened without a
+  // contact (e.g. from the bottom Chat tab).
+  const orderContact = activeOrder?.orderId
+    ? myRole === 'member'
+      ? { name: activeOrder.helperName, avatar: activeOrder.helperAvatar }
+      : { name: activeOrder.customerName, avatar: activeOrder.customerAvatar }
+    : null;
+
   // Support either a contact name string or a contact object.
-  const partnerName =
+  // 'KOODAM Customer' is the app's placeholder, not a real name.
+  const explicitName =
     typeof chatPartner === 'string'
-      ? chatPartner
+      ? chatPartner !== 'KOODAM Customer' && chatPartner
       : chatPartner?.name ||
         chatPartner?.partnerName ||
-        chatPartner?.customerName ||
-        'KOODAM User';
+        chatPartner?.customerName;
+
+  const partnerName =
+    explicitName ||
+    orderContact?.name ||
+    'KOODAM User';
 
   const partnerPhone =
     typeof chatPartner === 'object' && chatPartner
@@ -32,9 +47,13 @@ export const ChatModal = () => {
       : '';
 
   const partnerAvatar =
-    typeof chatPartner === 'object' && chatPartner
-      ? chatPartner.avatar || chatPartner.profilePhoto || chatPartner.photo || ''
-      : '';
+    (typeof chatPartner === 'object' && chatPartner
+      ? chatPartner.avatar || chatPartner.profilePhoto || chatPartner.photo
+      : '') ||
+    (!explicitName || explicitName === orderContact?.name
+      ? orderContact?.avatar
+      : '') ||
+    '';
 
   const partnerVehicle =
     typeof chatPartner === 'object' && chatPartner
@@ -99,11 +118,10 @@ export const ChatModal = () => {
   return (
     <div
       className="
-        fixed inset-0 z-[9999] isolate
+        absolute inset-0 z-[9999] isolate
         bg-black/60 backdrop-blur-xs
-        flex items-end sm:items-center
+        flex items-end
         justify-center
-        p-0 sm:p-4
         animate-in fade-in duration-200
       "
       onClick={handleClose}
@@ -114,11 +132,11 @@ export const ChatModal = () => {
         aria-label={`Chat with ${partnerName}`}
         className="
           relative z-[10000]
-          w-full max-w-md
+          w-full
           bg-[#f8f9ff]
-          h-[85dvh] sm:h-[650px]
-          max-h-[92dvh]
-          rounded-t-[32px] sm:rounded-[32px]
+          h-[88%]
+          max-h-full
+          rounded-t-[32px]
           shadow-2xl
           flex flex-col
           overflow-hidden
@@ -337,7 +355,7 @@ export const ChatModal = () => {
                   }
                 `}
               >
-                <p className="leading-relaxed whitespace-pre-wrap">
+                <p className="leading-relaxed whitespace-pre-wrap" data-no-translate>
                   {msg.text}
                 </p>
               </div>

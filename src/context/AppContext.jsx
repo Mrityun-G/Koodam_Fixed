@@ -60,6 +60,45 @@ const toDbKey = (orderId) =>
   String(orderId).replace(/[.#$[\]]/g, '');
 
 
+// Turns the booking screen's labels (e.g. "Tomorrow 1" and
+// "10:30 AM - 11:30 AM") into a timestamp for the start of the visit.
+// The date label ends with a day of the month within the next 31 days.
+const getScheduledTimestamp = (dateLabel, timeLabel) => {
+  const dayOfMonth = Number(String(dateLabel || '').match(/(\d{1,2})\s*$/)?.[1]);
+  const time = String(timeLabel || '').match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+
+  if (!dayOfMonth || !time) {
+    return null;
+  }
+
+  const today = new Date();
+
+  for (let offset = 0; offset <= 31; offset += 1) {
+    const date = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + offset
+    );
+
+    if (date.getDate() === dayOfMonth) {
+      let hours = Number(time[1]) % 12;
+      const meridiem = (time[3] || '').toUpperCase();
+
+      if (meridiem === 'PM') {
+        hours += 12;
+      } else if (!meridiem) {
+        hours = Number(time[1]);
+      }
+
+      date.setHours(hours, Number(time[2]), 0, 0);
+      return date.getTime();
+    }
+  }
+
+  return null;
+};
+
+
 // Error codes that mean the Firebase project itself isn't fully set up.
 const AUTH_SETUP_ERROR_CODES = [
   'auth/configuration-not-found',
@@ -117,7 +156,25 @@ export const AppProvider = ({ children }) => {
 
   const [activeTab, setActiveTab] = useState('home');
 
-  const [language, setLanguage] = useState('en');
+  // Remembered across reloads; the app is translated from this in App.jsx
+  const [language, setLanguage] = useState(() => {
+    try {
+      const saved = localStorage.getItem('koodam-language');
+      return ['en', 'ta', 'kn'].includes(saved) ? saved : 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('koodam-language', language);
+    } catch {
+      // Storage can be unavailable (e.g. private mode); the choice then lasts this session
+    }
+
+    document.documentElement.lang = language;
+  }, [language]);
 
   const [location, setLocation] =
     useState('Indiranagar, Bengaluru');
@@ -361,6 +418,33 @@ const [activeOrder, setActiveOrder] = useState({
     }
 
     if (
+      next.bookingStatus !== previous.bookingStatus &&
+      next.bookingStatus === 'EXPIRED'
+    ) {
+      addNotification('member', {
+        title: 'No Response from Partner',
+        desc: `${helperName} didn't respond in time. Please book another helper.`
+      });
+      showToast(`${helperName} didn't respond in time.`);
+    }
+
+    Object.entries(next.extraCharges || {})
+      .filter(
+        ([chargeId, charge]) =>
+          charge.status === 'PENDING' &&
+          !previous.chargeIds?.includes(chargeId)
+      )
+      .forEach(([, charge]) => {
+        addNotification('member', {
+          title: 'Extra Cost Needs Approval',
+          desc: `${helperName} needs ${charge.item} (₹${charge.amount}). Approve or decline it on the Requests screen.`,
+          screen: 'tracking',
+          tab: 'requests'
+        });
+        showToast(`Extra cost requested: ${charge.item} ₹${charge.amount}`);
+      });
+
+    if (
       next.currentStep === 4 &&
       (previous.currentStep ?? 0) < 4
     ) {
@@ -371,6 +455,85 @@ const [activeOrder, setActiveOrder] = useState({
         tab: 'requests'
       });
     }
+  };
+
+  // Last order payload sent to the backend, so unchanged snapshots are skipped
+  const lastSyncedOrderRef = useRef(null);
+
+  // Incremented after each successful sync so dependent data can reload
+  const [backendSyncVersion, setBackendSyncVersion] = useState(0);
+
+  // Keep a permanent copy of the order in Supabase (via the backend).
+  // Firebase stays the live source; a failed sync never blocks the app.
+  const syncOrderToBackend = (orderId, order) => {
+    const payload = {
+      firebase_order_id: String(orderId),
+      customer_id: order.customerId || null,
+      partner_id: order.partnerId || null,
+      service_id: order.serviceId || null,
+      booking_status: order.bookingStatus || order.status || null,
+      current_step: Number.isFinite(order.currentStep)
+        ? order.currentStep
+        : null,
+      address: order.area || null,
+      latitude: order.customerLat ?? null,
+      longitude: order.customerLng ?? null,
+      total_amount: Number(order.totalAmount || 0),
+      safety_pin: order.safetyPin ? String(order.safetyPin) : null,
+      payment_status: order.paymentStatus || null,
+      amount_paid: Number(order.totalPaid || 0),
+      razorpay_payment_id: order.paymentId || null,
+      scheduled_at: order.scheduledAt || null,
+      created_at: order.createdAt || null,
+      accepted_at: order.acceptedAt || null,
+      completed_at: order.completedAt || null,
+      paid_at: order.paidAt || null,
+      extra_charges: Object.entries(order.extraCharges || {}).map(
+        ([chargeId, charge]) => ({
+          firebase_charge_id: chargeId,
+          item: charge.item,
+          amount: Number(charge.amount || 0),
+          status: charge.status || 'PENDING',
+          created_at: charge.createdAt || null,
+          responded_at: charge.respondedAt || null
+        })
+      ),
+      rating: order.rating ? Number(order.rating) : null,
+      feedback: order.feedback || null
+    };
+
+    const serialized = JSON.stringify(payload);
+
+    if (lastSyncedOrderRef.current === serialized) {
+      return;
+    }
+
+    lastSyncedOrderRef.current = serialized;
+
+    fetch(`${BACKEND_URL}/bookings/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: serialized
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const error = await response.json().catch(() => null);
+          console.warn(
+            'Booking sync to backend failed:',
+            error?.detail || response.status
+          );
+          // Allow the same data to be retried on the next change
+          lastSyncedOrderRef.current = null;
+          return;
+        }
+
+        // Let the partner overview reload the new numbers
+        setBackendSyncVersion((version) => version + 1);
+      })
+      .catch((error) => {
+        console.warn('Booking sync to backend failed:', error);
+        lastSyncedOrderRef.current = null;
+      });
   };
 
   useEffect(() => {
@@ -408,8 +571,11 @@ const [activeOrder, setActiveOrder] = useState({
 
           lastOrderSnapshotRef.current = {
             bookingStatus: val.bookingStatus,
-            currentStep: val.currentStep
+            currentStep: val.currentStep,
+            chargeIds: Object.keys(val.extraCharges || {})
           };
+
+          syncOrderToBackend(activeOrder.orderId, val);
 
           setActiveOrder((prev) => ({
             ...prev,
@@ -635,13 +801,18 @@ const [activeOrder, setActiveOrder] = useState({
 
   const [partnerStats, setPartnerStats] =
     useState({
-      todayEarnings: 1850,
-      completedJobs: 3,
-      weeklyBalance: 9420,
-      // Derived from customer ratings on this partner's booking requests
+      // Loaded from Supabase via GET /partners/{id}/overview
+      todayEarnings: 0,
+      completedJobs: 0,
+      weeklyBalance: 0,
       rating: 0,
-      reviews: 0
+      reviews: 0,
+      serviceRadiusKm: 5
     });
+
+  // Accepted / in-progress bookings, soonest first (from Supabase)
+  const [partnerUpcomingJobs, setPartnerUpcomingJobs] =
+    useState([]);
 
   // Request IDs already known to be rated, so only new ratings notify
   const knownRatedRequestIdsRef = useRef(null);
@@ -665,6 +836,7 @@ const [activeOrder, setActiveOrder] = useState({
       area: '',
       payout: 0,
       customerName: '',
+      customerAvatar: '',
       customerRating: 0
     });
 
@@ -720,20 +892,8 @@ const syncPartnerReviews = (data) => {
     }))
   );
 
-  const totalStars = ratedRequests.reduce(
-    (sum, request) => sum + Number(request.rating),
-    0
-  );
-
-  setPartnerStats((prev) => ({
-    ...prev,
-    reviews: ratedRequests.length,
-    rating: ratedRequests.length
-      ? Math.round(
-          (totalStars / ratedRequests.length) * 100
-        ) / 100
-      : 0
-  }));
+  // The rating and review count shown on the dashboard come from
+  // Supabase (see refreshPartnerOverview)
 
   // The first snapshot is the baseline; notify only for new ratings
   if (knownRatedRequestIdsRef.current) {
@@ -759,6 +919,165 @@ const syncPartnerReviews = (data) => {
     ratedRequests.map((request) => request.requestId)
   );
 };
+
+// ==========================================
+// PARTNER: TODAY'S OVERVIEW FROM SUPABASE
+// ==========================================
+const refreshPartnerOverview = async () => {
+  if (!partnerProfile?.id) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${BACKEND_URL}/partners/${partnerProfile.id}/overview` +
+      `?tz_offset_minutes=${new Date().getTimezoneOffset()}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Overview request failed: ${response.status}`);
+    }
+
+    const overview = await response.json();
+
+    setPartnerStats((prev) => ({
+      ...prev,
+      todayEarnings: overview.today_earnings,
+      completedJobs: overview.today_completed_jobs,
+      weeklyBalance: overview.week_earnings,
+      rating: overview.rating,
+      reviews: overview.reviews_count,
+      serviceRadiusKm: overview.service_radius_km || 5
+    }));
+
+    setPartnerUpcomingJobs(overview.upcoming_jobs || []);
+  } catch (error) {
+    console.error('Failed to load partner overview:', error);
+  }
+};
+
+const SERVICE_RADIUS_OPTIONS_KM = [3, 5, 10, 15];
+
+// Moves to the next radius option and saves it to Supabase
+const cycleServiceRadius = async () => {
+  if (!partnerProfile?.id) {
+    return;
+  }
+
+  const current = partnerStats.serviceRadiusKm || 5;
+  const index = SERVICE_RADIUS_OPTIONS_KM.indexOf(current);
+  const next =
+    SERVICE_RADIUS_OPTIONS_KM[(index + 1) % SERVICE_RADIUS_OPTIONS_KM.length];
+
+  try {
+    const response = await fetch(
+      `${BACKEND_URL}/partners/${partnerProfile.id}/service-radius`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service_radius_km: next })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Radius update failed: ${response.status}`);
+    }
+
+    setPartnerStats((prev) => ({ ...prev, serviceRadiusKm: next }));
+    showToast(`Service radius set to ${next} km`);
+  } catch (error) {
+    console.error('Failed to update service radius:', error);
+    showToast('Could not update service radius. Please try again.');
+  }
+};
+
+// Reload when the dashboard opens, after each booking sync, and every
+// minute (to pick up changes synced from the customer's device)
+useEffect(() => {
+  if (role !== 'partner' || !partnerProfile?.id) {
+    return;
+  }
+
+  refreshPartnerOverview();
+
+  const timer = setInterval(refreshPartnerOverview, 60000);
+
+  return () => clearInterval(timer);
+}, [role, partnerProfile?.id, backendSyncVersion]);
+
+// ==========================================
+// PARTNER: EXPIRE UNANSWERED BOOKING REQUESTS
+// ==========================================
+const DEFAULT_REQUEST_EXPIRY_SECONDS = 105;
+
+// Seconds left to answer a request, measured from when it was sent
+const getRequestSecondsLeft = (request) => {
+  const expiresIn =
+    request.expiresIn || DEFAULT_REQUEST_EXPIRY_SECONDS;
+
+  if (!request.createdAt) {
+    return expiresIn;
+  }
+
+  return Math.max(
+    0,
+    Math.round(
+      (request.createdAt + expiresIn * 1000 - Date.now()) / 1000
+    )
+  );
+};
+
+// Mark an unanswered request as expired so it stops reappearing,
+// and let the member's order listener know the partner didn't respond
+const expireBookingRequest = (partnerId, requestId) => {
+  if (!isFirebaseConfigured || !db || !partnerId || !requestId) {
+    return;
+  }
+
+  const expiredAt = Date.now();
+
+  Promise.all([
+    update(
+      ref(db, `bookingRequests/${partnerId}/${requestId}`),
+      {
+        status: 'EXPIRED',
+        bookingStatus: 'EXPIRED',
+        expiredAt
+      }
+    ),
+    update(
+      ref(db, `orders/${toDbKey(requestId)}`),
+      {
+        status: 'EXPIRED',
+        bookingStatus: 'EXPIRED',
+        expiredAt
+      }
+    )
+  ]).catch((error) => {
+    console.error(
+      '❌ Failed to expire booking request:',
+      error
+    );
+  });
+};
+
+// When the countdown runs out on screen, expire the request
+useEffect(() => {
+  if (
+    hasIncomingJob &&
+    incomingCountdown === 0 &&
+    incomingJobDetails.requestId
+  ) {
+    setHasIncomingJob(false);
+
+    expireBookingRequest(
+      incomingJobDetails.partnerId,
+      incomingJobDetails.requestId
+    );
+
+    showToast('Job request expired.');
+  }
+}, [hasIncomingJob, incomingCountdown]);
 
 // ==========================================
 // PARTNER: LISTEN FOR INCOMING BOOKING REQUESTS
@@ -839,7 +1158,7 @@ const requestsRef = ref(db, requestPath);
             return;
           }
 
-          const requests = Object.entries(data)
+          const pendingRequests = Object.entries(data)
             .map(([requestId, request]) => ({
               requestId,
               ...request
@@ -847,6 +1166,26 @@ const requestsRef = ref(db, requestPath);
             .filter(
               (request) =>
                 request.status === 'PENDING'
+            );
+
+          // Requests left unanswered past their time limit are expired,
+          // otherwise they would reappear on every reload
+          pendingRequests
+            .filter(
+              (request) =>
+                getRequestSecondsLeft(request) === 0
+            )
+            .forEach((request) =>
+              expireBookingRequest(
+                partnerId,
+                request.requestId
+              )
+            );
+
+          const requests = pendingRequests
+            .filter(
+              (request) =>
+                getRequestSecondsLeft(request) > 0
             )
             .sort(
               (a, b) =>
@@ -867,7 +1206,7 @@ const requestsRef = ref(db, requestPath);
             requestId:
               latestRequest.requestId || null,
             partnerId:
-              latestRequest.partnerId || null,
+              latestRequest.partnerId || partnerId,
             category:
               latestRequest.category || 'Home Services',
             title:
@@ -882,6 +1221,8 @@ const requestsRef = ref(db, requestPath);
               Number(latestRequest.payout || 0),
             customerName:
               latestRequest.customerName || 'KOODAM Customer',
+            customerAvatar:
+              latestRequest.customerAvatar || '',
             customerRating:
               latestRequest.customerRating || 5
           });
@@ -889,7 +1230,7 @@ const requestsRef = ref(db, requestPath);
           setHasIncomingJob(true);
 
           setIncomingCountdown(
-            latestRequest.expiresIn || 105
+            getRequestSecondsLeft(latestRequest)
           );
 
           console.log(
@@ -1214,7 +1555,8 @@ const signUp = async (
     password,
     aadhaarFile,
     panFile,
-    voterIdFile
+    voterIdFile,
+    policeFile
   }
 ) => {
   setAuthLoading(true);
@@ -1316,13 +1658,45 @@ const signUp = async (
     }
 
     // -------------------------------------------------------
+    // Police clearance certificate (optional) -> Supabase review
+    // -------------------------------------------------------
+
+    let policeUploadFailed = false;
+
+    if (
+      targetRole === 'partner' &&
+      policeFile &&
+      backendUser?.id
+    ) {
+      try {
+        const formData = new FormData();
+        formData.append('file', policeFile);
+
+        const response = await fetch(
+          `${BACKEND_URL}/partners/${backendUser.id}/police-verification`,
+          { method: 'POST', body: formData }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Police certificate upload failed: ${response.status}`);
+        }
+      } catch (error) {
+        // The account is still created; the partner can re-upload from Profile
+        console.error('Police certificate upload failed:', error);
+        policeUploadFailed = true;
+      }
+    }
+
+    // -------------------------------------------------------
     // Existing KOODAM navigation
     // -------------------------------------------------------
 
     enterRole(targetRole);
 
     showToast(
-      `Welcome to KOODAM, ${name || 'there'}!`
+      policeUploadFailed
+        ? 'Account created, but the police certificate upload failed — you can upload it from your Profile.'
+        : `Welcome to KOODAM, ${name || 'there'}!`
     );
 
     return true;
@@ -2122,7 +2496,12 @@ const handleConfirmBooking = async () => {
             userProfile?.name ||
             authUser?.displayName ||
             'KOODAM Customer',
+          customerAvatar:
+            userProfile?.avatar ||
+            authUser?.photoURL ||
+            '',
           helperName: selectedHelper.name,
+          helperAvatar: selectedHelper?.avatar || '',
           serviceTitle: selectedService.title,
           serviceId: selectedService?.id || null,
           category:
@@ -2139,6 +2518,13 @@ const handleConfirmBooking = async () => {
           completionOtp: null,
           etaMinutes: 12,
           area: location || 'Nearby',
+          scheduledAt: getScheduledTimestamp(
+            selectedDate,
+            selectedTime
+          ),
+          scheduledLabel: [selectedDate, selectedTime]
+            .filter(Boolean)
+            .join(', '),
           createdAt: Date.now()
         }
       );
@@ -2403,6 +2789,86 @@ const verifyArrivalOtp = (code) => {
 // Verify Completion OTP
 // =========================================================
 
+// =========================================================
+// Extra Parts Cost (added by partner during the work)
+// =========================================================
+
+// Partner: request an extra cost for a component/part found during the job.
+// It is only added to the bill once the member approves it.
+const requestExtraCharge = (item, amount) => {
+  const name = String(item || '').trim();
+  const value = Math.round(Number(amount));
+
+  if (!name || !Number.isFinite(value) || value <= 0) {
+    showToast('Enter the part name and a valid amount.');
+    return false;
+  }
+
+  if (activeOrder.currentStep !== 4) {
+    showToast('Extra costs can only be added while the work is in progress.');
+    return false;
+  }
+
+  if (!isFirebaseConfigured || !db || !activeOrder.orderId) {
+    showToast('Unable to send the extra cost. Please check your connection.');
+    return false;
+  }
+
+  push(
+    ref(db, `orders/${toDbKey(activeOrder.orderId)}/extraCharges`),
+    {
+      item: name,
+      amount: value,
+      status: 'PENDING',
+      createdAt: Date.now()
+    }
+  ).catch((error) => {
+    console.error('❌ Failed to add extra cost:', error);
+    showToast('Unable to send the extra cost. Please try again.');
+  });
+
+  showToast(`Sent ₹${value} for ${name} to the customer for approval.`);
+  return true;
+};
+
+// Member: approve or decline an extra cost. Approving adds it to the bill.
+const respondToExtraCharge = (chargeId, approve) => {
+  const charge = activeOrder.extraCharges?.[chargeId];
+
+  if (!charge || charge.status !== 'PENDING') {
+    return;
+  }
+
+  const patch = {
+    [`extraCharges/${chargeId}/status`]:
+      approve ? 'APPROVED' : 'DECLINED',
+    [`extraCharges/${chargeId}/respondedAt`]:
+      Date.now()
+  };
+
+  if (approve) {
+    patch.totalAmount =
+      Number(activeOrder.totalAmount || 0) +
+      Number(charge.amount || 0);
+  }
+
+  if (isFirebaseConfigured && db && activeOrder.orderId) {
+    update(
+      ref(db, `orders/${toDbKey(activeOrder.orderId)}`),
+      patch
+    ).catch((error) => {
+      console.error('❌ Failed to respond to extra cost:', error);
+      showToast('Unable to update the extra cost. Please try again.');
+    });
+  }
+
+  showToast(
+    approve
+      ? `Approved ₹${charge.amount} for ${charge.item}.`
+      : `Declined ${charge.item}.`
+  );
+};
+
 const verifyCompletionOtp = (code) => {
   if (
     activeOrder.currentStep !== 4 ||
@@ -2628,6 +3094,8 @@ etaMinutes: 12,
       requestId,
       partnerId,
       helperName: acceptedPartnerName,
+      customerName: incomingJobDetails.customerName,
+      customerAvatar: incomingJobDetails.customerAvatar,
       bookingStatus: 'ACCEPTED',
       status: 'ACCEPTED',
       currentStep: 3,
@@ -2635,7 +3103,10 @@ serviceStatus: 'en_route',
 etaMinutes: 12,
     }));
 
-    setChatPartner(acceptedPartnerName);
+    setChatPartner({
+      name: incomingJobDetails.customerName || 'KOODAM Customer',
+      avatar: incomingJobDetails.customerAvatar || ''
+    });
 
     // The member is notified by their own Firebase order listener
 
@@ -2906,6 +3377,9 @@ return (
       isPartnerOnline,
 
       partnerStats,
+      partnerUpcomingJobs,
+      refreshPartnerOverview,
+      cycleServiceRadius,
 
       hasIncomingJob,
       incomingCountdown,
@@ -2946,6 +3420,8 @@ return (
 
       verifyArrivalOtp,
       verifyCompletionOtp,
+      requestExtraCharge,
+      respondToExtraCharge,
       markPaymentCompleted,
 
       submitRating,
