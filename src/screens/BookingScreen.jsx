@@ -1,5 +1,14 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import {
+  DEFAULT_TIME_SLOTS,
+  findClash,
+  getSlotStart,
+  toTimeRanges
+} from '../lib/schedule';
+
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 
 export const BookingScreen = () => {
   const {
@@ -443,7 +452,7 @@ export const BookingScreen = () => {
     helper.time_slots ||
     [];
 
-  const times = Array.isArray(rawSlots)
+  const listedTimes = Array.isArray(rawSlots)
     ? rawSlots
         .map(slot =>
           typeof slot === 'string'
@@ -456,13 +465,68 @@ export const BookingScreen = () => {
         .filter(Boolean)
     : [];
 
+  // Partners without their own slot list get standard hourly slots
+  const times = listedTimes.length > 0 ? listedTimes : DEFAULT_TIME_SLOTS;
+
+  // Times this partner already has a job, so they can't be double booked
+  const partnerId = helper.partnerId || helper.partner_id;
+  const [busyRanges, setBusyRanges] = useState([]);
+
+  useEffect(() => {
+    if (!partnerId) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    fetch(`${BACKEND_URL}/partners/${partnerId}/busy-slots`)
+      .then(response => (response.ok ? response.json() : []))
+      .then(slots => {
+        if (!cancelled) {
+          setBusyRanges(toTimeRanges(slots));
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load partner busy slots:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [partnerId]);
+
+  const slotOptions = times.map(time => {
+    const start = getSlotStart(selectedDateEntry?.isoDate, time);
+    const isPast = start !== null && start <= Date.now();
+    const isBooked = start !== null && Boolean(findClash(start, 60, busyRanges));
+
+    return {
+      time,
+      isPast,
+      isBooked,
+      isAvailable: !isPast && !isBooked
+    };
+  });
+
+  const availableSlotCount = slotOptions.filter(slot => slot.isAvailable).length;
+
+  const isSelectedTimeAvailable = slotOptions.some(
+    slot => slot.time === selectedTime && slot.isAvailable
+  );
+
+  // Clear a chosen time once it turns out to be taken or already past
+  useEffect(() => {
+    if (selectedTime && !isSelectedTimeAvailable) {
+      setSelectedTime('');
+    }
+  }, [selectedTime, isSelectedTimeAvailable, setSelectedTime]);
+
   const numericTrustFee = Number(trustFee) || 0;
   const servicePrice = Number(activeService?.price) || 0;
   const totalAmount = servicePrice + numericTrustFee;
 
   const hasServices = services.length > 0;
   const hasSelectedService = Boolean(activeService);
-  const hasSlots = times.length > 0;
 
   return (
     <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
@@ -628,7 +692,9 @@ export const BookingScreen = () => {
                   </span>
 
                   <span className="text-xs font-bold text-[#0b1c30]">
-                    {rating ?? '—'}
+                    {rating != null && Number.isFinite(Number(rating))
+                      ? Number(rating).toFixed(1)
+                      : '—'}
                   </span>
                 </div>
 
@@ -926,9 +992,11 @@ export const BookingScreen = () => {
 </div>
 
 <div className="text-[11px] text-[#006c49] font-bold">
-  {hasSlots
-    ? `${times.length} slot${times.length === 1 ? '' : 's'} listed`
-    : 'Select a date to request availability'}
+  {!selectedDateEntry
+    ? 'Select a date to see free slots'
+    : availableSlotCount > 0
+      ? `${availableSlotCount} slot${availableSlotCount === 1 ? '' : 's'} free`
+      : 'Fully booked on this date'}
 </div>
 
             {/* Dynamic Date Pills */}
@@ -981,19 +1049,26 @@ export const BookingScreen = () => {
                 Available Time Slots
               </span>
 
-              {hasSlots ? (
+              {!selectedDateEntry ? (
+                <div className="rounded-xl bg-[#eff4ff] p-3 text-xs text-slate-600">
+                  Pick a date above to see this helper's free time slots.
+                </div>
+              ) : (
                 <div className="grid grid-cols-1 gap-1.5">
-                  {times.map((time, index) => {
+                  {slotOptions.map(({ time, isPast, isBooked, isAvailable }, index) => {
                     const isSelected = selectedTime === time;
 
                     return (
                       <button
                         key={`${time}-${index}`}
                         onClick={() => setSelectedTime(time)}
+                        disabled={!isAvailable}
                         className={`p-2.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-all border ${
-                          isSelected
-                            ? 'bg-[#eff4ff] text-[#a14000] border-[#ff6a00]'
-                            : 'bg-white hover:bg-slate-50 text-[#0b1c30] border-slate-200'
+                          !isAvailable
+                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                            : isSelected
+                              ? 'bg-[#eff4ff] text-[#a14000] border-[#ff6a00]'
+                              : 'bg-white hover:bg-slate-50 text-[#0b1c30] border-slate-200'
                         }`}
                         type="button"
                       >
@@ -1002,10 +1077,24 @@ export const BookingScreen = () => {
                             schedule
                           </span>
 
-                          <span>{time}</span>
+                          <span className={!isAvailable ? 'line-through' : ''}>
+                            {time}
+                          </span>
                         </div>
 
-                        {isSelected && (
+                        {isBooked && (
+                          <span className="text-[10px] bg-red-50 text-red-400 px-2 py-0.5 rounded-full font-bold">
+                            Booked
+                          </span>
+                        )}
+
+                        {isPast && !isBooked && (
+                          <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-bold">
+                            Passed
+                          </span>
+                        )}
+
+                        {isSelected && isAvailable && (
                           <span className="text-[10px] bg-[#ffdbcc] text-[#7b2f00] px-2 py-0.5 rounded-full font-bold">
                             Selected
                           </span>
@@ -1014,12 +1103,6 @@ export const BookingScreen = () => {
                     );
                   })}
                 </div>
-              ) : (
-                <div className="rounded-xl bg-[#eff4ff] p-3 text-xs text-slate-600">
-  No time slots are listed for this date. You can still send a
-  service request for your preferred date, and the helper can
-  confirm the time.
-</div>
               )}
             </div>
           </div>
@@ -1097,8 +1180,8 @@ export const BookingScreen = () => {
   onClick={handleConfirmBooking}
   disabled={
     !hasSelectedService ||
-    !selectedDate ||
-    (hasSlots && !selectedTime) ||
+    !selectedDateEntry ||
+    !isSelectedTimeAvailable ||
     helper.is_available === false
   }
   className="flex-1 py-3.5 px-4 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold shadow-lg shadow-[#ff6a00]/30 active:scale-98 transition-all flex items-center justify-center gap-1.5"

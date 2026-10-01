@@ -386,11 +386,18 @@ export const AuthScreen = () => {
             <p className={`text-center text-[11px] ${isPartner ? 'text-[#dce1ff]/70' : 'text-slate-400'}`}>
               Log in securely with your Google account
             </p>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex-1 h-px ${isPartner ? 'bg-white/15' : 'bg-slate-200'}`}></div>
+              <span className={`text-[11px] font-bold uppercase tracking-wide ${isPartner ? 'text-white/50' : 'text-slate-400'}`}>
+                or log in with email
+              </span>
+              <div className={`flex-1 h-px ${isPartner ? 'bg-white/15' : 'bg-slate-200'}`}></div>
+            </div>
           </>
         )}
 
-        {/* Sign-up form (login is Google-only) */}
-        {isSignup && (
+        {/* Email & password form (sign-up and login) */}
         <>
         {/* Gradient-bordered form card */}
         <div
@@ -568,11 +575,10 @@ export const AuthScreen = () => {
               : 'bg-gradient-to-r from-[#ff6a00] to-[#ff9a56] hover:from-[#a14000] hover:to-[#ff6a00] text-white shadow-[#ff6a00]/30 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none'
           }`}
         >
-          <span>{authLoading ? 'Please wait…' : 'Create Account'}</span>
+          <span>{authLoading ? 'Please wait…' : isSignup ? 'Create Account' : 'Log In'}</span>
           {!authLoading && <ArrowRight size={18} />}
         </button>
         </>
-        )}
 
         {isSignup && blockingReason && hasStartedForm && (
           <p className={`-mt-2 text-center text-xs font-semibold ${isPartner ? 'text-amber-300' : 'text-red-500'}`}>

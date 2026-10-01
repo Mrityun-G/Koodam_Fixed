@@ -16,6 +16,7 @@ export const UserHomeScreen = () => {
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAllHelpers, setShowAllHelpers] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterActive, setFilterActive] = useState(false);
 
@@ -264,6 +265,13 @@ useEffect(() => {
   );
 });
 
+  // Best rated first; more reviews wins a tie
+  const topHelpers = [...filteredHelpers].sort(
+    (a, b) =>
+      b.rating - a.rating ||
+      b.reviewsCount - a.reviewsCount
+  );
+
   return (
     <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
       <Header subtitle="Home" />
@@ -500,7 +508,8 @@ useEffect(() => {
   </div>
 
 ) : (
-        filteredHelpers.map((helper) => (
+        <>
+        {(showAllHelpers ? topHelpers : topHelpers.slice(0, 3)).map((helper) => (
               <div
                 key={helper.id}
                 className="bg-white rounded-2xl p-3.5 shadow-2xs hover:shadow-md transition-shadow flex flex-col gap-2 border border-slate-100"
@@ -527,7 +536,7 @@ useEffect(() => {
                         >
                           star
                         </span>
-                        <span className="font-bold text-[11px]">{helper.rating}</span>
+                        <span className="font-bold text-[11px]">{Number(helper.rating || 0).toFixed(2)}</span>
                         <span className="text-slate-400 text-[10px]">({helper.reviewsCount})</span>
                       </div>
                     </div>
@@ -589,7 +598,21 @@ useEffect(() => {
                   </div>
                 </div>
               </div>
-            ))
+            ))}
+
+        {topHelpers.length > 3 && (
+          <button
+            onClick={() => setShowAllHelpers(prev => !prev)}
+            className="w-full py-2.5 rounded-full bg-white border border-slate-100 shadow-xs text-xs font-bold text-[#a14000] flex items-center justify-center gap-1 active:scale-95 transition-all"
+            type="button"
+          >
+            {showAllHelpers ? 'Show less' : 'View more'}
+            <span className="material-symbols-outlined text-[16px]">
+              {showAllHelpers ? 'expand_less' : 'expand_more'}
+            </span>
+          </button>
+        )}
+        </>
           )}
         </div>
         </div>

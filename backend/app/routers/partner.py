@@ -238,6 +238,9 @@ def download_police_certificate(
 
 UPCOMING_STATUSES = ("ACCEPTED", "IN_PROGRESS")
 
+# Used when a service has no duration set
+DEFAULT_JOB_MINUTES = 60
+
 ALLOWED_SERVICE_RADII_KM = (3, 5, 10, 15)
 
 
@@ -325,6 +328,7 @@ def get_partner_overview(
             if detail and local_date(detail.completed_at) == today:
                 today_completed += 1
 
+    # Enough to fill the partner's calendar, not just the dashboard list
     upcoming = (
         db.query(Booking, Service, User)
         .join(Service, Service.id == Booking.service_id)
@@ -334,7 +338,7 @@ def get_partner_overview(
             Booking.status.in_(UPCOMING_STATUSES)
         )
         .order_by(Booking.booking_time.asc())
-        .limit(10)
+        .limit(100)
         .all()
     )
 
@@ -357,8 +361,49 @@ def get_partner_overview(
                 "address": booking.address,
                 "amount": booking.total_amount,
                 "status": booking.status,
-                "booking_time": to_iso_utc(booking.booking_time)
+                "booking_time": to_iso_utc(booking.booking_time),
+                "duration_minutes": (
+                    service.duration_minutes or DEFAULT_JOB_MINUTES
+                )
             }
             for booking, service, user in upcoming
         ]
     }
+
+
+# =========================================================
+# PARTNER BUSY SLOTS
+# Times the partner is already booked, so customers can't pick them.
+# Only start and end times are returned, never customer details.
+# =========================================================
+
+@router.get("/{identifier}/busy-slots")
+def get_partner_busy_slots(
+    identifier: UUID,
+    db: Session = Depends(get_db)
+):
+    partner = get_partner_or_404(db, identifier)
+
+    rows = (
+        db.query(Booking, Service)
+        .join(Service, Service.id == Booking.service_id)
+        .filter(
+            Booking.partner_id == partner.id,
+            Booking.status.in_(UPCOMING_STATUSES),
+            Booking.booking_time >= datetime.utcnow() - timedelta(days=1)
+        )
+        .order_by(Booking.booking_time.asc())
+        .all()
+    )
+
+    return [
+        {
+            "start": to_iso_utc(booking.booking_time),
+            "end": to_iso_utc(
+                booking.booking_time + timedelta(
+                    minutes=service.duration_minutes or DEFAULT_JOB_MINUTES
+                )
+            )
+        }
+        for booking, service in rows
+    ]

@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import {
+  DEFAULT_JOB_MINUTES,
+  findClash,
+  jobsToTimeRanges
+} from '../lib/schedule';
 
 export const PartnerDashboard = () => {
   const {
@@ -34,6 +39,13 @@ export const PartnerDashboard = () => {
   } = useApp();
 
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const [calendarDay, setCalendarDay] = useState(() => new Date().toDateString());
   const [arrivalInput, setArrivalInput] = useState('');
   const [extraItem, setExtraItem] = useState('');
   const [extraAmount, setExtraAmount] = useState('');
@@ -130,9 +142,69 @@ export const PartnerDashboard = () => {
       tone: style.tone,
       status: job.status === 'IN_PROGRESS' ? 'In progress' : 'Confirmed',
       customer: job.customer_name || 'KOODAM Customer',
-      address: job.address || 'Nearby'
+      address: job.address || 'Nearby',
+      date: when,
+      startMs: when ? when.getTime() : null,
+      minutes: Number(job.duration_minutes) || DEFAULT_JOB_MINUTES
     };
   });
+
+  // Accepted jobs whose times overlap another accepted job
+  const clashingJobIds = new Set(
+    scheduledJobs
+      .filter(job => job.startMs !== null)
+      .filter(job =>
+        findClash(
+          job.startMs,
+          job.minutes,
+          jobsToTimeRanges(partnerUpcomingJobs).filter(range => range.id !== job.id)
+        )
+      )
+      .map(job => job.id)
+  );
+
+  // Does the incoming request overlap a job the partner already has?
+  const incomingClash = incomingJobDetails?.scheduledAt
+    ? findClash(
+        Number(incomingJobDetails.scheduledAt),
+        DEFAULT_JOB_MINUTES,
+        jobsToTimeRanges(partnerUpcomingJobs)
+      )
+    : null;
+
+  const formatRequestTime = (ms) =>
+    `${getJobDayLabel(new Date(ms))}, ${new Date(ms).toLocaleTimeString('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit'
+    })}`;
+
+  // ================================
+  // CALENDAR (month grid of accepted jobs)
+  // ================================
+
+  const calendarYear = calendarMonth.getFullYear();
+  const calendarMonthIndex = calendarMonth.getMonth();
+  const daysInMonth = new Date(calendarYear, calendarMonthIndex + 1, 0).getDate();
+  const firstWeekday = new Date(calendarYear, calendarMonthIndex, 1).getDay();
+
+  const calendarCells = [
+    ...Array.from({ length: firstWeekday }, () => null),
+    ...Array.from(
+      { length: daysInMonth },
+      (_, index) => new Date(calendarYear, calendarMonthIndex, index + 1)
+    )
+  ];
+
+  const jobsOnDay = (dayString) =>
+    scheduledJobs
+      .filter(job => job.date && job.date.toDateString() === dayString)
+      .sort((a, b) => a.startMs - b.startMs);
+
+  const selectedDayJobs = jobsOnDay(calendarDay);
+
+  const shiftCalendarMonth = (step) => {
+    setCalendarMonth(new Date(calendarYear, calendarMonthIndex + step, 1));
+  };
 
   const nextJob = scheduledJobs[0];
 
@@ -916,8 +988,19 @@ export const PartnerDashboard = () => {
                   schedule
                 </span>
 
-                Today • {incomingJobDetails.etaMins} mins to reach
+                {incomingJobDetails.scheduledAt
+                  ? formatRequestTime(incomingJobDetails.scheduledAt)
+                  : `Today • ${incomingJobDetails.etaMins} mins to reach`}
               </p>
+
+              {incomingClash && (
+                <p className="flex items-center gap-1.5 text-red-500 font-bold">
+                  <span className="material-symbols-outlined text-[16px]">
+                    event_busy
+                  </span>
+                  Clashes with your job at {formatRequestTime(incomingClash.start)}
+                </p>
+              )}
 
               <p className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[16px] text-[#a14000]">
@@ -1253,6 +1336,26 @@ export const PartnerDashboard = () => {
                   ({incomingJobDetails.etaMins} mins away) •{' '}
                   {incomingJobDetails.area}
                 </p>
+
+                {incomingJobDetails.scheduledAt && (
+                  <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[15px] text-[#a14000]">
+                      schedule
+                    </span>
+                    <span className="font-bold text-[#0b1c30]">
+                      {formatRequestTime(incomingJobDetails.scheduledAt)}
+                    </span>
+                  </p>
+                )}
+
+                {incomingClash && (
+                  <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[15px]">
+                      event_busy
+                    </span>
+                    Clashes with your job at {formatRequestTime(incomingClash.start)}
+                  </p>
+                )}
               </div>
 
               <div className="text-right shrink-0 bg-[#eff4ff] px-2.5 py-1 rounded-xl">
@@ -1304,7 +1407,7 @@ export const PartnerDashboard = () => {
                     </span>
 
                     <span className="font-bold text-[#0b1c30]">
-                      {incomingJobDetails.customerRating}
+                      {Number(incomingJobDetails.customerRating || 0).toFixed(2)}
                     </span>
 
                     <span>
@@ -1583,11 +1686,7 @@ export const PartnerDashboard = () => {
             </h2>
 
             <button
-              onClick={() =>
-                showToast(
-                  'Calendar view opened'
-                )
-              }
+              onClick={() => setCalendarOpen(true)}
               className="text-xs text-[#a14000] font-bold hover:underline"
             >
               View Calendar
@@ -1632,6 +1731,12 @@ export const PartnerDashboard = () => {
 
                         {job.status}
                       </span>
+
+                      {clashingJobIds.has(job.id) && (
+                        <span className="text-[10px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full font-bold">
+                          Clash
+                        </span>
+                      )}
                     </div>
 
                     <h4 className="font-bold text-xs text-[#0b1c30] mt-1 truncate">
@@ -2187,7 +2292,7 @@ export const PartnerDashboard = () => {
           ) : (
             <div className="space-y-2">
 
-              {reviews.map(r => (
+              {(showAllReviews ? reviews : reviews.slice(0, 3)).map(r => (
                 <div
                   key={r.id}
                   className="bg-white rounded-2xl p-3.5 shadow-xs border border-slate-100"
@@ -2231,6 +2336,18 @@ export const PartnerDashboard = () => {
                   )}
                 </div>
               ))}
+
+              {reviews.length > 3 && (
+                <button
+                  onClick={() => setShowAllReviews(prev => !prev)}
+                  className="w-full py-2.5 rounded-full bg-white border border-slate-100 shadow-xs text-xs font-bold text-[#a14000] flex items-center justify-center gap-1 active:scale-95 transition-all"
+                >
+                  {showAllReviews ? 'Show less' : 'View more'}
+                  <span className="material-symbols-outlined text-[16px]">
+                    {showAllReviews ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </section>
@@ -2647,6 +2764,192 @@ export const PartnerDashboard = () => {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================= */}
+      {/* CALENDAR MODAL */}
+      {/* ========================================= */}
+
+      {calendarOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+
+          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150">
+
+            <div className="flex items-center justify-between mb-3">
+
+              <div className="flex items-center gap-2">
+
+                <div className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
+                  <span className="material-symbols-outlined text-base">
+                    calendar_month
+                  </span>
+                </div>
+
+                <h3 className="font-bold text-[#0b1c30] text-base">
+                  My Calendar
+                </h3>
+              </div>
+
+              <button
+                onClick={() => setCalendarOpen(false)}
+                aria-label="Close calendar"
+                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Month switcher */}
+            <div className="flex items-center justify-between mb-2">
+
+              <button
+                onClick={() => shiftCalendarMonth(-1)}
+                aria-label="Previous month"
+                className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500"
+              >
+                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+              </button>
+
+              <span className="text-sm font-bold text-[#0b1c30]">
+                {calendarMonth.toLocaleDateString('en-IN', {
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </span>
+
+              <button
+                onClick={() => shiftCalendarMonth(1)}
+                aria-label="Next month"
+                className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500"
+              >
+                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+              </button>
+            </div>
+
+            {/* Month grid */}
+            <div className="grid grid-cols-7 gap-1 text-center">
+
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+                <span
+                  key={`${day}-${index}`}
+                  className="text-[10px] font-bold text-slate-400 py-1"
+                >
+                  {day}
+                </span>
+              ))}
+
+              {calendarCells.map((date, index) => {
+                if (!date) {
+                  return <span key={`blank-${index}`} />;
+                }
+
+                const dayString = date.toDateString();
+                const dayJobs = jobsOnDay(dayString);
+                const hasClash = dayJobs.some(job => clashingJobIds.has(job.id));
+                const isSelected = dayString === calendarDay;
+                const isToday = dayString === new Date().toDateString();
+
+                return (
+                  <button
+                    key={dayString}
+                    onClick={() => setCalendarDay(dayString)}
+                    className={`h-10 rounded-xl flex flex-col items-center justify-center text-xs font-semibold transition-all ${
+                      isSelected
+                        ? 'bg-[#ff6a00] text-white'
+                        : isToday
+                          ? 'bg-[#eff4ff] text-[#a14000]'
+                          : 'text-[#0b1c30] hover:bg-slate-50'
+                    }`}
+                  >
+                    {date.getDate()}
+
+                    {dayJobs.length > 0 && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                          hasClash
+                            ? 'bg-red-500'
+                            : isSelected
+                              ? 'bg-white'
+                              : 'bg-[#00ae78]'
+                        }`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00ae78]" />
+                Booked
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                Clash
+              </span>
+            </div>
+
+            {/* Jobs on the selected day */}
+            <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+
+              <h4 className="text-xs font-bold text-[#0b1c30]">
+                {new Date(calendarDay).toLocaleDateString('en-IN', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long'
+                })}
+              </h4>
+
+              {selectedDayJobs.length === 0 ? (
+                <p className="text-xs text-slate-400">
+                  No jobs booked. You're free all day.
+                </p>
+              ) : (
+                selectedDayJobs.map(job => {
+                  const endTime = new Date(job.startMs + job.minutes * 60 * 1000)
+                    .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+                  const isClash = clashingJobIds.has(job.id);
+
+                  return (
+                    <div
+                      key={job.id}
+                      className={`rounded-2xl p-3 border flex items-start justify-between gap-3 ${
+                        isClash
+                          ? 'bg-red-50 border-red-100'
+                          : 'bg-[#f8f9ff] border-slate-100'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-bold text-[#a14000]">
+                          {job.time} – {endTime}
+                        </p>
+
+                        <p className="text-xs font-bold text-[#0b1c30] truncate">
+                          {job.title}
+                        </p>
+
+                        <p className="text-[11px] text-slate-500 truncate">
+                          {job.customer} • {job.address}
+                        </p>
+
+                        {isClash && (
+                          <p className="text-[10px] text-red-500 font-bold mt-0.5">
+                            Overlaps another job. Contact one customer to reschedule.
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="font-extrabold text-xs text-[#a14000] shrink-0">
+                        ₹{job.price}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

@@ -38,6 +38,13 @@ import {
   estimateEtaMinutes
 } from '../lib/geo';
 
+import {
+  DEFAULT_JOB_MINUTES,
+  findClash,
+  jobsToTimeRanges,
+  toTimeRanges
+} from '../lib/schedule';
+
 import { supabase } from '../lib/supabase';
 
 // Which login page (member or partner) started a Google sign-in; kept in
@@ -346,11 +353,12 @@ const [notificationsEnabled, setNotificationsEnabled] =
   });
 
 
+  // Defaults to today with no time, so the customer must pick a free slot
   const [selectedDate, setSelectedDate] =
-    useState('Today 22');
+    useState(() => `Today ${new Date().getDate()}`);
 
   const [selectedTime, setSelectedTime] =
-    useState('10:30 AM - 11:30 AM');
+    useState('');
 
   const [trustFee] = useState(20);
 
@@ -1232,7 +1240,9 @@ const requestsRef = ref(db, requestPath);
             customerAvatar:
               latestRequest.customerAvatar || '',
             customerRating:
-              latestRequest.customerRating || 5
+              latestRequest.customerRating || 5,
+            scheduledAt:
+              latestRequest.scheduledAt || null
           });
 
           setHasIncomingJob(true);
@@ -2479,7 +2489,7 @@ const updatePartnerProfile = async (
     if (isMorning) {
 
       setSelectedDate(
-        'Today 22'
+        `Today ${new Date().getDate()}`
       );
 
       setSelectedTime(
@@ -2609,6 +2619,16 @@ const handleConfirmBooking = async () => {
 
         area:
           location || 'Nearby',
+
+        // Lets the partner see the visit time and spot clashes
+        scheduledAt: getScheduledTimestamp(
+          selectedDate,
+          selectedTime
+        ),
+
+        scheduledLabel: [selectedDate, selectedTime]
+          .filter(Boolean)
+          .join(', '),
 
         createdAt:
           Date.now(),
@@ -3195,6 +3215,46 @@ const acceptIncomingJob = async () => {
     partnerProfile?.name?.trim() ||
     authUser?.displayName?.trim() ||
     'KOODAM Partner';
+
+  // Never accept a job that overlaps one the partner already has
+  const requestedStart = Number(incomingJobDetails?.scheduledAt);
+
+  if (Number.isFinite(requestedStart) && requestedStart > 0) {
+    let bookedRanges = jobsToTimeRanges(partnerUpcomingJobs);
+
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/partners/${partnerId}/busy-slots`
+      );
+
+      if (response.ok) {
+        bookedRanges = toTimeRanges(await response.json());
+      }
+    } catch (error) {
+      console.error('Failed to check partner schedule:', error);
+    }
+
+    const clash = findClash(
+      requestedStart,
+      DEFAULT_JOB_MINUTES,
+      bookedRanges
+    );
+
+    if (clash) {
+      const clashTime = new Date(clash.start).toLocaleString('en-IN', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+
+      showToast(
+        `You already have a job at ${clashTime}. Decline this request to avoid a double booking.`
+      );
+      return;
+    }
+  }
 
   try {
     if (isFirebaseConfigured && db) {

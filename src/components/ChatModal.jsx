@@ -16,7 +16,7 @@ export const ChatModal = () => {
   const myRole = role === 'partner' ? 'partner' : 'member';
 
   const [inputText, setInputText] = useState('');
-  const messagesEndRef = useRef(null);
+  const messagesListRef = useRef(null);
 
   // The other person on the active booking: the partner for a member,
   // the customer for a partner. Used when the chat was opened without a
@@ -70,10 +70,13 @@ export const ChatModal = () => {
       ? chatPartner.orderNumber || chatPartner.bookingId || ''
       : '';
 
+  // Scroll only the message list. scrollIntoView would also scroll every
+  // scrollable ancestor (the phone frame / page), shifting the whole screen.
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: 'smooth'
-    });
+    const list = messagesListRef.current;
+    if (list) {
+      list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
@@ -300,6 +303,7 @@ export const ChatModal = () => {
 
         {/* Messages List */}
         <div
+          ref={messagesListRef}
           className="
             relative z-0
             flex-1 min-h-0
@@ -371,8 +375,6 @@ export const ChatModal = () => {
               </span>
             </div>
           ))}
-
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Quick Suggestion Chips */}
