@@ -23,3 +23,18 @@ TRUST_FEE = float(os.getenv("KOODAM_TRUST_FEE", "20"))
 PLATFORM_COMMISSION_PERCENT = float(
     os.getenv("KOODAM_PLATFORM_COMMISSION_PERCENT", "10")
 )
+
+# Firebase project whose ID tokens the backend accepts (same as the
+# frontend's VITE_FIREBASE_PROJECT_ID)
+FIREBASE_PROJECT_ID = (
+    os.getenv("FIREBASE_PROJECT_ID")
+    or os.getenv("VITE_FIREBASE_PROJECT_ID")
+)
+
+# Business category Razorpay files each partner's Route linked account
+# under (values from Razorpay's business category list)
+ROUTE_BUSINESS_CATEGORY = os.getenv("KOODAM_ROUTE_CATEGORY", "services")
+
+ROUTE_BUSINESS_SUBCATEGORY = os.getenv(
+    "KOODAM_ROUTE_SUBCATEGORY", "repair_and_cleaning"
+)

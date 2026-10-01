@@ -6,7 +6,7 @@ import React, {
   useRef
 } from 'react';
 
-import { ref, onValue, set, update, remove, push } from 'firebase/database';
+import { ref, onValue, set, update, remove, push, get } from 'firebase/database';
 
 import {
   onAuthStateChanged,
@@ -55,6 +55,61 @@ import {
 // storage because Google redirects away from the app and back
 const GOOGLE_ROLE_KEY = 'koodam-google-login-role';
 
+// Which side of the app (member or partner) the user was last using
+const LAST_ROLE_KEY = 'koodam-last-role';
+
+// Starting state, also restored on logout so the next person to log in
+// on this device never sees the previous user's profile, job or chat
+const EMPTY_MEMBER_PROFILE = {
+  id: null,
+  firebase_uid: null,
+  name: '',
+  email: '',
+  phone: '',
+  avatar: '',
+  role: 'MEMBER'
+};
+
+const EMPTY_PARTNER_PROFILE = {
+  ...EMPTY_MEMBER_PROFILE,
+  role: 'PARTNER'
+};
+
+const EMPTY_ORDER = {
+  orderId: null,
+
+  helperName: '',
+  serviceTitle: '',
+
+  safetyPin: null,
+  completionOtp: null,
+
+  currentStep: 0,
+  etaMinutes: null,
+  etaTime: '',
+
+  currentRoad: '',
+  totalPaid: 0,
+  totalAmount: 0,
+  paymentStatus: 'PENDING',
+  status: 'PENDING',
+
+  trafficCondition: '',
+
+  rating: null,
+  feedback: ''
+};
+
+// Screens shown before login; a restored login moves past these
+const SIGNED_OUT_SCREENS = [
+  'landing',
+  'welcome',
+  'memberLogin',
+  'memberSignup',
+  'partnerLogin',
+  'partnerSignup'
+];
+
 
 const AppContext = createContext(null);
 
@@ -77,6 +132,58 @@ const DESTINATION_COORDS = {
 // Order IDs like "#KD-8924" need stripping.
 const toDbKey = (orderId) =>
   String(orderId).replace(/[.#$[\]]/g, '');
+
+
+// Arrival and completion codes rotate while they are on screen, so a code
+// that was seen or overheard earlier stops working. The phone showing the
+// code replaces it every OTP_ROTATE_MS; the one just replaced still works
+// for OTP_GRACE_MS so a code read out right at the switch isn't rejected.
+const OTP_ROTATE_MS = 60 * 1000;
+const OTP_GRACE_MS = 30 * 1000;
+
+// Field names on the order for each code
+const ARRIVAL_OTP = {
+  code: 'safetyPin',
+  previous: 'previousSafetyPin',
+  expiresAt: 'safetyPinExpiresAt'
+};
+
+const COMPLETION_OTP = {
+  code: 'completionOtp',
+  previous: 'previousCompletionOtp',
+  expiresAt: 'completionOtpExpiresAt'
+};
+
+const generateOtp = () => {
+  const value = new Uint32Array(1);
+  crypto.getRandomValues(value);
+  return String(1000 + (value[0] % 9000));
+};
+
+// A new code, keeping the old one for the grace period
+const freshOtpFields = (fields, previousCode = null) => ({
+  [fields.code]: generateOtp(),
+  [fields.previous]: previousCode,
+  [fields.expiresAt]: Date.now() + OTP_ROTATE_MS
+});
+
+const otpMatches = (order, fields, code) => {
+  if (!order || !code) return false;
+
+  if (String(order[fields.code] ?? '') === code) {
+    return true;
+  }
+
+  // The previous code was replaced when the current one was issued
+  const issuedAt =
+    Number(order[fields.expiresAt] || 0) - OTP_ROTATE_MS;
+
+  return (
+    Boolean(order[fields.previous]) &&
+    String(order[fields.previous]) === code &&
+    Date.now() - issuedAt <= OTP_GRACE_MS
+  );
+};
 
 
 // Turns the booking screen's labels (e.g. "Tomorrow 1" and
@@ -172,6 +279,13 @@ export const AppProvider = ({ children }) => {
   const [role, setRole] = useState('welcome');
 
   const [currentScreen, setCurrentScreen] = useState('landing');
+
+  // Latest screen, readable inside long-lived listeners
+  const currentScreenRef = useRef(currentScreen);
+
+  useEffect(() => {
+    currentScreenRef.current = currentScreen;
+  }, [currentScreen]);
 
   const [activeTab, setActiveTab] = useState('home');
 
@@ -280,6 +394,38 @@ useEffect(() => {
 
         }
 
+        // -------------------------------------------------
+        // Still logged in after a page reload: go back to the
+        // member home or Partner Hub instead of the landing page
+        // -------------------------------------------------
+
+        let lastRole = null;
+
+        try {
+          lastRole = localStorage.getItem(LAST_ROLE_KEY);
+        } catch {
+          lastRole = null;
+        }
+
+        const restoredRole =
+          lastRole === 'partner' || lastRole === 'member'
+            ? lastRole
+            : backendUser.role === 'PARTNER'
+              ? 'partner'
+              : 'member';
+
+        if (restoredRole === 'partner') {
+          setPartnerProfile((previous) => ({ ...previous, ...backendUser }));
+        } else {
+          setUserProfile((previous) => ({ ...previous, ...backendUser }));
+        }
+
+        if (SIGNED_OUT_SCREENS.includes(currentScreenRef.current)) {
+          setRole(restoredRole);
+          setActiveTab('home');
+          setCurrentScreen(restoredRole === 'partner' ? 'partner' : 'home');
+        }
+
       } catch (error) {
 
         console.error(
@@ -298,30 +444,14 @@ useEffect(() => {
 // Member Profile
 // =========================================================
 
-const [userProfile, setUserProfile] = useState({
-  id: null,
-  firebase_uid: null,
-  name: '',
-  email: '',
-  phone: '',
-  avatar: '',
-  role: 'MEMBER'
-});
+const [userProfile, setUserProfile] = useState(EMPTY_MEMBER_PROFILE);
 
 
 // =========================================================
 // Service Partner Profile
 // =========================================================
 
-const [partnerProfile, setPartnerProfile] = useState({
-  id: null,
-  firebase_uid: null,
-  name: '',
-  email: '',
-  phone: '',
-  avatar: '',
-  role: 'PARTNER'
-});
+const [partnerProfile, setPartnerProfile] = useState(EMPTY_PARTNER_PROFILE);
 
 const [notificationsEnabled, setNotificationsEnabled] =
   useState(true);
@@ -371,30 +501,7 @@ const [notificationsEnabled, setNotificationsEnabled] =
 // Active Order / Live Tracking
 // =========================================================
 
-const [activeOrder, setActiveOrder] = useState({
-  orderId: null,
-
-  helperName: '',
-  serviceTitle: '',
-
-  safetyPin: null,
-  completionOtp: null,
-
-  currentStep: 0,
-  etaMinutes: null,
-  etaTime: '',
-
-  currentRoad: '',
-  totalPaid: 0,
-  totalAmount: 0,
-  paymentStatus: 'PENDING',
-  status: 'PENDING',
-
-  trafficCondition: '',
-
-  rating: null,
-  feedback: ''
-});
+const [activeOrder, setActiveOrder] = useState(EMPTY_ORDER);
 
   // =========================================================
   // Firebase Active Order Listener
@@ -499,7 +606,9 @@ const [activeOrder, setActiveOrder] = useState({
       latitude: order.customerLat ?? null,
       longitude: order.customerLng ?? null,
       total_amount: Number(order.totalAmount || 0),
-      safety_pin: order.safetyPin ? String(order.safetyPin) : null,
+      // The arrival code rotates every minute; storing it would only
+      // trigger a sync per rotation and keep a stale secret around
+      safety_pin: null,
       payment_status: order.paymentStatus || null,
       amount_paid: Number(order.totalPaid || 0),
       razorpay_payment_id: order.paymentId || null,
@@ -557,9 +666,11 @@ const [activeOrder, setActiveOrder] = useState({
   };
 
   useEffect(() => {
+    // Firebase only allows signed-in users; stop listening after logout
     if (
       !isFirebaseConfigured ||
       !db ||
+      !authUser?.uid ||
       !activeOrder.orderId
     ) {
       return;
@@ -602,11 +713,14 @@ const [activeOrder, setActiveOrder] = useState({
             ...val
           }));
         }
+      },
+      (error) => {
+        console.warn('Order listener stopped:', error.message);
       }
     );
 
     return () => unsubscribe();
-  }, [activeOrder.orderId]);
+  }, [activeOrder.orderId, authUser?.uid]);
 
 
   // =========================================================
@@ -643,6 +757,53 @@ const [activeOrder, setActiveOrder] = useState({
     }
   };
 
+  const activeOrderRef = useRef(activeOrder);
+  activeOrderRef.current = activeOrder;
+
+  // Rotate the code shown on this phone: the customer holds the arrival
+  // code until work starts, the partner holds the completion code while
+  // the job is in progress.
+  const otpHolderFields =
+    role !== 'partner' &&
+    activeOrder.bookingStatus === 'ACCEPTED' &&
+    Number(activeOrder.currentStep || 0) < 4
+      ? ARRIVAL_OTP
+      : role === 'partner' &&
+        activeOrder.currentStep === 4
+        ? COMPLETION_OTP
+        : null;
+
+  useEffect(() => {
+    if (!otpHolderFields || !activeOrder.orderId) {
+      return;
+    }
+
+    const rotateIfDue = () => {
+      const order = activeOrderRef.current;
+
+      if (
+        Date.now() <
+        Number(order[otpHolderFields.expiresAt] || 0)
+      ) {
+        return;
+      }
+
+      updateActiveOrder({
+        orderId: order.orderId,
+        ...freshOtpFields(
+          otpHolderFields,
+          order[otpHolderFields.code] || null
+        )
+      });
+    };
+
+    rotateIfDue();
+
+    const timer = setInterval(rotateIfDue, 1000);
+
+    return () => clearInterval(timer);
+  }, [otpHolderFields, activeOrder.orderId]);
+
   // =========================================================
   // Live GPS Tracking
   // =========================================================
@@ -661,6 +822,7 @@ const [activeOrder, setActiveOrder] = useState({
     if (
       !isFirebaseConfigured ||
       !db ||
+      !authUser?.uid ||
       !activeOrder.orderId
     ) {
       return;
@@ -675,11 +837,14 @@ const [activeOrder, setActiveOrder] = useState({
       locRef,
       (snapshot) => {
         setPartnerLocation(snapshot.val());
+      },
+      (error) => {
+        console.warn('Live location listener stopped:', error.message);
       }
     );
 
     return () => unsubscribe();
-  }, [activeOrder.orderId]);
+  }, [activeOrder.orderId, authUser?.uid]);
 
 
   // Stop GPS watch on unmount
@@ -1103,9 +1268,12 @@ useEffect(() => {
 // PARTNER: LISTEN FOR INCOMING BOOKING REQUESTS
 // ==========================================
 useEffect(() => {
+  // Only while a partner is signed in; logging out stops the listener
   if (
     !isFirebaseConfigured ||
     !db ||
+    !authUser?.uid ||
+    role !== 'partner' ||
     !partnerProfile?.id
   ) {
     console.log('⏳ Booking listener waiting:', {
@@ -1121,32 +1289,21 @@ useEffect(() => {
 
   const startBookingListener = async () => {
     try {
-      // Resolve the actual Partner ID from the logged-in User ID
-      
+      // Resolve the actual Partner ID from the logged-in User ID.
+      // Every partner account has one, even before adding a service, so a
+      // new partner starts listening right away and gets requests as soon
+      // as they add their first service (no page reload needed).
 const response = await fetch(
-  `${API_BASE_URL}/partner-services/user/${partnerProfile.id}`
+  `${API_BASE_URL}/partners/${partnerProfile.id}`
 );
 
 if (!response.ok) {
   throw new Error(
-    `Partner services lookup failed: ${response.status}`
+    `Partner lookup failed: ${response.status}`
   );
 }
 
-const partnerServices = await response.json();
-
-// Find an active service and extract its actual Partner ID
-const activeService = partnerServices.find(
-  (service) => service.is_active && service.partner_id
-);
-
-if (!activeService) {
-  throw new Error(
-    "No active partner service found for this user"
-  );
-}
-
-const partnerId = activeService.partner_id;
+const partnerId = (await response.json()).id;
 
 if (cancelled) return;
 
@@ -1263,9 +1420,9 @@ const requestsRef = ref(db, requestPath);
           );
         },
         (error) => {
-          console.error(
-            '❌ Booking request listener error:',
-            error
+          console.warn(
+            'Booking request listener stopped:',
+            error.message
           );
         }
       );
@@ -1288,6 +1445,8 @@ const requestsRef = ref(db, requestPath);
 }, [
   isFirebaseConfigured,
   db,
+  authUser?.uid,
+  role,
   partnerProfile?.id
 ]);
   // =========================================================
@@ -1332,6 +1491,7 @@ const requestsRef = ref(db, requestPath);
     if (
       !isFirebaseConfigured ||
       !db ||
+      !authUser?.uid ||
       !activeOrder.orderId
     ) {
       return;
@@ -1357,11 +1517,14 @@ const requestsRef = ref(db, requestPath);
           );
 
         setMessages(list);
+      },
+      (error) => {
+        console.warn('Chat listener stopped:', error.message);
       }
     );
 
     return () => unsubscribe();
-  }, [activeOrder.orderId]);
+  }, [activeOrder.orderId, authUser?.uid]);
 
 
   // =========================================================
@@ -1483,6 +1646,13 @@ const requestsRef = ref(db, requestPath);
 
   const enterRole = (targetRole) => {
     setRole(targetRole);
+
+    // Remembered so a page reload returns to the same side of the app
+    try {
+      localStorage.setItem(LAST_ROLE_KEY, targetRole);
+    } catch {
+      // Without storage a reload falls back to the account's own role
+    }
 
     if (targetRole === 'partner') {
       setCurrentScreen('partner');
@@ -2155,6 +2325,25 @@ const signIn = async (
     }
 
 
+    // A reload after logging out should stay on the welcome screen
+    try {
+      localStorage.removeItem(LAST_ROLE_KEY);
+    } catch {
+      // Nothing to clear
+    }
+
+    // Forget this user's data, so whoever logs in next on this device
+    // doesn't see their profile, job, chat or earnings
+    setUserProfile(EMPTY_MEMBER_PROFILE);
+    setPartnerProfile(EMPTY_PARTNER_PROFILE);
+    setActiveOrder(EMPTY_ORDER);
+    setMessages([]);
+    setIsChatOpen(false);
+    setChatPartner('KOODAM Customer');
+    setHasIncomingJob(false);
+    setPartnerUpcomingJobs([]);
+    setReviews([]);
+
     setRole('welcome');
 
     navigateTo('welcome');
@@ -2603,6 +2792,21 @@ const handleConfirmBooking = async () => {
   let createdRequestId = null;
   let safetyPin = null;
 
+  // The partner's real details, shown on the customer's tracking card
+  const helperDetails = {
+    helperAvatar:
+      selectedHelper?.avatar && selectedHelper.avatar !== '/logo.svg'
+        ? selectedHelper.avatar
+        : '',
+    helperRating: Number(selectedHelper?.rating || 0),
+    helperPhone: selectedHelper?.phone || '',
+    helperVehicle: selectedHelper?.vehicle || '',
+    helperVehicleNumber: selectedHelper?.vehicleNumber || '',
+    helperVerified: Boolean(
+      selectedHelper?.policeVerified || selectedHelper?.isVerified
+    )
+  };
+
   if (isFirebaseConfigured && db) {
     try {
       const requestRef = push(
@@ -2696,9 +2900,8 @@ const handleConfirmBooking = async () => {
       createdRequestId = requestRef.key;
 
       // One canonical order is shared by the customer and partner.
-      safetyPin = String(
-        Math.floor(1000 + Math.random() * 9000)
-      );
+      // The code rotates on the customer's phone once the partner accepts.
+      safetyPin = generateOtp();
 
       await set(
         ref(
@@ -2722,7 +2925,7 @@ const handleConfirmBooking = async () => {
             authUser?.photoURL ||
             '',
           helperName: selectedHelper.name,
-          helperAvatar: selectedHelper?.avatar || '',
+          ...helperDetails,
           serviceTitle: selectedService.title,
           serviceId: selectedService?.id || null,
           category:
@@ -2848,6 +3051,8 @@ const handleConfirmBooking = async () => {
     helperName:
       selectedHelper.name,
 
+    ...helperDetails,
+
     serviceTitle:
       selectedService.title,
 
@@ -2962,35 +3167,94 @@ const advanceOrderStatus = () => {
 // Verify Arrival OTP
 // =========================================================
 
-const verifyArrivalOtp = (code) => {
-  // Ensure the partner has accepted the booking
-  if (activeOrder.bookingStatus !== 'ACCEPTED') {
-    showToast(
-      'Waiting for the partner to accept your booking request.'
-    );
-    return false;
+// The partner may have accepted several bookings, and the job on screen
+// is only the last one accepted. Look through every accepted, unstarted
+// order for this partner (freshly read, since the code rotates) and
+// return the one whose current or just-replaced code matches.
+const findAcceptedOrderByPin = async (code) => {
+  const partnerId =
+    activeOrder.partnerId || partnerProfile?.id;
+
+  if (!isFirebaseConfigured || !db || !partnerId) {
+    return null;
   }
 
-  // Verify the customer's arrival OTP
-  if (
-    String(code).trim() !==
-    String(activeOrder.safetyPin)
-  ) {
-    showToast(
-      'Incorrect arrival code — ask the customer to confirm it.'
-    );
-    return false;
-  }
-
-  // Generate the completion OTP for the service
-  const completionOtp = String(
-    Math.floor(1000 + Math.random() * 9000)
+  const requestsSnap = await get(
+    ref(db, `bookingRequests/${partnerId}`)
   );
 
-  // Mark service as started, not completed or paid
+  const acceptedIds = Object.entries(requestsSnap.val() || {})
+    .filter(([, request]) => request?.status === 'ACCEPTED')
+    .map(([requestId]) => requestId);
+
+  // Check the job on screen first
+  const candidateIds = [
+    ...new Set(
+      [activeOrder.orderId, ...acceptedIds].filter(Boolean)
+    )
+  ];
+
+  for (const requestId of candidateIds) {
+    const orderSnap = await get(
+      ref(db, `orders/${toDbKey(requestId)}`)
+    );
+    const order = orderSnap.val();
+
+    if (
+      order &&
+      order.bookingStatus === 'ACCEPTED' &&
+      Number(order.currentStep || 0) < 4 &&
+      otpMatches(order, ARRIVAL_OTP, code)
+    ) {
+      return { ...order, orderId: order.orderId || requestId };
+    }
+  }
+
+  return null;
+};
+
+const verifyArrivalOtp = async (rawCode) => {
+  const code = String(rawCode).trim();
+
+  let matchedOrder = null;
+
+  try {
+    matchedOrder = await findAcceptedOrderByPin(code);
+  } catch (error) {
+    console.warn('Arrival code lookup failed:', error);
+  }
+
+  if (!matchedOrder) {
+    showToast(
+      activeOrder.bookingStatus === 'ACCEPTED'
+        ? 'Incorrect or expired arrival code — ask the customer for the code on their screen now.'
+        : 'Waiting for the partner to accept your booking request.'
+    );
+    return false;
+  }
+
+  const targetOrderId = matchedOrder.orderId;
+
+  if (targetOrderId !== activeOrder.orderId) {
+    // Switch the partner to the job the customer is actually on
+    setActiveOrder((prev) => ({
+      ...prev,
+      ...matchedOrder
+    }));
+
+    setChatPartner({
+      name: matchedOrder.customerName || 'KOODAM Customer',
+      avatar: matchedOrder.customerAvatar || '',
+      customerId: matchedOrder.customerId
+    });
+  }
+
+  // Mark service as started, not completed or paid.
+  // The completion code starts here and rotates on the partner's phone.
   updateActiveOrder({
+    orderId: targetOrderId,
     currentStep: 4,
-    completionOtp,
+    ...freshOtpFields(COMPLETION_OTP),
     serviceStatus: 'in_progress',
     etaMinutes: 0,
     rating: null,
@@ -3090,10 +3354,26 @@ const respondToExtraCharge = (chargeId, approve) => {
   );
 };
 
-const verifyCompletionOtp = (code) => {
+const verifyCompletionOtp = async (rawCode) => {
+  const code = String(rawCode).trim();
+
+  // The code rotates on the partner's phone, so check the live value
+  let order = activeOrder;
+
+  if (isFirebaseConfigured && db && activeOrder.orderId) {
+    try {
+      const snap = await get(
+        ref(db, `orders/${toDbKey(activeOrder.orderId)}`)
+      );
+      order = snap.val() || activeOrder;
+    } catch (error) {
+      console.warn('Completion code lookup failed:', error);
+    }
+  }
+
   if (
-    activeOrder.currentStep !== 4 ||
-    !activeOrder.completionOtp
+    order.currentStep !== 4 ||
+    !order.completionOtp
   ) {
     showToast(
       'The service must be in progress before completion can be verified.'
@@ -3101,12 +3381,9 @@ const verifyCompletionOtp = (code) => {
     return false;
   }
 
-  if (
-    String(code).trim() !==
-    String(activeOrder.completionOtp)
-  ) {
+  if (!otpMatches(order, COMPLETION_OTP, code)) {
     showToast(
-      'Incorrect completion code — ask your service partner to confirm it.'
+      'Incorrect or expired completion code — ask your service partner for the code on their screen now.'
     );
     return false;
   }

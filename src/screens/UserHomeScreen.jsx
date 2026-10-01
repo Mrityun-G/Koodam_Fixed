@@ -148,6 +148,12 @@ useEffect(() => {
                 phone:
                   partner.phone || '',
 
+                vehicle:
+                  partner.vehicle || '',
+
+                vehicleNumber:
+                  partner.vehicle_number || '',
+
                 email:
                   partner.email || '',
 

@@ -50,6 +50,21 @@ class BookingDetail(Base):
 
     partner_payout = Column(Float, nullable=True)
 
+    # Razorpay Route transfer of partner_payout to the partner's bank.
+    # WAITING_FOR_ACCOUNT -> SENT -> SETTLED, or FAILED
+    payout_status = Column(String, nullable=True)
+
+    razorpay_transfer_id = Column(String, nullable=True)
+
+    payout_error = Column(String, nullable=True)
+
+    payout_sent_at = Column(DateTime, nullable=True)
+
+    # When Razorpay paid it into the partner's bank, and the bank reference
+    payout_settled_at = Column(DateTime, nullable=True)
+
+    payout_utr = Column(String, nullable=True)
+
     accepted_at = Column(DateTime, nullable=True)
 
     completed_at = Column(DateTime, nullable=True)

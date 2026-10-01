@@ -2,7 +2,6 @@ import hashlib
 import hmac
 from datetime import datetime
 
-import requests
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -16,6 +15,8 @@ from app.config import (
 from app.database import get_db
 from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail, BookingExtraCharge
+from app.razorpay_client import razorpay_request, to_paise
+from app.routers.payouts import safely_transfer
 
 
 # =========================================================
@@ -30,8 +31,6 @@ router = APIRouter(
     tags=["Payments"]
 )
 
-RAZORPAY_API = "https://api.razorpay.com/v1"
-
 
 class CreateOrderRequest(BaseModel):
     firebase_order_id: str
@@ -44,45 +43,6 @@ class VerifyPaymentRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
     razorpay_signature: str
-
-
-def to_paise(rupees: float) -> int:
-    return int(round((rupees or 0) * 100))
-
-
-def razorpay_request(method: str, path: str, payload: dict = None) -> dict:
-    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
-        raise HTTPException(
-            status_code=500,
-            detail="Razorpay keys are missing on the server"
-        )
-
-    try:
-        response = requests.request(
-            method,
-            f"{RAZORPAY_API}{path}",
-            auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET),
-            json=payload,
-            timeout=15
-        )
-    except requests.RequestException:
-        raise HTTPException(
-            status_code=502,
-            detail="Couldn't reach Razorpay. Please try again."
-        )
-
-    if not response.ok:
-        try:
-            message = response.json()["error"]["description"]
-        except (ValueError, KeyError, TypeError):
-            message = response.text
-
-        raise HTTPException(
-            status_code=502,
-            detail=f"Razorpay error: {message}"
-        )
-
-    return response.json()
 
 
 def get_booking_for_order(db: Session, firebase_order_id: str):
@@ -205,6 +165,10 @@ def verify_payment(
         detail.payment_status == "PAID"
         and detail.razorpay_payment_id == data.razorpay_payment_id
     ):
+        # The first check may have stopped before the partner's transfer
+        if detail.payout_status is None:
+            safely_transfer(db, booking, detail)
+
         return payment_result(detail)
 
     if data.razorpay_order_id != detail.razorpay_order_id:
@@ -270,6 +234,10 @@ def verify_payment(
     booking.status = "COMPLETED"
 
     db.commit()
+
+    # 4. Send the partner's share to their bank via Razorpay Route.
+    #    If their bank account isn't set up yet, it waits until it is.
+    safely_transfer(db, booking, detail)
 
     return payment_result(detail, split)
 

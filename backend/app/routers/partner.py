@@ -77,17 +77,8 @@ def get_partner(
     partner_id: UUID,
     db: Session = Depends(get_db)
 ):
-    partner = db.query(Partner).filter(
-        Partner.id == partner_id
-    ).first()
-
-    if not partner:
-        raise HTTPException(
-            status_code=404,
-            detail="Partner not found"
-        )
-
-    return partner
+    # Accepts either partners.id or the partner's users.id
+    return get_partner_or_404(db, partner_id)
 
 # =========================================================
 # POLICE VERIFICATION

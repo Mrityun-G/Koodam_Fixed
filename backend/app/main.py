@@ -23,6 +23,7 @@ from app.routers.review import router as review_router
 from app.routers.emergency import router as emergency_router
 from app.routers.booking_sync import router as booking_sync_router
 from app.routers.payment import router as payment_router
+from app.routers.payouts import router as payouts_router
 
 
 app = FastAPI(title="KOODAM Backend")
@@ -54,6 +55,7 @@ app.include_router(review_router)
 app.include_router(emergency_router)
 app.include_router(booking_sync_router)
 app.include_router(payment_router)
+app.include_router(payouts_router)
 
 
 # Create database tables
@@ -84,9 +86,31 @@ with engine.begin() as connection:
         "trust_fee DOUBLE PRECISION",
         "commission_amount DOUBLE PRECISION",
         "partner_payout DOUBLE PRECISION",
+        # Route transfer of the partner's share
+        "payout_status VARCHAR",
+        "razorpay_transfer_id VARCHAR",
+        "payout_error VARCHAR",
+        "payout_sent_at TIMESTAMP",
+        "payout_settled_at TIMESTAMP",
+        "payout_utr VARCHAR",
     ):
         connection.execute(text(
             f"ALTER TABLE booking_details ADD COLUMN IF NOT EXISTS {column}"
+        ))
+
+    # The partner's Razorpay Route linked account
+    for column in (
+        "razorpay_account_id VARCHAR",
+        "razorpay_stakeholder_id VARCHAR",
+        "razorpay_product_id VARCHAR",
+        "payout_account_status VARCHAR NOT NULL DEFAULT 'NOT_SET'",
+        "payout_account_note VARCHAR",
+        "payout_bank_last4 VARCHAR",
+        "payout_ifsc VARCHAR",
+        "payout_beneficiary_name VARCHAR",
+    ):
+        connection.execute(text(
+            f"ALTER TABLE partners ADD COLUMN IF NOT EXISTS {column}"
         ))
 
 

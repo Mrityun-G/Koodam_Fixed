@@ -150,9 +150,8 @@ export const BillingHistory = ({
         const isPaid = bill.payment_status === 'PAID';
         const balance = Math.max(0, (bill.total_amount || 0) - (bill.amount_paid || 0));
 
-        // Show the other person: the partner to a customer, and vice versa
+        // Name the other person: the partner to a customer, and vice versa
         const otherName = isPartnerView ? bill.customer_name : bill.partner_name;
-        const otherAvatar = isPartnerView ? bill.customer_avatar : bill.partner_avatar;
 
         return (
           <div
@@ -165,15 +164,17 @@ export const BillingHistory = ({
               onClick={() => setOpenBillId(isOpen ? null : bill.booking_id)}
               className="w-full p-3.5 flex items-center gap-3 text-left"
             >
-              <img
-                src={otherAvatar || '/logo.svg'}
-                alt={otherName}
-                className="w-10 h-10 rounded-xl object-cover shrink-0 bg-[#eff4ff]"
-              />
+              {/* A service icon, not a face: next to a photo, the service
+                  name reads like that person's job title */}
+              <div className="w-10 h-10 rounded-xl shrink-0 bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
+                <span className="material-symbols-outlined text-[20px]">
+                  home_repair_service
+                </span>
+              </div>
 
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-[#0b1c30] truncate">
-                  {bill.service_title}
+                  <span>{bill.service_title}</span> <span>service</span>
                 </p>
                 {/* Say who the other person is, so a customer's name under
                     "Plumber" isn't mistaken for the plumber */}

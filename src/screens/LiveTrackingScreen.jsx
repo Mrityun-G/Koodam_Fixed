@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
 import { LiveMap } from '../components/LiveMap';
+import { useSecondsLeft } from '../lib/useSecondsLeft';
 
 export const LiveTrackingScreen = () => {
   const {
@@ -34,6 +35,13 @@ export const LiveTrackingScreen = () => {
     ? `${liveDistanceKm.toFixed(1)} km away`
     : activeOrder.currentRoad;
 
+  const pinSecondsLeft = useSecondsLeft(
+    activeOrder.currentStep < 4 ? activeOrder.safetyPinExpiresAt : null
+  );
+
+  const helperFirstName = (activeOrder.helperName || 'Partner').trim().split(/\s+/)[0];
+  const helperInitial = helperFirstName.charAt(0).toUpperCase();
+
   const [copied, setCopied] = useState(false);
   const [hoverStar, setHoverStar] = useState(0);
   const [selectedStar, setSelectedStar] = useState(0);
@@ -45,9 +53,9 @@ export const LiveTrackingScreen = () => {
     submitRating(selectedStar, feedbackText.trim());
   };
 
-  const handleVerifyCompletion = () => {
+  const handleVerifyCompletion = async () => {
     if (completionInput.length !== 4) return;
-    if (verifyCompletionOtp(completionInput)) setCompletionInput('');
+    if (await verifyCompletionOtp(completionInput)) setCompletionInput('');
   };
 
   const handleCopyPin = () => {
@@ -332,14 +340,23 @@ export const LiveTrackingScreen = () => {
             {/* Profile row */}
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
-                <img
-                  className="w-14 h-14 rounded-2xl object-cover shadow-xs"
-                  alt={activeOrder.helperName}
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJFP-hU-FEvoiJVzKzRp5W3wJOlmXvEIgsYb8I9Nmnf3XEq3dbTrQZ-NUDt5Cae6rToq_UsMM47w7oI4k31EWKotizKHaHa6paxpDCLq86tWj_0lR9U4DWJo4S5marrKLXymEKlXE1p9hioIBsUxdzwrwiQoNPjVq1YSg_qmiN58moH7YnlnV0w1FiNYrNcQzllBVwnvN640h9SbhbmRFpTLl6OBH6OWKG_RLEd2Z_WyLrjXVY5faO4w"
-                />
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#00ae78] text-white flex items-center justify-center shadow-xs">
-                  <span className="material-symbols-outlined text-[13px]">verified</span>
-                </div>
+                {activeOrder.helperAvatar ? (
+                  <img
+                    className="w-14 h-14 rounded-2xl object-cover shadow-xs"
+                    alt={activeOrder.helperName}
+                    src={activeOrder.helperAvatar}
+                  />
+                ) : (
+                  // No photo uploaded: show their initial, as elsewhere in the app
+                  <div className="w-14 h-14 rounded-2xl bg-[#2e7d32] text-white text-xl font-bold flex items-center justify-center shadow-xs">
+                    {helperInitial}
+                  </div>
+                )}
+                {activeOrder.helperVerified && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#00ae78] text-white flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[13px]">verified</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col min-w-0 flex-1">
@@ -347,40 +364,56 @@ export const LiveTrackingScreen = () => {
                   <h2 className="text-sm font-bold text-[#0b1c30] truncate">
                     {activeOrder.helperName}
                   </h2>
-                  <div className="flex items-center gap-0.5 bg-[#eff4ff] px-2 py-0.5 rounded-full shrink-0">
-                    <span
-                      className="material-symbols-outlined text-[13px] text-[#ff6a00]"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      star
-                    </span>
-                    <span className="text-xs font-bold text-[#0b1c30]">4.92</span>
-                  </div>
+                  {activeOrder.helperRating > 0 && (
+                    <div className="flex items-center gap-0.5 bg-[#eff4ff] px-2 py-0.5 rounded-full shrink-0">
+                      <span
+                        className="material-symbols-outlined text-[13px] text-[#ff6a00]"
+                        style={{ fontVariationSettings: "'FILL' 1" }}
+                      >
+                        star
+                      </span>
+                      <span className="text-xs font-bold text-[#0b1c30]">
+                        {Number(activeOrder.helperRating).toFixed(1)}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
                   <span className="material-symbols-outlined text-[14px] text-[#00ae78]">
-                    electric_bolt
+                    home_repair_service
                   </span>
-                  Certified Senior Electrician
+                  <span>{activeOrder.serviceTitle}</span> <span>partner</span>
                 </p>
 
-                <div className="flex items-center gap-1 text-[#5a4136] text-[11px] mt-1 bg-[#eff4ff] px-2 py-0.5 rounded-md self-start font-medium">
-                  <span className="material-symbols-outlined text-[13px]">two_wheeler</span>
-                  <span className="font-semibold text-[#0b1c30]">TVS Jupiter</span>
-                  <span>• KA-03-HM-4122</span>
-                </div>
+                {(activeOrder.helperVehicle || activeOrder.helperVehicleNumber) && (
+                  <div className="flex items-center gap-1 text-[#5a4136] text-[11px] mt-1 bg-[#eff4ff] px-2 py-0.5 rounded-md self-start font-medium">
+                    <span className="material-symbols-outlined text-[13px]">two_wheeler</span>
+                    {activeOrder.helperVehicle && (
+                      <span className="font-semibold text-[#0b1c30]">{activeOrder.helperVehicle}</span>
+                    )}
+                    {activeOrder.helperVehicleNumber && (
+                      <span>{activeOrder.helperVehicle ? '• ' : ''}{activeOrder.helperVehicleNumber}</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Action Buttons: Call & Chat */}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <a
-                href="tel:+919876543210"
+                href={activeOrder.helperPhone ? `tel:${activeOrder.helperPhone}` : undefined}
+                onClick={(event) => {
+                  if (!activeOrder.helperPhone) {
+                    event.preventDefault();
+                    showToast('This partner has not added a phone number. Use In-App Chat instead.');
+                  }
+                }}
                 className="h-10 px-3 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[#0b1c30] text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition-all"
               >
                 <span className="material-symbols-outlined text-[17px] text-[#a14000]">call</span>
-                <span>Call Arun</span>
+                <span>Call</span> <span>{helperFirstName}</span>
               </a>
 
               <button
@@ -413,6 +446,9 @@ export const LiveTrackingScreen = () => {
                   </span>
                   <span className="text-xs text-[#0b1c30] font-medium truncate">
                     {activeOrder.currentStep >= 4 ? 'Verified — work has started' : 'Share only upon arrival'}
+                    {activeOrder.currentStep < 4 && pinSecondsLeft != null && (
+                      <span> · <span>changes in</span> {pinSecondsLeft}s</span>
+                    )}
                   </span>
                 </div>
               </div>

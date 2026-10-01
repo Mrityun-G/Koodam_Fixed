@@ -5,6 +5,8 @@ import {
   findClash,
   jobsToTimeRanges
 } from '../lib/schedule';
+import { useSecondsLeft } from '../lib/useSecondsLeft';
+import { PartnerPayouts } from '../components/PartnerPayouts';
 
 export const PartnerDashboard = () => {
   const {
@@ -38,7 +40,7 @@ export const PartnerDashboard = () => {
     cycleServiceRadius
   } = useApp();
 
-  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [payoutSetupOpen, setPayoutSetupOpen] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -47,6 +49,12 @@ export const PartnerDashboard = () => {
   });
   const [calendarDay, setCalendarDay] = useState(() => new Date().toDateString());
   const [arrivalInput, setArrivalInput] = useState('');
+
+  const completionSecondsLeft = useSecondsLeft(
+    activeOrder.currentStep === 4
+      ? activeOrder.completionOtpExpiresAt
+      : null
+  );
   const [extraItem, setExtraItem] = useState('');
   const [extraAmount, setExtraAmount] = useState('');
 
@@ -607,12 +615,12 @@ export const PartnerDashboard = () => {
   // ARRIVAL VERIFICATION
   // ================================
 
-  const handleVerifyArrival = () => {
+  const handleVerifyArrival = async () => {
     if (arrivalInput.length !== 4) {
       return;
     }
 
-    if (verifyArrivalOtp(arrivalInput)) {
+    if (await verifyArrivalOtp(arrivalInput)) {
       setArrivalInput('');
     }
   };
@@ -1539,6 +1547,9 @@ export const PartnerDashboard = () => {
 
                   <p className="text-[11px] text-slate-500 truncate">
                     Give this code to the customer once the job is done
+                    {completionSecondsLeft != null && (
+                      <span> · <span>changes in</span> {completionSecondsLeft}s</span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -2074,7 +2085,7 @@ export const PartnerDashboard = () => {
               <div className="min-w-0">
 
                 <p className="text-[11px] text-[#dce1ff] opacity-90">
-                  Weekly Available Balance
+                  This Week's Earnings
                 </p>
 
                 <div className="flex items-baseline gap-2 mt-0.5">
@@ -2084,48 +2095,31 @@ export const PartnerDashboard = () => {
                   </span>
 
                   <span className="text-[10px] text-[#dce1ff]/80">
-                    Your share, after KOODAM's commission
+                    Paid to your bank automatically after each job
                   </span>
                 </div>
               </div>
 
               <button
                 onClick={() =>
-                  setWithdrawModalOpen(true)
+                  setPayoutSetupOpen(true)
                 }
                 className="bg-[#ff6a00] hover:bg-[#a14000] text-white px-3.5 py-2 rounded-full text-xs font-bold active:scale-95 transition-all shrink-0 flex items-center gap-1 shadow-md"
               >
                 <span className="material-symbols-outlined text-[15px]">
-                  bolt
+                  account_balance
                 </span>
 
-                Instant Withdraw
+                Bank account
               </button>
             </div>
           </div>
         </section>
 
-        {/* ========================================= */}
-        {/* TRANSACTIONS */}
-        {/* ========================================= */}
-
-        <section className="space-y-2 pt-1">
-          <div className="px-1">
-            <h2 className="text-sm font-bold text-[#0b1c30]">
-              Transactions
-            </h2>
-
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              Payouts and job credits
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 text-center">
-            <p className="text-xs text-slate-400">
-              No transactions yet. Completed jobs and withdrawals will appear here.
-            </p>
-          </div>
-        </section>
+        <PartnerPayouts
+          setupOpen={payoutSetupOpen}
+          onSetupOpenChange={setPayoutSetupOpen}
+        />
           </>
         )}
 
@@ -2974,81 +2968,6 @@ export const PartnerDashboard = () => {
         </div>
       )}
 
-      {/* ========================================= */}
-      {/* WITHDRAWAL MODAL */}
-      {/* ========================================= */}
-
-      {withdrawModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-
-          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150">
-
-            <div className="flex items-center justify-between mb-3">
-
-              <div className="flex items-center gap-2">
-
-                <div className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
-
-                  <span className="material-symbols-outlined text-base">
-                    account_balance_wallet
-                  </span>
-                </div>
-
-                <h3 className="font-bold text-[#0b1c30] text-base">
-                  Instant UPI Payout
-                </h3>
-              </div>
-
-              <button
-                onClick={() =>
-                  setWithdrawModalOpen(false)
-                }
-                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 mb-3">
-              Transfer available balance directly to your registered UPI ID with zero fee.
-            </p>
-
-            <div className="bg-[#eff4ff] p-3 rounded-2xl mb-4 border border-slate-100">
-
-              <span className="text-[10px] text-slate-400 font-bold uppercase">
-                Destination Account
-              </span>
-
-              <p className="text-xs font-bold text-[#0b1c30]">
-                {partnerProfile?.upi_id || partnerProfile?.upiId || 'UPI account not configured'}
-              </p>
-
-              <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-200">
-
-                <span className="text-xs text-slate-600">
-                  Transfer Amount:
-                </span>
-
-                <span className="text-base font-extrabold text-[#a14000]">
-                  ₹{partnerStats.weeklyBalance}
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                showToast(
-                  'Withdrawal is not connected to the payment backend yet. No money has been transferred.'
-                );
-              }}
-              className="w-full py-3 rounded-full bg-[#00ae78] hover:bg-[#006c49] text-white font-bold text-sm shadow-md active:scale-95 transition-all"
-            >
-              Transfer ₹
-              {partnerStats.weeklyBalance} to UPI
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

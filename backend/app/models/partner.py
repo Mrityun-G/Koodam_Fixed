@@ -56,3 +56,29 @@ class Partner(Base):
     latitude = Column(Float, nullable=True)
 
     longitude = Column(Float, nullable=True)
+
+    # Razorpay Route linked account that receives the partner's share of
+    # each payment, and the IDs of each onboarding step so a retry resumes
+    razorpay_account_id = Column(String, nullable=True)
+
+    razorpay_stakeholder_id = Column(String, nullable=True)
+
+    razorpay_product_id = Column(String, nullable=True)
+
+    # NOT_SET -> UNDER_REVIEW -> ACTIVATED, or NEEDS_CLARIFICATION
+    payout_account_status = Column(
+        String,
+        nullable=False,
+        default="NOT_SET",
+        server_default="NOT_SET"
+    )
+
+    # What Razorpay still needs, when it asks for clarification
+    payout_account_note = Column(String, nullable=True)
+
+    # Shown back to the partner; the full account number is not stored
+    payout_bank_last4 = Column(String, nullable=True)
+
+    payout_ifsc = Column(String, nullable=True)
+
+    payout_beneficiary_name = Column(String, nullable=True)
