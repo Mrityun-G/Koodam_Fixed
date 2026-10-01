@@ -22,6 +22,7 @@ from app.routers.booking import router as booking_router
 from app.routers.review import router as review_router
 from app.routers.emergency import router as emergency_router
 from app.routers.booking_sync import router as booking_sync_router
+from app.routers.payment import router as payment_router
 
 
 app = FastAPI(title="KOODAM Backend")
@@ -35,6 +36,8 @@ app.add_middleware(
         "http://localhost",
         "https://localhost",
     ],
+    # Vite moves to 5174, 5175… when 5173 is busy; allow any local port
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,6 +53,7 @@ app.include_router(booking_router)
 app.include_router(review_router)
 app.include_router(emergency_router)
 app.include_router(booking_sync_router)
+app.include_router(payment_router)
 
 
 # Create database tables
@@ -73,6 +77,17 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS service_radius_km "
         "INTEGER NOT NULL DEFAULT 5"
     ))
+
+    # Verified Razorpay payments and how each one is split
+    for column in (
+        "razorpay_order_id VARCHAR",
+        "trust_fee DOUBLE PRECISION",
+        "commission_amount DOUBLE PRECISION",
+        "partner_payout DOUBLE PRECISION",
+    ):
+        connection.execute(text(
+            f"ALTER TABLE booking_details ADD COLUMN IF NOT EXISTS {column}"
+        ))
 
 
 @app.get("/")

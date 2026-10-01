@@ -57,14 +57,22 @@ export const ChatModal = () => {
       : '') ||
     '';
 
+  const isOrderContact = !explicitName || explicitName === orderContact?.name;
+
   // The partner's ID, so a customer can see the bills for their work
   const chatPartnerId =
     (typeof chatPartner === 'object' && chatPartner?.partnerId) ||
-    (myRole === 'member' &&
-    (!explicitName || explicitName === orderContact?.name)
-      ? activeOrder?.partnerId
-      : null) ||
+    (myRole === 'member' && isOrderContact ? activeOrder?.partnerId : null) ||
     null;
+
+  // The customer's ID, so a partner can see what they earned from them
+  const chatCustomerId =
+    (typeof chatPartner === 'object' && chatPartner?.customerId) ||
+    (myRole === 'partner' && isOrderContact ? activeOrder?.customerId : null) ||
+    null;
+
+  const canShowBills =
+    myRole === 'partner' ? Boolean(chatCustomerId) : Boolean(chatPartnerId);
 
   const partnerVehicle =
     typeof chatPartner === 'object' && chatPartner
@@ -277,11 +285,15 @@ export const ChatModal = () => {
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            {myRole === 'member' && chatPartnerId && (
+            {canShowBills && (
               <button
                 type="button"
                 onClick={() => setShowBills((open) => !open)}
-                aria-label={`Bills from ${partnerName}`}
+                aria-label={
+                  myRole === 'partner'
+                    ? `Jobs for ${partnerName}`
+                    : `Bills from ${partnerName}`
+                }
                 className={`
                   w-9 h-9
                   rounded-full
@@ -353,10 +365,14 @@ export const ChatModal = () => {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <h4 className="text-sm font-bold text-[#0b1c30] truncate">
-                  {`Work by ${partnerName}`}
+                  {myRole === 'partner'
+                    ? `Jobs for ${partnerName}`
+                    : `Work by ${partnerName}`}
                 </h4>
                 <p className="text-[11px] text-slate-500">
-                  Bills, extra parts and payments
+                  {myRole === 'partner'
+                    ? 'What you earned from each job'
+                    : 'Bills, extra parts and payments'}
                 </p>
               </div>
 
@@ -370,7 +386,11 @@ export const ChatModal = () => {
               </button>
             </div>
 
-            <BillingHistory partnerId={chatPartnerId} />
+            {myRole === 'partner' ? (
+              <BillingHistory viewer="partner" customerId={chatCustomerId} />
+            ) : (
+              <BillingHistory partnerId={chatPartnerId} />
+            )}
           </div>
         ) : (
         <>

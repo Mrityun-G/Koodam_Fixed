@@ -13,6 +13,8 @@ from app.models.partner import Partner
 from app.models.review import Review
 from app.models.service import Service
 from app.models.user import User
+from app.routers.partner_service import resolve_partner
+from app.routers.payment import calculate_split
 
 
 # =========================================================
@@ -274,7 +276,8 @@ def apply_sync(db: Session, data: BookingSync) -> Booking:
     if scheduled_at:
         booking.booking_time = scheduled_at
 
-    if data.total_amount is not None:
+    # A paid bill is final; its total can't be changed afterwards
+    if data.total_amount is not None and detail.payment_status != "PAID":
         booking.total_amount = data.total_amount
 
     if data.address:
@@ -288,18 +291,17 @@ def apply_sync(db: Session, data: BookingSync) -> Booking:
     detail.extra_amount = sync_extra_charges(db, booking, data)
     detail.base_amount = (booking.total_amount or 0.0) - detail.extra_amount
 
-    if data.payment_status:
+    # Payment is recorded only by POST /payments/verify after Razorpay
+    # confirms it. The app can't mark a booking PAID (or undo one) here.
+    if (
+        data.payment_status
+        and data.payment_status != "PAID"
+        and detail.payment_status != "PAID"
+    ):
         detail.payment_status = data.payment_status
-
-    if data.amount_paid is not None:
-        detail.amount_paid = data.amount_paid
-
-    if data.razorpay_payment_id:
-        detail.razorpay_payment_id = data.razorpay_payment_id
 
     detail.accepted_at = parse_timestamp(data.accepted_at) or detail.accepted_at
     detail.completed_at = parse_timestamp(data.completed_at) or detail.completed_at
-    detail.paid_at = parse_timestamp(data.paid_at) or detail.paid_at
 
     sync_review(db, booking, data)
 
@@ -335,19 +337,7 @@ def get_billing_history(
             detail="Customer not found"
         )
 
-    PartnerUser = aliased(User)
-
-    query = (
-        db.query(Booking, BookingDetail, Service, Partner, PartnerUser)
-        .outerjoin(BookingDetail, BookingDetail.booking_id == Booking.id)
-        .join(Service, Service.id == Booking.service_id)
-        .join(Partner, Partner.id == Booking.partner_id)
-        .join(PartnerUser, PartnerUser.id == Partner.user_id)
-        .filter(
-            Booking.user_id == user.id,
-            Booking.status.in_(BILLABLE_STATUSES)
-        )
-    )
+    filters = [Booking.user_id == user.id]
 
     # Only the work done by one partner, e.g. from the chat with them
     if partner_id:
@@ -356,9 +346,60 @@ def get_billing_history(
         if not partner_uuid:
             return []
 
-        query = query.filter(Booking.partner_id == partner_uuid)
+        filters.append(Booking.partner_id == partner_uuid)
 
-    rows = query.order_by(Booking.booking_time.desc()).all()
+    return build_bills(db, filters)
+
+
+@router.get("/partner-billing/{partner_identifier}")
+def get_partner_billing(
+    partner_identifier: str,
+    customer_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    A partner's jobs with what they earned from each one. Pass customer_id
+    to show only the jobs done for one customer (from the chat with them).
+    """
+    partner_uuid = parse_uuid(partner_identifier)
+    partner = resolve_partner(db, partner_uuid) if partner_uuid else None
+
+    if not partner:
+        raise HTTPException(
+            status_code=404,
+            detail="Partner not found"
+        )
+
+    filters = [Booking.partner_id == partner.id]
+
+    if customer_id:
+        customer = resolve_customer(db, customer_id)
+
+        if not customer:
+            return []
+
+        filters.append(Booking.user_id == customer.id)
+
+    return build_bills(db, filters)
+
+
+def build_bills(db: Session, filters: list) -> list:
+    PartnerUser = aliased(User)
+    CustomerUser = aliased(User)
+
+    rows = (
+        db.query(
+            Booking, BookingDetail, Service, Partner, PartnerUser, CustomerUser
+        )
+        .outerjoin(BookingDetail, BookingDetail.booking_id == Booking.id)
+        .join(Service, Service.id == Booking.service_id)
+        .join(Partner, Partner.id == Booking.partner_id)
+        .join(PartnerUser, PartnerUser.id == Partner.user_id)
+        .join(CustomerUser, CustomerUser.id == Booking.user_id)
+        .filter(Booking.status.in_(BILLABLE_STATUSES), *filters)
+        .order_by(Booking.booking_time.desc())
+        .all()
+    )
 
     booking_ids = [booking.id for booking, *_ in rows]
 
@@ -381,9 +422,20 @@ def get_billing_history(
 
     bills = []
 
-    for booking, detail, service, partner, partner_user in rows:
+    for booking, detail, service, partner, partner_user, customer in rows:
         total = booking.total_amount or 0.0
         extra = detail.extra_amount if detail else 0.0
+
+        # Paid bills use the split saved when the payment was verified;
+        # others show what the split will be
+        split = calculate_split(total, extra)
+
+        if detail and detail.partner_payout is not None:
+            split.update({
+                "trust_fee": detail.trust_fee,
+                "commission": detail.commission_amount,
+                "partner_payout": detail.partner_payout
+            })
 
         bills.append({
             "booking_id": booking.id,
@@ -391,14 +443,16 @@ def get_billing_history(
             "partner_id": partner.id,
             "partner_name": partner_user.name,
             "partner_avatar": partner_user.avatar,
+            "customer_name": customer.name,
+            "customer_avatar": customer.avatar,
             "status": booking.status,
             "booking_time": to_iso_utc(booking.booking_time),
             "completed_at": to_iso_utc(detail.completed_at if detail else None),
-            "base_amount": (
-                detail.base_amount
-                if detail and detail.base_amount is not None
-                else total - extra
-            ),
+            "service_price": split["service_price"],
+            "trust_fee": split["trust_fee"],
+            "commission_percent": split["commission_percent"],
+            "commission": split["commission"],
+            "partner_payout": split["partner_payout"],
             "extra_amount": extra,
             "extra_charges": charges_by_booking.get(booking.id, []),
             "total_amount": total,

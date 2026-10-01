@@ -38,12 +38,25 @@ const EXTRA_STATUS_LABELS = {
   PENDING: 'Awaiting approval'
 };
 
-// The customer's bills, newest first. Pass partnerId to show only the work
-// one partner did. onBillsLoaded receives the bills (for totals).
-export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
-  const { userProfile, authUser } = useApp();
+// Bills, newest first.
+// - viewer="customer": what the customer paid. partnerId limits it to the
+//   work one partner did.
+// - viewer="partner": what the partner earned from each job.
+//   customerId limits it to the jobs for one customer.
+// onBillsLoaded receives the bills (for totals).
+export const BillingHistory = ({
+  viewer = 'customer',
+  partnerId = null,
+  customerId = null,
+  onBillsLoaded
+}) => {
+  const { userProfile, partnerProfile, authUser } = useApp();
 
-  const customerId = userProfile?.id || authUser?.uid;
+  const isPartnerView = viewer === 'partner';
+
+  const ownerId = isPartnerView
+    ? partnerProfile?.id
+    : userProfile?.id || authUser?.uid;
 
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,21 +64,23 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
   const [openBillId, setOpenBillId] = useState(null);
 
   useEffect(() => {
-    if (!customerId) {
+    if (!ownerId) {
       setLoading(false);
       return undefined;
     }
 
     let cancelled = false;
 
-    const query = partnerId
-      ? `?partner_id=${encodeURIComponent(partnerId)}`
-      : '';
+    const url = isPartnerView
+      ? `${BACKEND_URL}/bookings/partner-billing/${encodeURIComponent(ownerId)}` +
+        (customerId ? `?customer_id=${encodeURIComponent(customerId)}` : '')
+      : `${BACKEND_URL}/bookings/billing/${encodeURIComponent(ownerId)}` +
+        (partnerId ? `?partner_id=${encodeURIComponent(partnerId)}` : '');
 
     setLoading(true);
     setError('');
 
-    fetch(`${BACKEND_URL}/bookings/billing/${encodeURIComponent(customerId)}${query}`)
+    fetch(url)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`Billing request failed: ${response.status}`);
@@ -93,7 +108,7 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
     };
     // onBillsLoaded is a callback for the parent, not an input
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId, partnerId]);
+  }, [ownerId, isPartnerView, partnerId, customerId]);
 
   if (loading) {
     return (
@@ -119,7 +134,9 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
       <div className="bg-white rounded-2xl p-5 border border-slate-100 text-center">
         <span className="material-symbols-outlined text-slate-300 text-3xl">receipt_long</span>
         <p className="text-xs text-slate-400 mt-1">
-          No bills yet. They'll appear here once a partner accepts your booking.
+          {isPartnerView
+            ? "No jobs yet. They'll appear here once you accept a booking."
+            : "No bills yet. They'll appear here once a partner accepts your booking."}
         </p>
       </div>
     );
@@ -133,6 +150,10 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
         const isPaid = bill.payment_status === 'PAID';
         const balance = Math.max(0, (bill.total_amount || 0) - (bill.amount_paid || 0));
 
+        // Show the other person: the partner to a customer, and vice versa
+        const otherName = isPartnerView ? bill.customer_name : bill.partner_name;
+        const otherAvatar = isPartnerView ? bill.customer_avatar : bill.partner_avatar;
+
         return (
           <div
             key={bill.booking_id}
@@ -145,8 +166,8 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
               className="w-full p-3.5 flex items-center gap-3 text-left"
             >
               <img
-                src={bill.partner_avatar || '/logo.svg'}
-                alt={bill.partner_name}
+                src={otherAvatar || '/logo.svg'}
+                alt={otherName}
                 className="w-10 h-10 rounded-xl object-cover shrink-0 bg-[#eff4ff]"
               />
 
@@ -154,8 +175,10 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
                 <p className="text-xs font-bold text-[#0b1c30] truncate">
                   {bill.service_title}
                 </p>
+                {/* Say who the other person is, so a customer's name under
+                    "Plumber" isn't mistaken for the plumber */}
                 <p className="text-[11px] text-slate-500 truncate">
-                  {bill.partner_name} • {formatDate(bill.completed_at || bill.booking_time)}
+                  {`${isPartnerView ? 'Customer' : 'Partner'}: ${otherName} • ${formatDate(bill.completed_at || bill.booking_time)}`}
                 </p>
                 <span className={`inline-flex items-center gap-0.5 mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${status.tone}`}>
                   <span className="material-symbols-outlined text-[12px]">{status.icon}</span>
@@ -164,8 +187,13 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
               </div>
 
               <div className="text-right shrink-0">
-                <p className="text-sm font-extrabold text-[#a14000]">
-                  {formatRupees(bill.total_amount)}
+                {isPartnerView && (
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">
+                    You get
+                  </p>
+                )}
+                <p className={`text-sm font-extrabold ${isPartnerView ? 'text-[#006c49]' : 'text-[#a14000]'}`}>
+                  {formatRupees(isPartnerView ? bill.partner_payout : bill.total_amount)}
                 </p>
                 <span className="material-symbols-outlined text-[18px] text-slate-300">
                   {isOpen ? 'expand_less' : 'expand_more'}
@@ -179,12 +207,30 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
 
                 <div className="flex justify-between gap-3">
                   <span className="text-[#5a4136]">
-                    {`${bill.service_title} (incl. trust fee)`}
+                    {isPartnerView ? 'Job price' : bill.service_title}
                   </span>
                   <span className="font-bold text-[#0b1c30] shrink-0">
-                    {formatRupees(bill.base_amount)}
+                    {formatRupees(bill.service_price)}
                   </span>
                 </div>
+
+                {isPartnerView ? (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[#5a4136]">
+                      {`KOODAM commission (${bill.commission_percent}%)`}
+                    </span>
+                    <span className="font-bold text-red-500 shrink-0">
+                      {`− ${formatRupees(bill.commission)}`}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[#5a4136]">Trust Shield fee</span>
+                    <span className="font-bold text-[#0b1c30] shrink-0">
+                      {formatRupees(bill.trust_fee)}
+                    </span>
+                  </div>
+                )}
 
                 {bill.extra_charges.length > 0 && (
                   <div className="pt-1">
@@ -211,7 +257,9 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
                             )}
                           </span>
                           <span className={`shrink-0 ${isApproved ? 'font-bold text-[#0b1c30]' : 'text-slate-400 line-through'}`}>
-                            {formatRupees(charge.amount)}
+                            {isPartnerView && isApproved
+                              ? `+ ${formatRupees(charge.amount)}`
+                              : formatRupees(charge.amount)}
                           </span>
                         </div>
                       );
@@ -219,25 +267,42 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
                   </div>
                 )}
 
-                <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-slate-100">
-                  <span className="font-bold text-[#0b1c30]">Total</span>
-                  <span className="font-extrabold text-[#0b1c30]">
-                    {formatRupees(bill.total_amount)}
-                  </span>
-                </div>
+                {isPartnerView ? (
+                  <>
+                    <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-slate-100">
+                      <span className="font-bold text-[#0b1c30]">You receive</span>
+                      <span className="font-extrabold text-[#006c49]">
+                        {formatRupees(bill.partner_payout)}
+                      </span>
+                    </div>
 
-                <div className="flex justify-between gap-3">
-                  <span className="text-[#5a4136]">Amount paid</span>
-                  <span className={`font-bold ${isPaid ? 'text-[#006c49]' : 'text-[#0b1c30]'}`}>
-                    {formatRupees(bill.amount_paid)}
-                  </span>
-                </div>
+                    <p className="text-[10px] text-slate-400">
+                      {`Customer's total bill: ${formatRupees(bill.total_amount)} (includes ${formatRupees(bill.trust_fee)} trust fee paid to KOODAM). Extra parts are never commissioned.`}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-slate-100">
+                      <span className="font-bold text-[#0b1c30]">Total</span>
+                      <span className="font-extrabold text-[#0b1c30]">
+                        {formatRupees(bill.total_amount)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-[#5a4136]">Amount paid</span>
+                      <span className={`font-bold ${isPaid ? 'text-[#006c49]' : 'text-[#0b1c30]'}`}>
+                        {formatRupees(bill.amount_paid)}
+                      </span>
+                    </div>
+                  </>
+                )}
 
                 {isPaid ? (
                   <div className="mt-2 rounded-xl bg-[#c8f7e1]/50 p-2.5 space-y-0.5">
                     <p className="text-[11px] font-bold text-[#006c49] flex items-center gap-1">
                       <span className="material-symbols-outlined text-[14px]">verified</span>
-                      Payment complete
+                      {isPartnerView ? 'Customer has paid' : 'Payment complete'}
                     </p>
                     {bill.paid_at && (
                       <p className="text-[10px] text-[#006c49]">
@@ -253,7 +318,9 @@ export const BillingHistory = ({ partnerId = null, onBillsLoaded }) => {
                 ) : (
                   <div className="mt-2 rounded-xl bg-amber-50 p-2.5">
                     <p className="text-[11px] font-bold text-amber-700">
-                      {`Balance due: ${formatRupees(balance)}`}
+                      {isPartnerView
+                        ? "Waiting for the customer's payment"
+                        : `Balance due: ${formatRupees(balance)}`}
                     </p>
                   </div>
                 )}

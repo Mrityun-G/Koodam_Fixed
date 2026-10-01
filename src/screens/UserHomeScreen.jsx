@@ -626,7 +626,7 @@ useEffect(() => {
             <div className="flex flex-col min-w-0">
               <h4 className="text-xs font-bold text-[#0b1c30]">The KOODAM Neighbor Guarantee</h4>
               <p className="text-[11px] text-[#5a4136] mt-0.5 leading-snug">
-                Zero commissions between neighbors. Every helper is identity-checked and vouched for by local residents.
+                Fair, upfront prices with no hidden charges. Every helper is identity-checked and vouched for by local residents.
               </p>
             </div>
           </div>

@@ -39,6 +39,17 @@ class BookingDetail(Base):
 
     razorpay_payment_id = Column(String, nullable=True)
 
+    # The Razorpay order the backend created for this bill
+    razorpay_order_id = Column(String, nullable=True)
+
+    # How a verified payment is split (rupees). KOODAM keeps the trust
+    # fee and the commission; the partner gets the rest.
+    trust_fee = Column(Float, nullable=True)
+
+    commission_amount = Column(Float, nullable=True)
+
+    partner_payout = Column(Float, nullable=True)
+
     accepted_at = Column(DateTime, nullable=True)
 
     completed_at = Column(DateTime, nullable=True)

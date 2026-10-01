@@ -1246,7 +1246,9 @@ const requestsRef = ref(db, requestPath);
             customerRating:
               latestRequest.customerRating || 5,
             scheduledAt:
-              latestRequest.scheduledAt || null
+              latestRequest.scheduledAt || null,
+            customerId:
+              latestRequest.customerId || null
           });
 
           setHasIncomingJob(true);
@@ -3364,7 +3366,8 @@ etaMinutes: 12,
 
     setChatPartner({
       name: incomingJobDetails.customerName || 'KOODAM Customer',
-      avatar: incomingJobDetails.customerAvatar || ''
+      avatar: incomingJobDetails.customerAvatar || '',
+      customerId: incomingJobDetails.customerId
     });
 
     // The member is notified by their own Firebase order listener

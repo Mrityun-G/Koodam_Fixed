@@ -1630,7 +1630,8 @@ export const PartnerDashboard = () => {
           onClick={() => {
             setChatPartner({
               name: activeOrder?.customerName || 'KOODAM Customer',
-              avatar: activeOrder?.customerAvatar || ''
+              avatar: activeOrder?.customerAvatar || '',
+              customerId: activeOrder?.customerId
             });
             setIsChatOpen(true);
           }}
@@ -2083,7 +2084,7 @@ export const PartnerDashboard = () => {
                   </span>
 
                   <span className="text-[10px] text-[#dce1ff]/80">
-                    Pending clearance: ₹0
+                    Your share, after KOODAM's commission
                   </span>
                 </div>
               </div>

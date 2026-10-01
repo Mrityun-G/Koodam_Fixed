@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+
 export const PaymentScreen = () => {
   const {
     selectedHelper,
@@ -12,10 +15,13 @@ export const PaymentScreen = () => {
     navigateTo,
     activeOrder,
     markPaymentCompleted,
-    showToast
+    showToast,
+    userProfile
   } = useApp();
 
-  const [processing, setProcessing] = useState(false);
+  // idle → opening (creating the order) → confirming (checking the payment)
+  const [status, setStatus] = useState('idle');
+  const processing = status !== 'idle';
 
   const isServicePayment =
     activeOrder?.currentStep === 5 &&
@@ -42,57 +48,97 @@ export const PaymentScreen = () => {
       document.body.appendChild(script);
     });
 
+  // Calls the backend and turns its error into a message for the customer
+  const postToBackend = async (path, body) => {
+    const response = await fetch(`${BACKEND_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(
+        data?.detail || `Payment server error (${response.status})`
+      );
+    }
+
+    return data;
+  };
+
+  // Only marks the job paid once the backend has confirmed the payment
+  // with Razorpay
+  const confirmPayment = async (response) => {
+    setStatus('confirming');
+
+    try {
+      await postToBackend('/payments/verify', {
+        firebase_order_id: String(activeOrder.orderId),
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature
+      });
+
+      markPaymentCompleted(response);
+      navigateTo('tracking', 'requests');
+    } catch (error) {
+      console.error('Payment verification failed:', error);
+
+      showToast(
+        `We couldn't confirm your payment: ${error.message} If money was taken, it will be refunded automatically.`
+      );
+    } finally {
+      setStatus('idle');
+    }
+  };
+
   const handleRazorpayPayment = async () => {
-    if (!totalAmount) {
+    if (!totalAmount || !activeOrder?.orderId) {
       showToast('Invalid payment amount.');
       return;
     }
 
-    const razorpayKey =
-      import.meta.env.VITE_RAZORPAY_KEY_ID;
-
-    if (!razorpayKey) {
-      showToast(
-        'Razorpay key is missing. Add VITE_RAZORPAY_KEY_ID to .env'
-      );
-      return;
-    }
-
-    setProcessing(true);
+    setStatus('opening');
 
     try {
       const loaded = await loadRazorpay();
 
       if (!loaded) {
         showToast('Unable to load Razorpay.');
-        setProcessing(false);
+        setStatus('idle');
         return;
       }
 
+      // The backend creates the order from its own copy of the bill
+      const order = await postToBackend('/payments/create-order', {
+        firebase_order_id: String(activeOrder.orderId),
+        amount: totalAmount
+      });
+
       const options = {
-        key: razorpayKey,
+        key: order.key_id,
 
-        amount: Math.round(totalAmount * 100),
+        order_id: order.razorpay_order_id,
 
-        currency: 'INR',
+        amount: order.amount,
+
+        currency: order.currency,
 
         name: 'KOODAM',
 
-        description: isServicePayment
-          ? `Payment for ${activeOrder.serviceTitle}`
-          : `${selectedService.title}`,
+        description: `Payment for ${activeOrder.serviceTitle}`,
 
-        handler: async (response) => {
-          if (isServicePayment) {
-            markPaymentCompleted(response);
-            navigateTo('tracking', 'requests');
-          }
-        },
+        handler: confirmPayment,
 
+        // Saves the customer typing details Razorpay would otherwise ask for
         prefill: {
           name:
             activeOrder?.customerName ||
-            'KOODAM Customer'
+            userProfile?.name ||
+            'KOODAM Customer',
+          ...(userProfile?.email ? { email: userProfile.email } : {}),
+          ...(userProfile?.phone ? { contact: userProfile.phone } : {})
         },
 
         theme: {
@@ -101,7 +147,9 @@ export const PaymentScreen = () => {
 
         modal: {
           ondismiss: () => {
-            setProcessing(false);
+            setStatus((current) =>
+              current === 'confirming' ? current : 'idle'
+            );
           }
         }
       };
@@ -115,7 +163,7 @@ export const PaymentScreen = () => {
           showToast(
             'Payment failed. Please try again.'
           );
-          setProcessing(false);
+          setStatus('idle');
         }
       );
 
@@ -127,10 +175,10 @@ export const PaymentScreen = () => {
       );
 
       showToast(
-        'Unable to start Razorpay payment.'
+        error?.message || 'Unable to start Razorpay payment.'
       );
 
-      setProcessing(false);
+      setStatus('idle');
     }
   };
 
@@ -249,9 +297,11 @@ export const PaymentScreen = () => {
               payments
             </span>
 
-            {processing
-              ? 'Opening Razorpay...'
-              : `Pay ₹${totalAmount} with Razorpay`}
+            {status === 'confirming'
+              ? 'Confirming payment...'
+              : status === 'opening'
+                ? 'Opening Razorpay...'
+                : `Pay ₹${totalAmount} with Razorpay`}
 
           </button>
 

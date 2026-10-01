@@ -13,6 +13,7 @@ from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail
 from app.models.service import Service
 from app.routers.partner_service import resolve_partner
+from app.routers.payment import calculate_split
 from app.schemas.partner import PartnerCreate, PartnerResponse
 
 
@@ -311,7 +312,16 @@ def get_partner_overview(
 
     for booking, detail in rows:
         if detail and detail.payment_status == "PAID":
-            paid = detail.amount_paid or 0.0
+            # The partner's share after KOODAM's trust fee and commission,
+            # not the full amount the customer paid
+            paid = (
+                detail.partner_payout
+                if detail.partner_payout is not None
+                else calculate_split(
+                    detail.amount_paid or 0.0,
+                    detail.extra_amount or 0.0
+                )["partner_payout"]
+            )
             paid_on = local_date(detail.paid_at)
 
             total_earnings += paid

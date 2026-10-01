@@ -16,7 +16,11 @@ const faqs = [
   },
   {
     q: 'How does payment work?',
-    a: 'Pricing is shown upfront on the booking screen, including a small trust fee. You can pay via UPI or cash directly with your helper once the job is done.'
+    a: 'Pricing is shown upfront on the booking screen, including a small trust fee. Extra parts are only added if you approve them. Once the job is done, you pay securely in the app with Razorpay (UPI, card or netbanking), and the bill is saved in Profile → Billing History.'
+  },
+  {
+    q: 'As a partner, how much do I earn from a job?',
+    a: 'You set your own price. KOODAM keeps a 10% commission on the job price, and every extra part you add is passed to you in full. The ₹20 trust fee is paid by the customer, not you. Tap the receipt icon in your chat with a customer to see exactly what you earned from each job.'
   },
   {
     q: 'How do I rate a helper after service?',

@@ -49,7 +49,7 @@ const copy = {
     signupSub: 'Sign up to offer your skills and start earning locally.',
     badgeIcon: Wrench,
     trustChips: [
-      { icon: Wallet, label: 'Zero Commission', bg: 'bg-amber-400/20', color: 'text-amber-200' },
+      { icon: Wallet, label: 'Low Commission', bg: 'bg-amber-400/20', color: 'text-amber-200' },
       { icon: Clock, label: 'Flexible Hours', bg: 'bg-sky-400/20', color: 'text-sky-200' },
       { icon: BadgeCheck, label: 'Trusted Network', bg: 'bg-emerald-400/20', color: 'text-emerald-200' }
     ]

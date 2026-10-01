@@ -1140,8 +1140,8 @@ export const BookingScreen = () => {
               </div>
 
               <div className="flex justify-between text-[#006c49] font-medium">
-                <span>Platform Commission</span>
-                <span>₹0 (100% to Helper)</span>
+                <span>No hidden charges</span>
+                <span>Extra parts only with your approval</span>
               </div>
             </div>
 
@@ -1152,7 +1152,7 @@ export const BookingScreen = () => {
                 </span>
 
                 <span className="text-[10px] text-slate-500">
-                  Pay via UPI or Cash after service
+                  Pay securely with Razorpay after the work is done
                 </span>
               </div>
 
