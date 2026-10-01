@@ -580,7 +580,8 @@ useEffect(() => {
                       onClick={() => {
                         setChatPartner({
                           name: helper.name,
-                          avatar: helper.avatar || ''
+                          avatar: helper.avatar || '',
+                          partnerId: helper.partnerId
                         });
                         setIsChatOpen(true);
                       }}

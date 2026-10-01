@@ -9,6 +9,10 @@ export const ProfileScreen = () => {
 
   const menuItems = [
     { id: 'editProfile', icon: 'edit', label: 'Edit Profile', desc: 'Name, phone, email & photo', screen: 'editProfile' },
+    // Customers only: partners see their earnings in the Partner Hub
+    ...(role === 'partner'
+      ? []
+      : [{ id: 'billing', icon: 'receipt_long', label: 'Billing History', desc: 'Bills, extra parts & payments', screen: 'billing' }]),
     { id: 'settings', icon: 'settings', label: 'Settings', desc: 'Notifications, language & location', screen: 'settings' },
     { id: 'resetPassword', icon: 'lock_reset', label: 'Reset Password', desc: 'Update your account password', screen: 'resetPassword' },
     { id: 'faq', icon: 'help', label: 'FAQ', desc: 'Answers to common questions', screen: 'faq' },

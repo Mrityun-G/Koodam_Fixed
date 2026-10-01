@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from typing import Optional, Union
 from uuid import UUID
 from datetime import datetime
@@ -304,6 +304,111 @@ def apply_sync(db: Session, data: BookingSync) -> Booking:
     sync_review(db, booking, data)
 
     return booking
+
+
+def to_iso_utc(value: Optional[datetime]) -> Optional[str]:
+    # Stored times are naive UTC; mark them so the browser converts correctly
+    return f"{value.isoformat()}Z" if value else None
+
+
+# =========================================================
+# BILLING HISTORY
+# Every booking a customer made, with its bill: service charge, the extra
+# parts the partner added, what was paid and the payment reference.
+# =========================================================
+
+# Declined, expired and unanswered requests never produced a bill
+BILLABLE_STATUSES = ("ACCEPTED", "IN_PROGRESS", "COMPLETED")
+
+
+@router.get("/billing/{customer_identifier}")
+def get_billing_history(
+    customer_identifier: str,
+    partner_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    user = resolve_customer(db, customer_identifier)
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+
+    PartnerUser = aliased(User)
+
+    query = (
+        db.query(Booking, BookingDetail, Service, Partner, PartnerUser)
+        .outerjoin(BookingDetail, BookingDetail.booking_id == Booking.id)
+        .join(Service, Service.id == Booking.service_id)
+        .join(Partner, Partner.id == Booking.partner_id)
+        .join(PartnerUser, PartnerUser.id == Partner.user_id)
+        .filter(
+            Booking.user_id == user.id,
+            Booking.status.in_(BILLABLE_STATUSES)
+        )
+    )
+
+    # Only the work done by one partner, e.g. from the chat with them
+    if partner_id:
+        partner_uuid = parse_uuid(partner_id)
+
+        if not partner_uuid:
+            return []
+
+        query = query.filter(Booking.partner_id == partner_uuid)
+
+    rows = query.order_by(Booking.booking_time.desc()).all()
+
+    booking_ids = [booking.id for booking, *_ in rows]
+
+    charges_by_booking = {}
+
+    if booking_ids:
+        charges = (
+            db.query(BookingExtraCharge)
+            .filter(BookingExtraCharge.booking_id.in_(booking_ids))
+            .order_by(BookingExtraCharge.created_at.asc())
+            .all()
+        )
+
+        for charge in charges:
+            charges_by_booking.setdefault(charge.booking_id, []).append({
+                "item": charge.item,
+                "amount": charge.amount,
+                "status": charge.status
+            })
+
+    bills = []
+
+    for booking, detail, service, partner, partner_user in rows:
+        total = booking.total_amount or 0.0
+        extra = detail.extra_amount if detail else 0.0
+
+        bills.append({
+            "booking_id": booking.id,
+            "service_title": service.title,
+            "partner_id": partner.id,
+            "partner_name": partner_user.name,
+            "partner_avatar": partner_user.avatar,
+            "status": booking.status,
+            "booking_time": to_iso_utc(booking.booking_time),
+            "completed_at": to_iso_utc(detail.completed_at if detail else None),
+            "base_amount": (
+                detail.base_amount
+                if detail and detail.base_amount is not None
+                else total - extra
+            ),
+            "extra_amount": extra,
+            "extra_charges": charges_by_booking.get(booking.id, []),
+            "total_amount": total,
+            "payment_status": detail.payment_status if detail else "PENDING",
+            "amount_paid": detail.amount_paid if detail else 0.0,
+            "razorpay_payment_id": detail.razorpay_payment_id if detail else None,
+            "paid_at": to_iso_utc(detail.paid_at if detail else None)
+        })
+
+    return bills
 
 
 @router.post("/sync")

@@ -510,6 +510,9 @@ export const BookingScreen = () => {
 
   const availableSlotCount = slotOptions.filter(slot => slot.isAvailable).length;
 
+  // Times that have already gone by today aren't shown at all
+  const upcomingSlots = slotOptions.filter(slot => !slot.isPast);
+
   const isSelectedTimeAvailable = slotOptions.some(
     slot => slot.time === selectedTime && slot.isAvailable
   );
@@ -1053,9 +1056,13 @@ export const BookingScreen = () => {
                 <div className="rounded-xl bg-[#eff4ff] p-3 text-xs text-slate-600">
                   Pick a date above to see this helper's free time slots.
                 </div>
+              ) : upcomingSlots.length === 0 ? (
+                <div className="rounded-xl bg-[#eff4ff] p-3 text-xs text-slate-600">
+                  No more time slots today. Please pick another date.
+                </div>
               ) : (
                 <div className="grid grid-cols-1 gap-1.5">
-                  {slotOptions.map(({ time, isPast, isBooked, isAvailable }, index) => {
+                  {upcomingSlots.map(({ time, isBooked, isAvailable }, index) => {
                     const isSelected = selectedTime === time;
 
                     return (
@@ -1085,12 +1092,6 @@ export const BookingScreen = () => {
                         {isBooked && (
                           <span className="text-[10px] bg-red-50 text-red-400 px-2 py-0.5 rounded-full font-bold">
                             Booked
-                          </span>
-                        )}
-
-                        {isPast && !isBooked && (
-                          <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-bold">
-                            Passed
                           </span>
                         )}
 

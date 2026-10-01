@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { BillingHistory } from './BillingHistory';
 
 export const ChatModal = () => {
   const {
@@ -16,6 +17,7 @@ export const ChatModal = () => {
   const myRole = role === 'partner' ? 'partner' : 'member';
 
   const [inputText, setInputText] = useState('');
+  const [showBills, setShowBills] = useState(false);
   const messagesListRef = useRef(null);
 
   // The other person on the active booking: the partner for a member,
@@ -54,6 +56,15 @@ export const ChatModal = () => {
       ? orderContact?.avatar
       : '') ||
     '';
+
+  // The partner's ID, so a customer can see the bills for their work
+  const chatPartnerId =
+    (typeof chatPartner === 'object' && chatPartner?.partnerId) ||
+    (myRole === 'member' &&
+    (!explicitName || explicitName === orderContact?.name)
+      ? activeOrder?.partnerId
+      : null) ||
+    null;
 
   const partnerVehicle =
     typeof chatPartner === 'object' && chatPartner
@@ -115,6 +126,7 @@ export const ChatModal = () => {
   };
 
   const handleClose = () => {
+    setShowBills(false);
     setIsChatOpen(false);
   };
 
@@ -219,6 +231,19 @@ export const ChatModal = () => {
                 >
                   verified
                 </span>
+
+                {/* Who the other person is: partners chat with customers */}
+                <span
+                  className={`
+                    text-[9px] font-bold uppercase tracking-wide
+                    px-1.5 py-0.5 rounded-full shrink-0
+                    ${myRole === 'partner'
+                      ? 'bg-[#ffdbcc] text-[#a14000]'
+                      : 'bg-[#dce1ff] text-[#4e5c92]'}
+                  `}
+                >
+                  {myRole === 'partner' ? 'Customer' : 'Partner'}
+                </span>
               </div>
 
               <p
@@ -252,6 +277,27 @@ export const ChatModal = () => {
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
+            {myRole === 'member' && chatPartnerId && (
+              <button
+                type="button"
+                onClick={() => setShowBills((open) => !open)}
+                aria-label={`Bills from ${partnerName}`}
+                className={`
+                  w-9 h-9
+                  rounded-full
+                  flex items-center justify-center
+                  transition-colors
+                  ${showBills
+                    ? 'bg-[#ff6a00] text-white'
+                    : 'bg-[#eff4ff] text-[#a14000] hover:bg-[#ffdbcc]'}
+                `}
+              >
+                <span className="material-symbols-outlined text-[19px]">
+                  receipt_long
+                </span>
+              </button>
+            )}
+
             <a
               href={`tel:${partnerPhone || '+919876543210'}`}
               aria-label={`Call ${partnerName}`}
@@ -301,6 +347,33 @@ export const ChatModal = () => {
           </div>
         </div>
 
+        {showBills ? (
+          /* Work this partner did for the customer, with each bill */
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 bg-[#f8f9ff]">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-[#0b1c30] truncate">
+                  {`Work by ${partnerName}`}
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Bills, extra parts and payments
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowBills(false)}
+                className="shrink-0 px-3 py-1.5 rounded-full bg-[#eff4ff] text-[#a14000] text-xs font-bold flex items-center gap-1 hover:bg-[#ffdbcc] transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px]">chat</span>
+                Back to chat
+              </button>
+            </div>
+
+            <BillingHistory partnerId={chatPartnerId} />
+          </div>
+        ) : (
+        <>
         {/* Messages List */}
         <div
           ref={messagesListRef}
@@ -471,6 +544,8 @@ export const ChatModal = () => {
             </span>
           </button>
         </form>
+        </>
+        )}
       </div>
     </div>
   );

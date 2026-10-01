@@ -45,7 +45,11 @@ import {
   toTimeRanges
 } from '../lib/schedule';
 
-import { supabase } from '../lib/supabase';
+import {
+  supabase,
+  isOAuthReturn,
+  oauthReturnError
+} from '../lib/supabase';
 
 // Which login page (member or partner) started a Google sign-in; kept in
 // storage because Google redirects away from the app and back
@@ -2025,11 +2029,31 @@ const signIn = async (
 
       await supabase.auth.signOut().catch(() => {});
 
-      showToast(
-        err?.code === 'auth/operation-not-allowed'
-          ? 'Google sign-in is not enabled in Firebase. Enable Google under Firebase Authentication > Sign-in method.'
-          : 'Google sign-in failed. Please try again.'
-      );
+      // Don't leave a half-finished Firebase login behind
+      if (auth) {
+        await signOut(auth).catch(() => {});
+      }
+
+      // Say what actually went wrong instead of a generic failure
+      const isServerUnreachable =
+        err instanceof TypeError ||
+        /failed to fetch|networkerror/i.test(err?.message || '');
+
+      let message = 'Google sign-in failed. Please try again.';
+
+      if (err?.code === 'auth/operation-not-allowed') {
+        message = 'Google sign-in is not enabled in Firebase. Enable Google under Firebase Authentication > Sign-in method.';
+      } else if (err?.code === 'auth/account-exists-with-different-credential') {
+        message = 'This email already has a KOODAM password. Please log in with your email and password.';
+      } else if (err?.code === 'auth/invalid-credential') {
+        message = 'Google sign-in is not set up correctly. Please log in with your email and password.';
+      } else if (isServerUnreachable) {
+        message = "Can't reach the KOODAM server. Make sure the backend is running, then try again.";
+      } else if (/Backend sync failed/.test(err?.message || '')) {
+        message = "Signed in with Google, but your KOODAM account couldn't be loaded. Please try again.";
+      }
+
+      showToast(message);
 
       navigateTo(targetRole === 'partner' ? 'partnerLogin' : 'memberLogin');
     } finally {
@@ -2042,6 +2066,35 @@ const signIn = async (
 
   useEffect(() => {
     let handled = false;
+
+    // A normal page load (not a return from Google): clear any leftover
+    // "Google login in progress" note from a sign-in that was abandoned,
+    // so it can't trigger a failed Google login later
+    if (!isOAuthReturn) {
+      try {
+        localStorage.removeItem(GOOGLE_ROLE_KEY);
+      } catch {
+        // Nothing to clear
+      }
+      return undefined;
+    }
+
+    // The user cancelled on Google's page
+    if (oauthReturnError) {
+      try {
+        localStorage.removeItem(GOOGLE_ROLE_KEY);
+      } catch {
+        // Nothing to clear
+      }
+
+      window.history.replaceState(null, '', window.location.pathname);
+
+      if (oauthReturnError !== 'access_denied') {
+        showToast('Google sign-in failed. Please try again.');
+      }
+
+      return undefined;
+    }
 
     const handle = (session) => {
       // Only finish sign-ins this app started (the role key is set in step 1)

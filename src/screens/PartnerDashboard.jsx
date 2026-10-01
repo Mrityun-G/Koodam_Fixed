@@ -206,7 +206,14 @@ export const PartnerDashboard = () => {
     setCalendarMonth(new Date(calendarYear, calendarMonthIndex + step, 1));
   };
 
-  const nextJob = scheduledJobs[0];
+  // The job being worked on now, else the next one that hasn't ended yet.
+  // Old accepted jobs whose time has passed are skipped.
+  const nextJob =
+    scheduledJobs.find(job => job.status === 'In progress') ||
+    scheduledJobs.find(job =>
+      job.startMs === null ||
+      job.startMs + job.minutes * 60 * 1000 > Date.now()
+    );
 
   // ================================
   // PARTNER SERVICES STATE
@@ -1163,6 +1170,17 @@ export const PartnerDashboard = () => {
                     <p className="text-[11px] text-slate-500 mt-0.5">
                       {[nextJob.day, nextJob.time].filter(Boolean).join(' • ')}
                     </p>
+
+                    <p className="text-[11px] text-slate-500 truncate">
+                      {`Customer: ${nextJob.customer}`}
+                    </p>
+
+                    {nextJob.status === 'In progress' && (
+                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#006c49] bg-[#c8f7e1] px-1.5 py-0.5 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#00ae78] animate-pulse" />
+                        In progress
+                      </span>
+                    )}
                   </div>
                 </div>
 

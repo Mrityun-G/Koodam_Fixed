@@ -15,6 +15,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { ResetPasswordScreen } from './screens/ResetPasswordScreen';
 import { FAQScreen } from './screens/FAQScreen';
 import { TermsScreen } from './screens/TermsScreen';
+import { BillingScreen } from './screens/BillingScreen';
 import { ChatModal } from './components/ChatModal';
 import { EmergencyModal } from './components/EmergencyModal';
 import { startDomTranslator } from './lib/domTranslator';
@@ -48,6 +49,7 @@ const AppContent = () => {
       {currentScreen === 'resetPassword' && <ResetPasswordScreen />}
       {currentScreen === 'faq' && <FAQScreen />}
       {currentScreen === 'terms' && <TermsScreen />}
+      {currentScreen === 'billing' && <BillingScreen />}
 
       {/* Global Modals & Overlays */}
       <EmergencyModal />

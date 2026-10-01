@@ -387,7 +387,8 @@ export const LiveTrackingScreen = () => {
                 onClick={() => {
                   setChatPartner({
                     name: activeOrder.helperName,
-                    avatar: activeOrder.helperAvatar || ''
+                    avatar: activeOrder.helperAvatar || '',
+                    partnerId: activeOrder.partnerId
                   });
                   setIsChatOpen(true);
                 }}
