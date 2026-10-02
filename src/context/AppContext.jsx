@@ -121,9 +121,6 @@ const AppContext = createContext(null);
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-
 
 // Member's service address — live ETA/distance is measured against this point.
 // Defaults to Indiranagar, Bengaluru; replace with the real booking address.
@@ -1348,7 +1345,7 @@ useEffect(() => {
       // new partner starts listening right away and gets requests as soon
       // as they add their first service (no page reload needed).
 const response = await fetch(
-  `${API_BASE_URL}/partners/${partnerProfile.id}`
+  `${BACKEND_URL}/partners/${partnerProfile.id}`
 );
 
 if (!response.ok) {
