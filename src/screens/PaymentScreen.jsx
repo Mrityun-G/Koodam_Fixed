@@ -32,6 +32,26 @@ export const PaymentScreen = () => {
     : Number(selectedService?.price || 0) +
       Number(trustFee || 0);
 
+  // Bill lines for a completed job: the total is the backend's figure,
+  // the lines just explain it
+  const approvedExtras = Object.entries(activeOrder?.extraCharges || {})
+    .filter(([, charge]) => charge.status === 'APPROVED');
+
+  const extrasTotal = approvedExtras.reduce(
+    (sum, [, charge]) => sum + Number(charge.amount || 0),
+    0
+  );
+
+  const billTrustFee = Math.min(
+    Number(trustFee || 0),
+    Math.max(totalAmount - extrasTotal, 0)
+  );
+
+  const servicePrice = Math.max(
+    totalAmount - extrasTotal - billTrustFee,
+    0
+  );
+
   const loadRazorpay = () =>
     new Promise((resolve) => {
       if (window.Razorpay) {
@@ -251,13 +271,38 @@ export const PaymentScreen = () => {
 
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500">
-                Service Amount
+                {activeOrder.serviceTitle || 'Service'}
               </span>
 
               <span className="font-bold text-[#0b1c30]">
-                ₹{totalAmount}
+                ₹{servicePrice}
               </span>
             </div>
+
+            <div className="mt-2 flex items-center justify-between text-xs">
+              <span className="text-slate-500">
+                Trust Shield fee
+              </span>
+
+              <span className="font-bold text-[#0b1c30]">
+                ₹{billTrustFee}
+              </span>
+            </div>
+
+            {approvedExtras.map(([chargeId, charge]) => (
+              <div
+                key={chargeId}
+                className="mt-2 flex items-center justify-between gap-2 text-xs"
+              >
+                <span className="truncate text-slate-500">
+                  {charge.item} (extra part)
+                </span>
+
+                <span className="shrink-0 font-bold text-[#0b1c30]">
+                  ₹{Number(charge.amount || 0)}
+                </span>
+              </div>
+            ))}
 
             <div className="my-3 border-t border-slate-100" />
 

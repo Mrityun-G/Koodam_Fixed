@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { BillingHistory } from './BillingHistory';
+import { Avatar } from './Avatar';
 
 export const ChatModal = () => {
   const {
@@ -181,24 +182,11 @@ export const ChatModal = () => {
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative shrink-0">
-              <img
-                src={
-                  partnerAvatar ||
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuDJFP-hU-FEvoiJVzKzRp5W3wJOlmXvEIgsYb8I9Nmnf3XEq3dbTrQZ-NUDt5Cae6rToq_UsMM47w7oI4k31EWKotizKHaHa6paxpDCLq86tWj_0lR9U4DWJo4S5marrKLXymEKlXE1p9hioIBsUxdzwrwiQoNPjVq1YSg_qmiN58moH7YnlnV0w1FiNYrNcQzllBVwnvN640h9SbhbmRFpTLl6OBH6OWKG_RLEd2Z_WyLrjXVY5faO4w'
-                }
-                alt={partnerName}
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src =
-                    'https://ui-avatars.com/api/?name=KOODAM+User&background=e2e8f0&color=334155';
-                }}
-                className="
-                  w-10 h-10
-                  rounded-full
-                  object-cover
-                  shadow-sm
-                  bg-slate-100
-                "
+              <Avatar
+                src={partnerAvatar}
+                name={partnerName}
+                className="w-10 h-10 rounded-full"
+                textClassName="text-sm"
               />
 
               <span

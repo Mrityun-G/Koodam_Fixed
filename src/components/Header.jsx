@@ -18,6 +18,15 @@ export const Header = ({ subtitle = 'Home' }) => {
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [showNotificationMenu, setShowNotificationMenu] = useState(false);
 
+  const headerProfile = role === 'partner' ? partnerProfile : userProfile;
+  const headerAvatar = headerProfile?.avatar;
+  const headerInitial =
+    (headerProfile?.name || 'K').trim().charAt(0).toUpperCase();
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  // A new photo gets a fresh chance to load
+  useEffect(() => setAvatarFailed(false), [headerAvatar]);
+
   // Prevent GPS from overriding a location manually selected by the user.
   const userSelectedLocation = useRef(false);
 
@@ -256,15 +265,20 @@ export const Header = ({ subtitle = 'Home' }) => {
               title="View profile & settings"
               className="w-10 h-10 flex items-center justify-center rounded-full p-0.5 hover:ring-2 hover:ring-[#ff6a00]/30 active:scale-95 transition-all"
             >
-              <img
-                alt="Profile"
-                className="w-8 h-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200"
-                src={
-                  role === 'partner'
-                    ? partnerProfile?.avatar
-                    : userProfile?.avatar
-                }
-              />
+              {headerAvatar && !avatarFailed ? (
+                <img
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200"
+                  src={headerAvatar}
+                  referrerPolicy="no-referrer"
+                  onError={() => setAvatarFailed(true)}
+                />
+              ) : (
+                // No photo (or it failed to load): show their initial
+                <span className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] text-sm font-bold flex items-center justify-center shadow-sm ring-1 ring-slate-200">
+                  {headerInitial}
+                </span>
+              )}
             </button>
           </div>
         </div>

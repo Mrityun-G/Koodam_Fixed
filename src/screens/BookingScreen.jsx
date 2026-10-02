@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { Avatar } from '../components/Avatar';
 import {
   DEFAULT_TIME_SLOTS,
   findClash,
@@ -52,7 +53,7 @@ export const BookingScreen = () => {
     helper.profile_image ||
     helper.profileImage ||
     helper.photo_url ||
-    '/logo.svg';
+    '';
 
   const helperDescription =
     helper.about ||
@@ -609,14 +610,11 @@ export const BookingScreen = () => {
           <div className="bg-white rounded-2xl p-4 shadow-md flex flex-col gap-3 relative border border-slate-100">
             <div className="flex items-start justify-between gap-3">
               <div className="relative">
-                <img
-                  className="w-[72px] h-[72px] rounded-2xl object-cover shadow-sm"
-                  alt={helperName}
+                <Avatar
                   src={helperAvatar}
-                  onError={event => {
-                    event.currentTarget.onerror = null;
-                    event.currentTarget.src = '/logo.svg';
-                  }}
+                  name={helperName}
+                  className="w-[72px] h-[72px] rounded-2xl"
+                  textClassName="text-2xl"
                 />
 
                 {isVerified && (

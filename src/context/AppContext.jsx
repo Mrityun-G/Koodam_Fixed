@@ -58,6 +58,11 @@ const GOOGLE_ROLE_KEY = 'koodam-google-login-role';
 // Which side of the app (member or partner) the user was last using
 const LAST_ROLE_KEY = 'koodam-last-role';
 
+// The member's current booking, so a page reload brings back its
+// tracking screen and rating card ({ uid, orderId } only; the order
+// itself is read from Firebase)
+const ACTIVE_ORDER_KEY = 'koodam-active-order';
+
 // Starting state, also restored on logout so the next person to log in
 // on this device never sees the previous user's profile, job or chat
 const EMPTY_MEMBER_PROFILE = {
@@ -418,6 +423,24 @@ useEffect(() => {
           setPartnerProfile((previous) => ({ ...previous, ...backendUser }));
         } else {
           setUserProfile((previous) => ({ ...previous, ...backendUser }));
+
+          // Pick the member's booking back up; the order listener then
+          // loads it from Firebase
+          try {
+            const saved = JSON.parse(
+              localStorage.getItem(ACTIVE_ORDER_KEY) || 'null'
+            );
+
+            if (saved?.orderId && saved.uid === user.uid) {
+              setActiveOrder((previous) =>
+                previous.orderId
+                  ? previous
+                  : { ...EMPTY_ORDER, orderId: saved.orderId }
+              );
+            }
+          } catch {
+            // Nothing saved
+          }
         }
 
         if (SIGNED_OUT_SCREENS.includes(currentScreenRef.current)) {
@@ -502,6 +525,37 @@ const [notificationsEnabled, setNotificationsEnabled] =
 // =========================================================
 
 const [activeOrder, setActiveOrder] = useState(EMPTY_ORDER);
+
+// Remember the member's booking until it's paid and rated (or closed)
+useEffect(() => {
+  if (role !== 'member' || !authUser?.uid || !activeOrder.orderId) {
+    return;
+  }
+
+  const finished =
+    (activeOrder.paymentStatus === 'PAID' && activeOrder.rating) ||
+    ['DECLINED', 'EXPIRED', 'CANCELLED'].includes(activeOrder.bookingStatus);
+
+  try {
+    if (finished) {
+      localStorage.removeItem(ACTIVE_ORDER_KEY);
+    } else {
+      localStorage.setItem(
+        ACTIVE_ORDER_KEY,
+        JSON.stringify({ uid: authUser.uid, orderId: activeOrder.orderId })
+      );
+    }
+  } catch {
+    // Storage unavailable (private mode); the order just won't survive a reload
+  }
+}, [
+  role,
+  authUser?.uid,
+  activeOrder.orderId,
+  activeOrder.paymentStatus,
+  activeOrder.rating,
+  activeOrder.bookingStatus
+]);
 
   // =========================================================
   // Firebase Active Order Listener
@@ -1808,6 +1862,12 @@ const signUp = async (
     // Update local profile
     // -------------------------------------------------------
 
+    // The auth listener's profile lookup runs before the backend user
+    // exists, so a new partner's profile has to be filled in here
+    if (targetRole === 'partner' && backendUser) {
+      setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
+    }
+
     setUserProfile((prev) => ({
       ...prev,
 
@@ -2061,10 +2121,14 @@ const signIn = async (
     backendUser
   );
 
-  setUserProfile((prev) => ({
-    ...prev,
-    ...backendUser
-  }));
+  if (targetRole === 'partner') {
+    setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
+  } else {
+    setUserProfile((prev) => ({
+      ...prev,
+      ...backendUser
+    }));
+  }
 }
     }
 
@@ -2328,6 +2392,7 @@ const signIn = async (
     // A reload after logging out should stay on the welcome screen
     try {
       localStorage.removeItem(LAST_ROLE_KEY);
+      localStorage.removeItem(ACTIVE_ORDER_KEY);
     } catch {
       // Nothing to clear
     }
@@ -2654,107 +2719,6 @@ const updatePartnerProfile = async (
   };
 
 
-  // =========================================================
-  // Voice Booking
-  // =========================================================
-
-  const handleVoiceBooking = (
-    spokenText
-  ) => {
-
-    const text =
-      spokenText.toLowerCase();
-
-
-    const budgetMatch =
-      text.match(
-        /(?:₹\s*|rs\.?\s*|(?:cost|price|budget)\s*(?:of|is)?\s*)(\d{2,5})|(\d{2,5})\s*rupees?/i
-      );
-
-
-    const budget =
-      budgetMatch
-        ? Number(
-            budgetMatch[1] ||
-            budgetMatch[2]
-          )
-        : null;
-
-
-    const isPlumbing =
-      /plumb|tap|pipe|leak|water/.test(
-        text
-      );
-
-
-    const isMorning =
-      /morning|today|asap|now/.test(
-        text
-      );
-
-
-    const servicePrice =
-      budget ||
-      (isPlumbing ? 500 : 399);
-
-
-    setSelectedHelper(
-      (prev) => ({
-        ...prev,
-
-        title: isPlumbing
-          ? 'Verified Plumber & Water Systems Specialist'
-          : prev.title
-      })
-    );
-
-
-    setSelectedService({
-      id: `voice-${Date.now()}`,
-
-      title:
-        isPlumbing
-          ? 'Plumbing Service Visit'
-          : 'On-demand Home Service Visit',
-
-      price: servicePrice,
-
-      duration: '~60 mins',
-
-      tag: 'VOICE MATCHED',
-
-      desc:
-        budget
-          ? `Matched to your ₹${budget} budget`
-          : 'Verified local partner dispatch'
-    });
-
-
-    if (isMorning) {
-
-      setSelectedDate(
-        `Today ${new Date().getDate()}`
-      );
-
-      setSelectedTime(
-        '10:30 AM - 11:30 AM'
-      );
-    }
-
-
-    showToast(
-      `Voice request understood: ${
-        isPlumbing
-          ? 'plumber'
-          : 'home service'
-      } • ₹${servicePrice}`
-    );
-
-
-    navigateTo('payment');
-  };
-
-
   const handleProceedToPayment =
     () => navigateTo('payment');
 
@@ -3034,6 +2998,10 @@ const handleConfirmBooking = async () => {
 
     return;
   }
+
+  // A new booking starts from a blank order, so nothing from the
+  // previous one (extra parts, rating, codes) carries over on screen
+  setActiveOrder(EMPTY_ORDER);
 
   // IMPORTANT:
   // The request remains pending until the partner accepts it.
@@ -3951,7 +3919,6 @@ return (
       handleSelectPartner,
 
       handleBookHelper,
-      handleVoiceBooking,
 
       handleProceedToPayment,
       handleConfirmBooking,

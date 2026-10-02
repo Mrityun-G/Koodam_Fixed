@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
+import { Avatar } from '../components/Avatar';
 
 export const ProfileScreen = () => {
   const { userProfile, partnerProfile, role, navigateTo, logout } = useApp();
@@ -26,10 +27,11 @@ export const ProfileScreen = () => {
       <main className="flex-1 flex flex-col relative w-full pb-10 px-4 space-y-3.5 pt-3">
         {/* Profile Summary Card */}
         <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex items-center gap-3">
-          <img
-            className="w-16 h-16 rounded-2xl object-cover shadow-xs shrink-0"
-            alt={profile.name}
+          <Avatar
             src={profile.avatar}
+            name={profile.name}
+            className="w-16 h-16 rounded-2xl shrink-0"
+            textClassName="text-2xl"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-bold text-[#0b1c30] truncate">{profile.name}</h2>

@@ -1,36 +1,54 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 
-export const VoiceAssistant = () => {
-  const { handleVoiceBooking, showToast } = useApp();
+// Browser speech recognition language for each app language
+const SPEECH_LANGUAGES = {
+  en: 'en-IN',
+  ta: 'ta-IN',
+  kn: 'kn-IN'
+};
+
+/**
+ * Mic button. Listens once and hands the final transcript to onResult;
+ * what to do with it (e.g. open the best matching helper) is up to the
+ * screen. Uses the browser's built-in speech recognition, so it costs
+ * nothing per request.
+ */
+export const VoiceAssistant = ({ onResult }) => {
+  const { showToast, language } = useApp();
   const recognitionRef = useRef(null);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [supported, setSupported] = useState(true);
 
   useEffect(() => () => recognitionRef.current?.stop(), []);
 
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setSupported(false);
       showToast('Voice commands need Chrome or Edge on this device.');
       return;
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN';
+    recognition.lang = SPEECH_LANGUAGES[language] || 'en-IN';
     recognition.interimResults = true;
     recognition.continuous = false;
-    recognition.onstart = () => setIsListening(true);
+    recognition.onstart = () => {
+      setTranscript('');
+      setIsListening(true);
+    };
     recognition.onresult = (event) => {
       const text = Array.from(event.results).map(result => result[0].transcript).join('');
       setTranscript(text);
-      if (event.results[0].isFinal) handleVoiceBooking(text);
+      if (event.results[event.results.length - 1].isFinal) onResult?.(text);
     };
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
       setIsListening(false);
-      showToast('I could not hear that. Please try again.');
+      showToast(
+        event.error === 'not-allowed'
+          ? 'Allow microphone access to use voice search.'
+          : 'I could not hear that. Please try again.'
+      );
     };
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
@@ -52,9 +70,9 @@ export const VoiceAssistant = () => {
         <span className="material-symbols-outlined text-[19px]">{isListening ? 'graphic_eq' : 'mic'}</span>
       </button>
 
-      {isListening && transcript && (
+      {isListening && (
         <p className="absolute right-0 top-full mt-1.5 w-56 truncate rounded-xl bg-[#0b1c30] px-3 py-2 text-[11px] text-white shadow-lg z-10">
-          {supported ? transcript : 'Voice is not supported in this browser.'}
+          {transcript || 'Listening… say what you need'}
         </p>
       )}
     </div>

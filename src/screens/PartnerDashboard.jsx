@@ -7,6 +7,7 @@ import {
 } from '../lib/schedule';
 import { useSecondsLeft } from '../lib/useSecondsLeft';
 import { PartnerPayouts } from '../components/PartnerPayouts';
+import { Avatar } from '../components/Avatar';
 
 export const PartnerDashboard = () => {
   const {
@@ -37,8 +38,62 @@ export const PartnerDashboard = () => {
     setActiveTab,
     requestExtraCharge,
     partnerUpcomingJobs,
-    cycleServiceRadius
+    cycleServiceRadius,
+    trustFee,
+    refreshPartnerOverview
   } = useApp();
+
+  // Earnings tab Refresh: reloads the overview and the payouts list
+  const [earningsRefreshKey, setEarningsRefreshKey] = useState(0);
+  const [earningsRefreshing, setEarningsRefreshing] = useState(false);
+
+  const refreshEarnings = async () => {
+    if (earningsRefreshing) return;
+
+    setEarningsRefreshing(true);
+    setEarningsRefreshKey((key) => key + 1);
+
+    try {
+      await refreshPartnerOverview();
+    } finally {
+      setEarningsRefreshing(false);
+    }
+  };
+
+  // What the partner actually takes home from a request: the customer's
+  // total minus KOODAM's trust fee and commission (same split the backend
+  // makes when the customer pays; extra parts added later go to the
+  // partner in full)
+  const PLATFORM_COMMISSION_PERCENT = 10;
+
+  const partnerShareOf = (customerTotal) => {
+    const servicePrice = Math.max(
+      Number(customerTotal || 0) - Number(trustFee || 0),
+      0
+    );
+
+    return Math.round(
+      servicePrice * (1 - PLATFORM_COMMISSION_PERCENT / 100)
+    );
+  };
+
+  // Accepting checks the schedule and updates the order, which takes a
+  // few seconds; show that it's working and stop double taps
+  const [acceptingJob, setAcceptingJob] = useState(false);
+
+  const handleAcceptJob = async () => {
+    if (acceptingJob) {
+      return;
+    }
+
+    setAcceptingJob(true);
+
+    try {
+      await acceptIncomingJob();
+    } finally {
+      setAcceptingJob(false);
+    }
+  };
 
   const [payoutSetupOpen, setPayoutSetupOpen] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
@@ -880,6 +935,24 @@ export const PartnerDashboard = () => {
 
       <main className="flex-1 flex flex-col relative w-full pb-6 px-4 space-y-3.5 pt-3">
 
+        {/* Requests expire quickly, so flag them on every tab */}
+        {hasIncomingJob && !['home', 'jobs'].includes(partnerTab) && (
+          <button
+            onClick={() => switchPartnerTab('home')}
+            className="w-full flex items-center justify-between gap-2 bg-[#ff6a00] text-white rounded-2xl px-4 py-3 shadow-md active:scale-[0.98] transition-all"
+          >
+            <span className="flex items-center gap-2 text-xs font-bold">
+              <span className="material-symbols-outlined text-[18px] animate-bounce">
+                notifications_active
+              </span>
+              New job request — tap to respond
+            </span>
+            <span className="text-xs font-extrabold">
+              {formatTime(incomingCountdown)}
+            </span>
+          </button>
+        )}
+
         {partnerTab === 'home' && (
           <>
         {/* ========================================= */}
@@ -1025,7 +1098,7 @@ export const PartnerDashboard = () => {
                 Estimated earning
 
                 <span className="font-extrabold text-[#a14000] text-sm">
-                  ₹{incomingJobDetails.payout}
+                  ₹{partnerShareOf(incomingJobDetails.payout)}
                 </span>
               </p>
             </div>
@@ -1040,14 +1113,15 @@ export const PartnerDashboard = () => {
               </button>
 
               <button
-                onClick={acceptIncomingJob}
-                className="flex-1 py-2.5 px-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
+                onClick={handleAcceptJob}
+                disabled={acceptingJob}
+                className="flex-1 disabled:opacity-60 py-2.5 px-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">
                   check_circle
                 </span>
 
-                Accept
+                {acceptingJob ? 'Accepting…' : 'Accept'}
               </button>
             </div>
           </section>
@@ -1391,7 +1465,7 @@ export const PartnerDashboard = () => {
                 </p>
 
                 <p className="text-base font-extrabold text-[#a14000]">
-                  ₹{incomingJobDetails.payout}
+                  ₹{partnerShareOf(incomingJobDetails.payout)}
                 </p>
               </div>
             </div>
@@ -1458,16 +1532,18 @@ export const PartnerDashboard = () => {
               </button>
 
               <button
-                onClick={acceptIncomingJob}
-                className="flex-[2] py-2.5 px-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
+                onClick={handleAcceptJob}
+                disabled={acceptingJob}
+                className="flex-[2] disabled:opacity-60 py-2.5 px-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">
                   check_circle
                 </span>
 
                 <span>
-                  Accept Job (Earn ₹
-                  {incomingJobDetails.payout})
+                  {acceptingJob
+                    ? 'Accepting…'
+                    : `Accept Job (Earn ₹${partnerShareOf(incomingJobDetails.payout)})`}
                 </span>
               </button>
             </div>
@@ -1992,9 +2068,19 @@ export const PartnerDashboard = () => {
               Earnings & Overview
             </h2>
 
-            <span className="text-[10px] text-slate-400 font-medium">
-              Updated Real-Time
-            </span>
+            <button
+              type="button"
+              onClick={refreshEarnings}
+              disabled={earningsRefreshing}
+              aria-label="Refresh earnings"
+              title="Refresh earnings"
+              className="flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[11px] font-bold text-[#a14000] disabled:opacity-60 active:scale-95 transition-all"
+            >
+              <span className={`material-symbols-outlined text-[15px] ${earningsRefreshing ? 'animate-spin' : ''}`}>
+                refresh
+              </span>
+              {earningsRefreshing ? 'Refreshing' : 'Refresh'}
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
@@ -2119,6 +2205,7 @@ export const PartnerDashboard = () => {
         <PartnerPayouts
           setupOpen={payoutSetupOpen}
           onSetupOpenChange={setPayoutSetupOpen}
+          refreshKey={earningsRefreshKey}
         />
           </>
         )}
@@ -2130,13 +2217,11 @@ export const PartnerDashboard = () => {
         {/* ========================================= */}
 
         <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex items-center gap-3">
-          <img
-            className="w-16 h-16 rounded-2xl object-cover shadow-xs shrink-0 bg-slate-100"
-            alt={partnerProfile?.name || 'Partner'}
-            src={
-              partnerProfile?.avatar ||
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuD1KUaHaxx9-0zLYxXwe1qxLJ0jJYPLqCFsAjNOyvD60uX5AVr6RK2dvGziPMtH59A3aJOvnqyPP4w30p4E-MWzvTTddgIC6_jhVaV3Vv4v4zJDxVLTZ4QyusKSFBoaOmYL-PNBEX0PpYEvExLZfM8KanBylMX25cDla34VsABdoAJ66XZXU9OnKsInNA-vLjrtqUCQUpQACDv33Rg9utw_2rQVKnXf6z5x0U5ZiTD0NIvTo9L6FiJNEg'
-            }
+          <Avatar
+            src={partnerProfile?.avatar}
+            name={partnerProfile?.name || 'Partner'}
+            className="w-16 h-16 rounded-2xl shrink-0"
+            textClassName="text-2xl"
           />
 
           <div className="min-w-0 flex-1">

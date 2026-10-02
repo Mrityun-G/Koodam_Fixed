@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { auth } from '../lib/firebase';
 
@@ -116,7 +117,7 @@ const authorizedFetch = async (url, options = {}) => {
 // Earnings tab: where the partner's money goes after each paid job.
 // Payouts happen automatically through Razorpay Route; there is nothing
 // to withdraw. setupOpen / onSetupOpenChange control the bank form.
-export const PartnerPayouts = ({ setupOpen, onSetupOpenChange }) => {
+export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 }) => {
   const { partnerProfile, showToast } = useApp();
   const partnerId = partnerProfile?.id;
 
@@ -151,9 +152,10 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange }) => {
     }
   }, [partnerId]);
 
+  // refreshKey changes when the Earnings tab's Refresh button is tapped
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   // Prefill the form with what's already known
   useEffect(() => {
@@ -354,13 +356,15 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange }) => {
       </section>
 
       {/* Bank account form */}
-      {setupOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      {setupOpen && createPortal(
+        // Covers the phone screen, not the browser window. The header and
+        // Save button stay put and only the fields scroll.
+        <div className="absolute inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center px-4 py-6">
           <form
             onSubmit={handleSave}
-            className="w-full max-w-sm max-h-[90vh] overflow-y-auto bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150"
+            className="w-full max-w-sm max-h-full flex flex-col bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-150"
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
                   <span className="material-symbols-outlined text-base">account_balance</span>
@@ -377,6 +381,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange }) => {
               </button>
             </div>
 
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-3">
             <p className="text-xs text-slate-500 mb-3">
               Razorpay verifies these details (KYC) and pays your share of every job into this account. KOODAM never stores your full account number.
             </p>
@@ -412,16 +417,20 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange }) => {
             {formError && (
               <p className="text-[11px] text-red-500 mt-3">{formError}</p>
             )}
+            </div>
 
+            <div className="px-5 pt-3 pb-5 border-t border-slate-100 shrink-0">
             <button
               type="submit"
               disabled={saving}
-              className="w-full mt-4 py-3 rounded-full bg-[#00ae78] hover:bg-[#006c49] disabled:opacity-60 text-white font-bold text-sm shadow-md active:scale-95 transition-all"
+              className="w-full py-3 rounded-full bg-[#00ae78] hover:bg-[#006c49] disabled:opacity-60 text-white font-bold text-sm shadow-md active:scale-95 transition-all"
             >
               {saving ? 'Saving...' : 'Save bank account'}
             </button>
+            </div>
           </form>
-        </div>
+        </div>,
+        document.getElementById('phone-screen') || document.body
       )}
     </>
   );

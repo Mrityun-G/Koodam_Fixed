@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
+import { Avatar } from '../components/Avatar';
 import { VoiceAssistant } from '../components/VoiceAssistant';
+import { detectService, pickBestHelper } from '../lib/voiceIntent';
 
 export const UserHomeScreen = () => {
   const {
@@ -34,6 +36,24 @@ export const UserHomeScreen = () => {
 
   const [helpers, setHelpers] = useState([]);
   const [helpersLoading, setHelpersLoading] = useState(true);
+  const hasLoadedHelpersRef = useRef(false);
+  const loadHelpersRef = useRef(null);
+  const [helpersRefreshing, setHelpersRefreshing] = useState(false);
+
+  const refreshHelpers = async () => {
+    if (helpersRefreshing || !loadHelpersRef.current) return;
+
+    setHelpersRefreshing(true);
+
+    try {
+      await loadHelpersRef.current();
+    } finally {
+      setHelpersRefreshing(false);
+    }
+  };
+
+  // How often the helper list refreshes while Home is open
+  const HELPERS_REFRESH_MS = 2 * 60 * 1000;
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -58,155 +78,121 @@ useEffect(() => {
 
     try {
 
-      setHelpersLoading(true);
+      if (!hasLoadedHelpersRef.current) {
+        setHelpersLoading(true);
+      }
 
-      const servicesResponse = await fetch(
-        `${BACKEND_URL}/services/`
+      // Every service with its partners in one request
+      const response = await fetch(
+        `${BACKEND_URL}/services/with-partners`
       );
 
-      if (!servicesResponse.ok) {
+      if (!response.ok) {
         throw new Error(
-          'Failed to load services'
+          `Failed to load helpers (${response.status})`
         );
       }
 
-      const services =
-        await servicesResponse.json();
+      const services = await response.json();
 
+      const allHelpers = services.flatMap((service) =>
+        (service.partners || []).map((partner) => ({
 
-      const partnerResults =
-        await Promise.all(
+          id:
+            `${partner.partner_id}-${service.id}`,
 
-          services.map(async (service) => {
+          partnerId:
+            partner.partner_id,
 
-            try {
+          serviceId:
+            service.id,
 
-              const response = await fetch(
-                `${BACKEND_URL}/services/${service.id}/partners`
-              );
+          serviceTitle:
+            service.title,
 
-              if (!response.ok) {
-                return [];
-              }
+          serviceCategory:
+            service.category,
 
-              const partners =
-                await response.json();
+          name:
+            partner.name || 'KOODAM Partner',
 
-              return partners.map((partner) => ({
+          title:
+            service.title,
 
-                id:
-                  `${partner.partner_id}-${service.id}`,
+          rating:
+            Number(partner.rating || 0),
 
-                partnerId:
-                  partner.partner_id,
+          reviewsCount:
+            Number(partner.reviews_count || 0),
 
-                serviceId:
-                  service.id,
+          experienceYears:
+            Number(
+              partner.experience_years || 0
+            ),
 
-                serviceTitle:
-                  service.title,
+          completionRate:
+            Number(
+              partner.completion_rate || 0
+            ),
 
-                serviceCategory:
-                  service.category,
+          rate:
+            Number(
+              partner.hourly_rate ??
+              service.price ??
+              0
+            ),
 
-                name:
-                  partner.name || 'KOODAM Partner',
+          unit:
+            ' / service',
 
-                title:
-                  service.title,
+          avatar:
+            partner.avatar || '',
 
-                rating:
-                  Number(partner.rating || 0),
+          phone:
+            partner.phone || '',
 
-                reviewsCount:
-                  Number(partner.reviews_count || 0),
+          vehicle:
+            partner.vehicle || '',
 
-                experienceYears:
-                  Number(
-                    partner.experience_years || 0
-                  ),
+          vehicleNumber:
+            partner.vehicle_number || '',
 
-                completionRate:
-                  Number(
-                    partner.completion_rate || 0
-                  ),
+          email:
+            partner.email || '',
 
-                rate:
-                  Number(
-                    partner.hourly_rate ??
-                    service.price ??
-                    0
-                  ),
+          latitude:
+            partner.latitude,
 
-                unit:
-                  ' / service',
+          longitude:
+            partner.longitude,
 
-                avatar:
-                  partner.avatar ||
-                  '/logo.svg',
+          isOnline:
+            partner.is_online,
 
-                phone:
-                  partner.phone || '',
+          isVerified:
+            partner.is_verified,
 
-                vehicle:
-                  partner.vehicle || '',
+          policeVerified:
+            Boolean(partner.police_verified),
 
-                vehicleNumber:
-                  partner.vehicle_number || '',
+          badge:
+            partner.is_verified
+              ? 'Verified Partner'
+              : 'KOODAM Partner',
 
-                email:
-                  partner.email || '',
+          badgeColor:
+            partner.is_verified
+              ? 'bg-[#6ffbbe] text-[#002113]'
+              : 'bg-[#dce1ff] text-[#05164b]',
 
-                latitude:
-                  partner.latitude,
+          distance:
+            'Nearby'
 
-                longitude:
-                  partner.longitude,
-
-                isOnline:
-                  partner.is_online,
-
-                isVerified:
-                  partner.is_verified,
-
-                policeVerified:
-                  Boolean(partner.police_verified),
-
-                badge:
-                  partner.is_verified
-                    ? 'Verified Partner'
-                    : 'KOODAM Partner',
-
-                badgeColor:
-                  partner.is_verified
-                    ? 'bg-[#6ffbbe] text-[#002113]'
-                    : 'bg-[#dce1ff] text-[#05164b]',
-
-                distance:
-                  'Nearby'
-
-              }));
-
-            } catch (error) {
-
-              console.error(
-                `Failed to load partners for ${service.title}:`,
-                error
-              );
-
-              return [];
-            }
-
-          })
-
-        );
-
-
-      const allHelpers =
-        partnerResults.flat();
-
+        }))
+      );
 
       setHelpers(allHelpers);
+      hasLoadedHelpersRef.current = true;
 
     } catch (error) {
 
@@ -215,11 +201,13 @@ useEffect(() => {
         error
       );
 
-      setHelpers([]);
-
-      showToast(
-        'Unable to load nearby helpers'
-      );
+      // A failed refresh keeps the helpers already on screen; only
+      // tell the customer when there's nothing to show
+      if (!hasLoadedHelpersRef.current) {
+        showToast(
+          'Unable to load nearby helpers'
+        );
+      }
 
     } finally {
 
@@ -230,7 +218,25 @@ useEffect(() => {
   };
 
 
+  loadHelpersRef.current = loadHelpers;
   loadHelpers();
+
+  // New partners and services show up without reopening the app
+  const refreshIfVisible = () => {
+    if (document.visibilityState === 'visible') {
+      loadHelpers();
+    }
+  };
+
+  const timer = setInterval(refreshIfVisible, HELPERS_REFRESH_MS);
+  document.addEventListener('visibilitychange', refreshIfVisible);
+  window.addEventListener('focus', refreshIfVisible);
+
+  return () => {
+    clearInterval(timer);
+    document.removeEventListener('visibilitychange', refreshIfVisible);
+    window.removeEventListener('focus', refreshIfVisible);
+  };
 
 }, []);
 
@@ -272,6 +278,42 @@ useEffect(() => {
 });
 
   // Best rated first; more reviews wins a tie
+  // A partner offering several services is still one person
+  const availableHelperCount = new Set(
+    filteredHelpers.map((helper) => helper.partnerId)
+  ).size;
+
+  // "I need a plumber, the water is leaking" -> open the best plumber
+  const handleVoiceResult = (spokenText) => {
+    const service = detectService(spokenText);
+
+    if (!service) {
+      // Not a service we recognise: search for what was said instead
+      setSearchQuery(spokenText);
+      showToast(`Searching for "${spokenText}"`);
+      return;
+    }
+
+    if (helpersLoading) {
+      showToast('Still loading helpers. Please try again in a moment.');
+      return;
+    }
+
+    const best = pickBestHelper(helpers, service);
+
+    if (!best) {
+      setSearchQuery(service);
+      showToast(`No ${service} partner is available yet.`);
+      return;
+    }
+
+    showToast(
+      `Best match for ${service}: ${best.name}` +
+      (best.reviewsCount > 0 ? ` (${Number(best.rating).toFixed(1)}★)` : '')
+    );
+    handleBookHelper(best);
+  };
+
   const topHelpers = [...filteredHelpers].sort(
     (a, b) =>
       b.rating - a.rating ||
@@ -303,7 +345,7 @@ useEffect(() => {
                 </button>
               )}
             </div>
-            <VoiceAssistant />
+            <VoiceAssistant onResult={handleVoiceResult} />
             <button
               aria-label="Filter Options"
               onClick={() => {
@@ -332,7 +374,11 @@ useEffect(() => {
                 bolt
               </span>
               <span className="text-[11px] text-[#0b1c30] font-semibold truncate">
-                1,420+ tasks completed in {location.split(',')[0]} this week!
+                {helpersLoading
+                  ? `Finding helpers in ${location.split(',')[0]}…`
+                  : availableHelperCount > 0
+                  ? `${availableHelperCount} helpers ready to book in ${location.split(',')[0]}`
+                  : 'No helpers for this service yet'}
               </span>
             </div>
             <span className="flex h-2 w-2 relative shrink-0">
@@ -362,7 +408,6 @@ useEffect(() => {
                   <span className="material-symbols-outlined text-[13px]">water_drop</span>
                   <span className="text-[10px] tracking-wide uppercase font-bold">Monsoon Drive</span>
                 </div>
-                <span className="text-[11px] text-[#ffdbcc] font-medium">Ward 112 Active</span>
               </div>
 
               <div className="flex flex-col mt-0.5">
@@ -379,14 +424,6 @@ useEffect(() => {
                   <span>Request Emergency Aid</span>
                   <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
                 </button>
-                <div className="flex -space-x-1.5">
-                  <div className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center text-[9px] font-bold text-white shadow-xs">
-                    34
-                  </div>
-                  <div className="w-5 h-5 rounded-full bg-[#00ae78] flex items-center justify-center text-white">
-                    <span className="material-symbols-outlined text-[12px]">verified</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -459,7 +496,9 @@ useEffect(() => {
               <div className="flex flex-col min-w-0">
                 <span className="text-xs text-[#0b1c30] font-bold truncate">Live Local Grid</span>
                 <span className="text-[11px] text-[#5a4136] truncate">
-                  18 verified helpers active near 100ft Road
+                  {helpersLoading
+                    ? 'Finding helpers near you…'
+                    : `${availableHelperCount} helpers available near ${location.split(',')[0]}`}
                 </span>
               </div>
             </div>
@@ -476,9 +515,24 @@ useEffect(() => {
               <h2 className="text-base font-bold text-[#0b1c30]">Top Helpers Near You</h2>
               <span className="w-2 h-2 rounded-full bg-[#00ae78]"></span>
             </div>
-            <span className="text-xs text-[#a14000] font-bold">
-              {filteredHelpers.length} Available
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#a14000] font-bold">
+                {availableHelperCount} Available
+              </span>
+              <button
+                type="button"
+                onClick={refreshHelpers}
+                disabled={helpersRefreshing || helpersLoading}
+                aria-label="Refresh helpers"
+                title="Refresh helpers"
+                className="flex items-center gap-0.5 px-2 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[11px] font-bold text-[#a14000] disabled:opacity-60 active:scale-95 transition-all"
+              >
+                <span className={`material-symbols-outlined text-[15px] ${helpersRefreshing ? 'animate-spin' : ''}`}>
+                  refresh
+                </span>
+                {helpersRefreshing ? 'Refreshing' : 'Refresh'}
+              </button>
+            </div>
           </div>
 
           {/* Helper List */}
@@ -522,14 +576,17 @@ useEffect(() => {
               >
                 <div className="flex items-start gap-3">
                   <div className="relative shrink-0">
-                    <img
-                      className="w-14 h-14 rounded-2xl object-cover shadow-xs"
-                      alt={helper.name}
+                    <Avatar
                       src={helper.avatar}
+                      name={helper.name}
+                      className="w-14 h-14 rounded-2xl"
+                      textClassName="text-xl"
                     />
-                    <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#00ae78] flex items-center justify-center text-white shadow-xs">
-                      <span className="material-symbols-outlined text-[12px]">check</span>
-                    </span>
+                    {(helper.isVerified || helper.policeVerified) && (
+                      <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#00ae78] flex items-center justify-center text-white shadow-xs">
+                        <span className="material-symbols-outlined text-[12px]">check</span>
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-col flex-1 min-w-0">
@@ -551,7 +608,9 @@ useEffect(() => {
 
                     <div className="flex flex-wrap items-center gap-1.5 mt-1">
                       <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${helper.badgeColor}`}>
-                        <span className="material-symbols-outlined text-[12px]">verified</span>
+                        <span className="material-symbols-outlined text-[12px]">
+                          {helper.isVerified ? 'verified' : 'handshake'}
+                        </span>
                         <span>{helper.badge}</span>
                       </span>
                       {helper.policeVerified && (

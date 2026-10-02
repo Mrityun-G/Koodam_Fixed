@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
+import { Avatar } from '../components/Avatar';
 import { LiveMap } from '../components/LiveMap';
 import { useSecondsLeft } from '../lib/useSecondsLeft';
 
 export const LiveTrackingScreen = () => {
   const {
     activeOrder,
-    advanceOrderStatus,
     verifyCompletionOtp,
     submitRating,
     navigateTo,
@@ -29,18 +29,30 @@ export const LiveTrackingScreen = () => {
     ([, charge]) => charge.status === 'PENDING'
   );
 
-  // Fall back to the simulated ETA until the partner's real device starts sharing GPS
-  const displayEtaMinutes = liveEtaMinutes ?? activeOrder.etaMinutes;
-  const displayDistanceLabel = liveDistanceKm != null
+  // Only show an ETA once the partner's device is sharing real GPS
+  const liveDistanceLabel = liveDistanceKm != null
     ? `${liveDistanceKm.toFixed(1)} km away`
-    : activeOrder.currentRoad;
+    : '';
+  const liveEtaLabel = liveEtaMinutes != null
+    ? `${liveEtaMinutes} mins away${liveDistanceKm != null ? ` (${liveDistanceKm.toFixed(1)} km)` : ''}`
+    : null;
+
+  const helperName = activeOrder.helperName || 'Your partner';
+  const isPaid = activeOrder.paymentStatus === 'PAID';
+  const isClosed = ['DECLINED', 'EXPIRED', 'CANCELLED'].includes(
+    activeOrder.bookingStatus
+  );
+
+  // Once paid, the last step counts as done too
+  const progressStep = activeOrder.currentStep === 5 && isPaid
+    ? 6
+    : activeOrder.currentStep;
 
   const pinSecondsLeft = useSecondsLeft(
     activeOrder.currentStep < 4 ? activeOrder.safetyPinExpiresAt : null
   );
 
   const helperFirstName = (activeOrder.helperName || 'Partner').trim().split(/\s+/)[0];
-  const helperInitial = helperFirstName.charAt(0).toUpperCase();
 
   const [copied, setCopied] = useState(false);
   const [hoverStar, setHoverStar] = useState(0);
@@ -65,40 +77,84 @@ export const LiveTrackingScreen = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Times come from the order itself (numbers or ISO strings)
+  const formatClock = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? ''
+      : date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+  };
+
   const steps = [
     {
       id: 1,
-      title: 'Booking Confirmed',
-      time: '10:15 AM',
-      desc: 'Request accepted automatically by Indiranagar Hub.'
+      title: 'Request Sent',
+      time: formatClock(activeOrder.createdAt),
+      desc: isClosed
+        ? `${helperName} couldn't take this request.`
+        : activeOrder.currentStep <= 1
+        ? `Waiting for ${helperName} to accept your request.`
+        : `Request sent to ${helperName}.`
     },
     {
       id: 2,
-      title: 'Helper Assigned',
-      time: '10:18 AM',
-      desc: `${activeOrder.helperName} (4.9★) locked in your slot.`
+      title: 'Partner Accepted',
+      time: formatClock(activeOrder.acceptedAt),
+      desc: activeOrder.currentStep >= 2
+        ? `${helperName} accepted and locked in your slot.`
+        : 'Waiting for acceptance.'
     },
     {
       id: 3,
-      title: 'Helper En Route',
-      time: 'Now',
-      desc: activeOrder.currentStep === 3
-        ? `${displayEtaMinutes} mins away${liveDistanceKm != null ? ` (${liveDistanceKm.toFixed(1)} km)` : ''} • Share your arrival code once they reach you`
-        : `${displayEtaMinutes} mins away${liveDistanceKm != null ? ` (${liveDistanceKm.toFixed(1)} km)` : ''} • ${partnerLocation ? 'Live GPS' : 'Smooth traffic on 100 Feet Rd'}`
+      title: 'Partner On the Way',
+      time: activeOrder.currentStep === 3 ? 'Now' : '',
+      desc: liveEtaLabel
+        ? `${liveEtaLabel} • Share your arrival code once they reach you`
+        : 'Share your arrival code once they reach you.'
     },
     {
       id: 4,
       title: 'Service in Progress',
-      time: 'Pending',
-      desc: 'Diagnostics and circuit switchboard check. Enter the completion code once done.'
+      time: activeOrder.currentStep === 4 ? 'Now' : '',
+      desc: `${activeOrder.serviceTitle || 'Your service'} in progress. Ask for the completion code once done.`
     },
     {
       id: 5,
-      title: 'Service Completed & Verified',
-      time: 'Pending',
-      desc: 'Digital invoice generated and warranty active.'
+      title: 'Service Completed',
+      time: formatClock(activeOrder.completedAt),
+      desc: isPaid
+        ? `Paid ₹${activeOrder.totalPaid || activeOrder.totalAmount}. Your bill is in Billing History.`
+        : 'Complete the payment to finish the booking.'
     }
   ];
+
+  // No booking yet (or it was cleared): don't show an empty order
+  if (!activeOrder.orderId) {
+    return (
+      <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
+        <Header subtitle="Requests" />
+
+        <main className="flex-1 flex flex-col items-center justify-center gap-3 px-6 pb-6 text-center">
+          <div className="w-14 h-14 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center">
+            <span className="material-symbols-outlined text-[28px]">fact_check</span>
+          </div>
+          <h1 className="text-base font-extrabold text-[#0b1c30]">No active booking</h1>
+          <p className="text-xs text-slate-500">
+            Book a helper from Home and you can follow the job here. Past bills are in Profile → Billing History.
+          </p>
+          <button
+            onClick={() => navigateTo('home', 'home')}
+            className="mt-1 px-5 py-2.5 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold shadow-md active:scale-95 transition-all"
+          >
+            Find a helper
+          </button>
+        </main>
+
+        <NavigationBar />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
@@ -119,35 +175,45 @@ export const LiveTrackingScreen = () => {
                 <span className="text-xs text-[#0b1c30] font-bold">{activeOrder.orderId}</span>
               </div>
               <h1 className="text-xl font-extrabold text-[#0b1c30] tracking-tight">
-                {activeOrder.currentStep === 3
-                  ? `${activeOrder.helperName} is on the way!`
+                {isClosed
+                  ? 'Request not accepted'
+                  : activeOrder.currentStep === 3
+                  ? `${helperName} is on the way!`
                   : activeOrder.currentStep === 4
-                  ? `${activeOrder.helperName} is repairing now`
+                  ? `${helperName} is working on it`
                   : activeOrder.currentStep === 5
-                  ? 'Service Completed & Verified!'
-                  : 'Order Processing'}
+                  ? 'Service Completed!'
+                  : `Waiting for ${helperName}`}
               </h1>
               <p className="text-xs text-[#5a4136] mt-0.5 font-medium">
-                {activeOrder.currentStep === 3
-                  ? `Estimated arrival in ~${displayEtaMinutes} mins${partnerLocation ? ' (live GPS)' : ''}`
+                {isClosed
+                  ? `${helperName} couldn't take this booking. Please book another helper.`
+                  : activeOrder.currentStep === 3
+                  ? (liveEtaMinutes != null
+                    ? `Estimated arrival in ~${liveEtaMinutes} mins (live GPS)`
+                    : 'Share your arrival code when they arrive.')
                   : activeOrder.currentStep === 4
                   ? 'Work in progress. Safe verification active.'
                   : activeOrder.currentStep === 5
-                  ? 'Payment completed via UPI. Rate your experience!'
-                  : 'Matching nearest verified technician.'}
+                  ? (isPaid
+                    ? 'Payment received. Rate your experience!'
+                    : 'Complete the payment to finish the booking.')
+                  : "Your request has been sent. We'll tell you when they accept."}
               </p>
             </div>
 
             <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 bg-[#ffdbcc] text-[#7b2f00] rounded-full text-xs font-bold shadow-xs">
               <span className="w-2 h-2 rounded-full bg-[#ff6a00] animate-ping"></span>
               <span>
-                {activeOrder.currentStep === 3
+                {isClosed
+                  ? 'Closed'
+                  : activeOrder.currentStep === 3
                   ? 'En Route'
                   : activeOrder.currentStep === 4
                   ? 'In Progress'
                   : activeOrder.currentStep === 5
-                  ? 'Done'
-                  : 'Confirmed'}
+                  ? (isPaid ? 'Done' : 'Payment due')
+                  : 'Requested'}
               </span>
             </div>
           </div>
@@ -258,8 +324,8 @@ export const LiveTrackingScreen = () => {
     </div>
 )}
 
-          {/* Rate Your Experience Card (shown once service is completed) */}
-          {activeOrder.currentStep === 5 && (
+          {/* Rate Your Experience Card (shown once the job is paid for) */}
+          {activeOrder.currentStep === 5 && isPaid && (
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
               {activeOrder.rating ? (
                 <div className="flex flex-col items-center text-center gap-1 py-2">
@@ -340,18 +406,12 @@ export const LiveTrackingScreen = () => {
             {/* Profile row */}
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
-                {activeOrder.helperAvatar ? (
-                  <img
-                    className="w-14 h-14 rounded-2xl object-cover shadow-xs"
-                    alt={activeOrder.helperName}
-                    src={activeOrder.helperAvatar}
-                  />
-                ) : (
-                  // No photo uploaded: show their initial, as elsewhere in the app
-                  <div className="w-14 h-14 rounded-2xl bg-[#2e7d32] text-white text-xl font-bold flex items-center justify-center shadow-xs">
-                    {helperInitial}
-                  </div>
-                )}
+                <Avatar
+                  src={activeOrder.helperAvatar}
+                  name={activeOrder.helperName}
+                  className="w-14 h-14 rounded-2xl"
+                  textClassName="text-xl"
+                />
                 {activeOrder.helperVerified && (
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#00ae78] text-white flex items-center justify-center shadow-xs">
                     <span className="material-symbols-outlined text-[13px]">verified</span>
@@ -516,10 +576,14 @@ export const LiveTrackingScreen = () => {
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-white">
                     {partnerLocation
-                      ? `${activeOrder.helperName} • Live GPS`
-                      : `${activeOrder.helperName} is at ${activeOrder.currentRoad?.split(' (')[0] || 'en route'}`}
+                      ? `${helperName} • Live GPS`
+                      : activeOrder.currentStep < 3
+                      ? 'Waiting for the partner to accept'
+                      : activeOrder.currentStep === 3
+                      ? `${helperName} hasn't shared live location yet`
+                      : `${helperName} is at your location`}
                   </span>
-                  <span className="text-[10px] text-white/80">{displayDistanceLabel}</span>
+                  <span className="text-[10px] text-white/80">{liveDistanceLabel}</span>
                 </div>
               </div>
 
@@ -538,27 +602,22 @@ export const LiveTrackingScreen = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-[#0b1c30]">Timeline Progress</h3>
-                <p className="text-[11px] text-slate-500">Tap to simulate real-time stage advance</p>
+                <p className="text-[11px] text-slate-500">Live status of your booking</p>
               </div>
               {activeOrder.currentStep === 3 ? (
                 <span className="text-[11px] font-bold text-slate-400">Waiting for arrival code…</span>
               ) : activeOrder.currentStep === 4 ? (
                 <span className="text-[11px] font-bold text-slate-400">Waiting for completion code…</span>
-              ) : (
-                <button
-                  onClick={advanceOrderStatus}
-                  className="text-[11px] font-bold bg-[#eff4ff] text-[#a14000] hover:bg-[#dce9ff] px-2.5 py-1 rounded-full border border-slate-200 active:scale-95 transition-all"
-                >
-                  Simulate Next Step ▶
-                </button>
-              )}
+              ) : activeOrder.currentStep <= 1 && !isClosed ? (
+                <span className="text-[11px] font-bold text-slate-400">Waiting for acceptance…</span>
+              ) : null}
             </div>
 
             <div className="relative flex flex-col mt-1">
               {steps.map((step, idx) => {
-                const isPassed = activeOrder.currentStep > step.id;
-                const isCurrent = activeOrder.currentStep === step.id;
-                const isFuture = activeOrder.currentStep < step.id;
+                const isPassed = progressStep > step.id;
+                const isCurrent = progressStep === step.id;
+                const isFuture = progressStep < step.id;
                 const isLast = idx === steps.length - 1;
 
                 return (
