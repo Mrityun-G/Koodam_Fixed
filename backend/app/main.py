@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import ALLOWED_ORIGINS
 from app.database import engine, Base
 
 from app.models.user import User
@@ -37,6 +38,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost",
         "https://localhost",
+        *ALLOWED_ORIGINS,
     ],
     # Vite moves to 5174, 5175… when 5173 is busy; allow any local port
     allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
