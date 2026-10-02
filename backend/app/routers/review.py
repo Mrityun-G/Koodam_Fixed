@@ -89,25 +89,12 @@ def create_review(
     # Create review
     new_review = Review(
         booking_id=review_data.booking_id,
-        user_id=review_data.user_id,
-        partner_id=review_data.partner_id,
         rating=review_data.rating,
         feedback=review_data.feedback
     )
 
+    # The partner's rating is worked out from the reviews table
     db.add(new_review)
-
-    # Update partner rating
-    total_reviews = partner.reviews_count + 1
-
-    new_rating = (
-        (partner.rating * partner.reviews_count)
-        + review_data.rating
-    ) / total_reviews
-
-    partner.rating = new_rating
-    partner.reviews_count = total_reviews
-
     db.commit()
     db.refresh(new_review)
 
@@ -139,8 +126,10 @@ def get_partner_reviews(
             detail="Partner not found"
         )
 
-    return db.query(Review).filter(
-        Review.partner_id == partner_id
+    return db.query(Review).join(
+        Booking, Booking.id == Review.booking_id
+    ).filter(
+        Booking.partner_id == partner_id
     ).order_by(
         Review.created_at.desc()
     ).all()

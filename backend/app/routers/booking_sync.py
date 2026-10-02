@@ -234,27 +234,12 @@ def sync_review(db: Session, booking: Booking, data: BookingSync):
     if existing_review:
         return
 
+    # The partner's rating is worked out from the reviews table
     db.add(Review(
         booking_id=booking.id,
-        user_id=booking.user_id,
-        partner_id=booking.partner_id,
         rating=data.rating,
         feedback=data.feedback or None
     ))
-
-    # Keep the partner's average rating current, as POST /reviews does
-    partner = db.query(Partner).filter(
-        Partner.id == booking.partner_id
-    ).first()
-
-    if partner:
-        reviews_count = partner.reviews_count or 0
-        total_reviews = reviews_count + 1
-
-        partner.rating = (
-            (partner.rating or 0.0) * reviews_count + data.rating
-        ) / total_reviews
-        partner.reviews_count = total_reviews
 
 
 def apply_sync(db: Session, data: BookingSync) -> Booking:

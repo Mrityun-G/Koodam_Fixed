@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 
@@ -21,18 +22,6 @@ class Review(Base):
         nullable=False
     )
 
-    user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=False
-    )
-
-    partner_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("partners.id"),
-        nullable=False
-    )
-
     rating = Column(
         Integer,
         nullable=False
@@ -47,3 +36,14 @@ class Review(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    # The customer and partner are the booking's, loaded in the same query
+    booking = relationship("Booking", lazy="joined")
+
+    @property
+    def user_id(self):
+        return self.booking.user_id
+
+    @property
+    def partner_id(self):
+        return self.booking.partner_id

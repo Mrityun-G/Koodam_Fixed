@@ -35,9 +35,6 @@ def ensure_partner_profile(
     partner = Partner(
         user_id=user.id,
         experience_years=0,
-        rating=0.0,
-        reviews_count=0,
-        completion_rate=0.0,
         hourly_rate=0.0,
         vehicle=None,
         vehicle_number=None,

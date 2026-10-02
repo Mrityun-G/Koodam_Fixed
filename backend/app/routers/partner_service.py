@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -30,21 +31,10 @@ def resolve_partner(
     db: Session,
     identifier: UUID
 ):
-    # First check actual Partner ID
+    # Either partners.id or the partner's users.id, in one query
     partner = db.query(Partner).filter(
-        Partner.id == identifier
+        or_(Partner.id == identifier, Partner.user_id == identifier)
     ).first()
-
-    if partner:
-        return partner
-
-    # If not found, check User ID
-    partner = (
-        db.query(Partner)
-        .join(User, User.id == Partner.user_id)
-        .filter(User.id == identifier)
-        .first()
-    )
 
     return partner
 

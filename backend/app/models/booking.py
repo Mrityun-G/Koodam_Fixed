@@ -65,11 +65,6 @@ class Booking(Base):
         default=0.0
     )
 
-    notes = Column(
-        Text,
-        nullable=True
-    )
-
     safety_pin = Column(
         String,
         nullable=True

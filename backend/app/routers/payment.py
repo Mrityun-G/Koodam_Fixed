@@ -15,6 +15,7 @@ from app.config import (
 from app.database import get_db
 from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail, BookingExtraCharge
+from app.models.payout import BookingPayout
 from app.razorpay_client import razorpay_request, to_paise
 from app.routers.payouts import safely_transfer
 
@@ -166,7 +167,7 @@ def verify_payment(
         and detail.razorpay_payment_id == data.razorpay_payment_id
     ):
         # The first check may have stopped before the partner's transfer
-        if detail.payout_status is None:
+        if not db.get(BookingPayout, detail.booking_id):
             safely_transfer(db, booking, detail)
 
         return payment_result(detail)

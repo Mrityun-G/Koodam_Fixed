@@ -13,6 +13,7 @@ from app.models.emergency import EmergencyRequest
 from app.models.partner_service import PartnerService
 from app.models.partner_document import PartnerDocument
 from app.models.booking_detail import BookingDetail, BookingExtraCharge
+from app.models.payout import PartnerPayoutAccount, BookingPayout
 
 from app.routers.user import router as user_router
 from app.routers.partner import router as partner_router
@@ -63,55 +64,21 @@ Base.metadata.create_all(bind=engine)
 
 
 # create_all only creates missing tables; add columns introduced later
-# to tables that already exist
+# to tables that already exist (one round trip for all of them)
 with engine.begin() as connection:
     connection.execute(text(
         "ALTER TABLE partners "
         "ADD COLUMN IF NOT EXISTS police_verification_status "
-        "VARCHAR NOT NULL DEFAULT 'NOT_SUBMITTED'"
-    ))
-    connection.execute(text(
-        "ALTER TABLE partners "
-        "ADD COLUMN IF NOT EXISTS police_rejection_reason VARCHAR"
-    ))
-    connection.execute(text(
-        "ALTER TABLE partners "
+        "VARCHAR NOT NULL DEFAULT 'NOT_SUBMITTED', "
+        "ADD COLUMN IF NOT EXISTS police_rejection_reason VARCHAR, "
         "ADD COLUMN IF NOT EXISTS service_radius_km "
-        "INTEGER NOT NULL DEFAULT 5"
+        "INTEGER NOT NULL DEFAULT 5; "
+        "ALTER TABLE booking_details "
+        "ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS trust_fee DOUBLE PRECISION, "
+        "ADD COLUMN IF NOT EXISTS commission_amount DOUBLE PRECISION, "
+        "ADD COLUMN IF NOT EXISTS partner_payout DOUBLE PRECISION"
     ))
-
-    # Verified Razorpay payments and how each one is split
-    for column in (
-        "razorpay_order_id VARCHAR",
-        "trust_fee DOUBLE PRECISION",
-        "commission_amount DOUBLE PRECISION",
-        "partner_payout DOUBLE PRECISION",
-        # Route transfer of the partner's share
-        "payout_status VARCHAR",
-        "razorpay_transfer_id VARCHAR",
-        "payout_error VARCHAR",
-        "payout_sent_at TIMESTAMP",
-        "payout_settled_at TIMESTAMP",
-        "payout_utr VARCHAR",
-    ):
-        connection.execute(text(
-            f"ALTER TABLE booking_details ADD COLUMN IF NOT EXISTS {column}"
-        ))
-
-    # The partner's Razorpay Route linked account
-    for column in (
-        "razorpay_account_id VARCHAR",
-        "razorpay_stakeholder_id VARCHAR",
-        "razorpay_product_id VARCHAR",
-        "payout_account_status VARCHAR NOT NULL DEFAULT 'NOT_SET'",
-        "payout_account_note VARCHAR",
-        "payout_bank_last4 VARCHAR",
-        "payout_ifsc VARCHAR",
-        "payout_beneficiary_name VARCHAR",
-    ):
-        connection.execute(text(
-            f"ALTER TABLE partners ADD COLUMN IF NOT EXISTS {column}"
-        ))
 
 
 @app.get("/")

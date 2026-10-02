@@ -46,6 +46,74 @@ def get_services(
     ).all()
 
 
+def partner_listing(partner, user, partner_service) -> dict:
+    return {
+        "partner_id": partner.id,
+        "name": user.name,
+        "email": user.email,
+        "phone": user.phone,
+        "avatar": user.avatar,
+        "experience_years": partner_service.experience_years,
+        "rating": partner.rating,
+        "reviews_count": partner.reviews_count,
+        "completion_rate": partner.completion_rate,
+        "hourly_rate": (
+            partner_service.price_override
+            if partner_service.price_override is not None
+            else partner.hourly_rate
+        ),
+        "vehicle": partner.vehicle,
+        "vehicle_number": partner.vehicle_number,
+        "is_online": partner.is_online,
+        "is_verified": partner.is_verified,
+        "police_verified": (
+            partner.police_verification_status == "VERIFIED"
+        ),
+        "latitude": partner.latitude,
+        "longitude": partner.longitude
+    }
+
+
+# Declared before /{service_id} so "with-partners" isn't read as an ID
+@router.get("/with-partners")
+def get_services_with_partners(
+    db: Session = Depends(get_db)
+):
+    """
+    Every active service with the partners offering it, in one query,
+    so the home screen needs one request instead of one per service.
+    """
+    # Services with no partners still come back (outer joins), so the
+    # whole screen is one query
+    rows = (
+        db.query(Service, Partner, User, PartnerService)
+        .outerjoin(
+            PartnerService,
+            (PartnerService.service_id == Service.id)
+            & (PartnerService.is_active == True)
+        )
+        .outerjoin(Partner, Partner.id == PartnerService.partner_id)
+        .outerjoin(User, User.id == Partner.user_id)
+        .filter(Service.is_active == True)
+        .all()
+    )
+
+    services = {}
+
+    for service, partner, user, partner_service in rows:
+        entry = services.setdefault(service.id, {
+            **ServiceResponse.model_validate(service).model_dump(),
+            "partners": []
+        })
+
+        if partner and user:
+            entry["partners"].append(
+                partner_listing(partner, user, partner_service)
+            )
+
+    return list(services.values())
+
+
 @router.get("/{service_id}", response_model=ServiceResponse)
 def get_service(
     service_id: UUID,
@@ -103,33 +171,9 @@ def get_partners_for_service(
         .all()
     )
 
-    partners = []
-
-    for partner, user, partner_service in results:
-        partners.append({
-            "partner_id": partner.id,
-            "name": user.name,
-            "email": user.email,
-            "phone": user.phone,
-            "avatar": user.avatar,
-            "experience_years": partner_service.experience_years,
-            "rating": partner.rating,
-            "reviews_count": partner.reviews_count,
-            "completion_rate": partner.completion_rate,
-            "hourly_rate": (
-                partner_service.price_override
-                if partner_service.price_override is not None
-                else partner.hourly_rate
-            ),
-            "vehicle": partner.vehicle,
-            "vehicle_number": partner.vehicle_number,
-            "is_online": partner.is_online,
-            "is_verified": partner.is_verified,
-            "police_verified": (
-                partner.police_verification_status == "VERIFIED"
-            ),
-            "latitude": partner.latitude,
-            "longitude": partner.longitude
-        })
+    partners = [
+        partner_listing(partner, user, partner_service)
+        for partner, user, partner_service in results
+    ]
 
     return partners

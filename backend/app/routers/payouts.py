@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth import current_firebase_uid
@@ -14,10 +15,10 @@ from app.database import get_db
 from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail
 from app.models.partner import Partner
+from app.models.payout import BookingPayout, PartnerPayoutAccount
 from app.models.service import Service
 from app.models.user import User
 from app.razorpay_client import razorpay_request, to_paise
-from app.routers.partner_service import resolve_partner
 
 
 # =========================================================
@@ -36,7 +37,7 @@ router = APIRouter(
 
 logger = logging.getLogger(__name__)
 
-# Payout states stored on booking_details.payout_status
+# Payout states stored on booking_payouts.status
 WAITING_FOR_ACCOUNT = "WAITING_FOR_ACCOUNT"
 SENT = "SENT"
 SETTLED = "SETTLED"
@@ -61,22 +62,34 @@ def to_iso_utc(value: Optional[datetime]) -> Optional[str]:
     return f"{value.isoformat()}Z" if value else None
 
 
-def get_own_partner(db: Session, identifier: UUID, firebase_uid: str) -> Partner:
-    """The partner, only if the signed-in caller is that partner."""
-    partner = resolve_partner(db, identifier)
+def get_own_partner(db: Session, identifier: UUID, firebase_uid: str):
+    """
+    The partner, their user and their payout account (None if not set up),
+    only if the signed-in caller is that partner. One query for all three.
+    """
+    row = (
+        db.query(Partner, User, PartnerPayoutAccount)
+        .join(User, User.id == Partner.user_id)
+        .outerjoin(
+            PartnerPayoutAccount,
+            PartnerPayoutAccount.partner_id == Partner.id
+        )
+        .filter(or_(Partner.id == identifier, Partner.user_id == identifier))
+        .first()
+    )
 
-    if not partner:
+    if not row:
         raise HTTPException(status_code=404, detail="Partner not found")
 
-    user = db.query(User).filter(User.id == partner.user_id).first()
+    partner, user, account = row
 
-    if not user or user.firebase_uid != firebase_uid:
+    if user.firebase_uid != firebase_uid:
         raise HTTPException(
             status_code=403,
             detail="You can only manage your own payouts."
         )
 
-    return partner
+    return partner, user, account
 
 
 def account_status_from(activation_status: Optional[str]) -> str:
@@ -100,20 +113,21 @@ def requirements_note(product: dict) -> Optional[str]:
     return "Razorpay needs: " + ", ".join(fields)
 
 
-def apply_product_status(partner: Partner, product: dict):
-    partner.payout_account_status = account_status_from(
-        product.get("activation_status")
-    )
-    partner.payout_account_note = requirements_note(product)
+def apply_product_status(account: PartnerPayoutAccount, product: dict):
+    account.status = account_status_from(product.get("activation_status"))
+    account.note = requirements_note(product)
 
 
-def account_response(partner: Partner) -> dict:
+def account_response(account: Optional[PartnerPayoutAccount]) -> dict:
+    if not account:
+        account = PartnerPayoutAccount(status="NOT_SET")
+
     return {
-        "status": partner.payout_account_status or "NOT_SET",
-        "note": partner.payout_account_note,
-        "bank_last4": partner.payout_bank_last4,
-        "ifsc": partner.payout_ifsc,
-        "beneficiary_name": partner.payout_beneficiary_name,
+        "status": account.status or "NOT_SET",
+        "note": account.note,
+        "bank_last4": account.bank_last4,
+        "ifsc": account.ifsc,
+        "beneficiary_name": account.beneficiary_name,
     }
 
 
@@ -134,10 +148,10 @@ def partner_share(detail: BookingDetail) -> float:
     )["partner_payout"]
 
 
-def apply_transfer(detail: BookingDetail, transfer: dict):
-    detail.razorpay_transfer_id = transfer.get("id") or detail.razorpay_transfer_id
-    detail.payout_sent_at = (
-        detail.payout_sent_at
+def apply_transfer(payout: BookingPayout, transfer: dict):
+    payout.razorpay_transfer_id = transfer.get("id") or payout.razorpay_transfer_id
+    payout.sent_at = (
+        payout.sent_at
         or from_unix(transfer.get("processed_at"))
         or from_unix(transfer.get("created_at"))
         or datetime.utcnow()
@@ -145,26 +159,26 @@ def apply_transfer(detail: BookingDetail, transfer: dict):
 
     if transfer.get("status") in ("failed", "reversed"):
         error = transfer.get("error") or {}
-        detail.payout_status = FAILED
-        detail.payout_error = (
+        payout.status = FAILED
+        payout.error = (
             error.get("description")
             or f"Transfer {transfer.get('status')}"
         )
         return
 
-    detail.payout_error = None
+    payout.error = None
 
     if transfer.get("settlement_status") == "settled":
         settlement = transfer.get("recipient_settlement") or {}
-        detail.payout_status = SETTLED
-        detail.payout_settled_at = (
+        payout.status = SETTLED
+        payout.settled_at = (
             from_unix(settlement.get("created_at"))
-            or detail.payout_settled_at
+            or payout.settled_at
             or datetime.utcnow()
         )
-        detail.payout_utr = settlement.get("utr") or detail.payout_utr
+        payout.utr = settlement.get("utr") or payout.utr
     else:
-        detail.payout_status = SENT
+        payout.status = SENT
 
 
 def transfer_partner_payout(db: Session, booking: Booking, detail: BookingDetail):
@@ -186,26 +200,38 @@ def transfer_partner_payout(db: Session, booking: Booking, detail: BookingDetail
         not detail
         or detail.payment_status != "PAID"
         or not detail.razorpay_payment_id
-        or detail.razorpay_transfer_id
     ):
         db.commit()
         return
 
-    partner = db.query(Partner).filter(Partner.id == booking.partner_id).first()
+    payout = db.get(BookingPayout, detail.booking_id)
+
+    if payout and payout.razorpay_transfer_id:
+        db.commit()
+        return
+
+    if not payout:
+        payout = BookingPayout(
+            booking_id=detail.booking_id,
+            status=WAITING_FOR_ACCOUNT
+        )
+        db.add(payout)
+
+    account = db.get(PartnerPayoutAccount, booking.partner_id)
 
     if (
-        not partner
-        or not partner.razorpay_account_id
-        or partner.payout_account_status != "ACTIVATED"
+        not account
+        or not account.razorpay_account_id
+        or account.status != "ACTIVATED"
     ):
-        detail.payout_status = WAITING_FOR_ACCOUNT
+        payout.status = WAITING_FOR_ACCOUNT
         db.commit()
         return
 
     amount = to_paise(partner_share(detail))
 
     if amount <= 0:
-        detail.payout_status = SETTLED
+        payout.status = SETTLED
         db.commit()
         return
 
@@ -215,7 +241,7 @@ def transfer_partner_payout(db: Session, booking: Booking, detail: BookingDetail
             f"/payments/{detail.razorpay_payment_id}/transfers",
             {
                 "transfers": [{
-                    "account": partner.razorpay_account_id,
+                    "account": account.razorpay_account_id,
                     "amount": amount,
                     "currency": "INR",
                     "notes": {
@@ -228,13 +254,13 @@ def transfer_partner_payout(db: Session, booking: Booking, detail: BookingDetail
             }
         )
     except HTTPException as error:
-        detail.payout_status = FAILED
-        detail.payout_error = str(error.detail)
+        payout.status = FAILED
+        payout.error = str(error.detail)
         db.commit()
         return
 
     items = response.get("items") or [response]
-    apply_transfer(detail, items[0])
+    apply_transfer(payout, items[0])
     db.commit()
 
 
@@ -246,21 +272,26 @@ def safely_transfer(db: Session, booking: Booking, detail: BookingDetail):
         logger.exception("Partner payout transfer failed for %s", booking.id)
 
 
-def release_waiting_payouts(db: Session, partner: Partner):
+def release_waiting_payouts(
+    db: Session,
+    partner: Partner,
+    account: Optional[PartnerPayoutAccount]
+):
     """Transfer paid jobs that were waiting for the partner's bank account."""
-    if partner.payout_account_status != "ACTIVATED":
+    if not account or account.status != "ACTIVATED":
         return
 
     rows = (
         db.query(Booking, BookingDetail)
         .join(BookingDetail, BookingDetail.booking_id == Booking.id)
+        .outerjoin(BookingPayout, BookingPayout.booking_id == Booking.id)
         .filter(
             Booking.partner_id == partner.id,
             BookingDetail.payment_status == "PAID",
-            BookingDetail.razorpay_transfer_id.is_(None),
-            # Paid before payouts existed (NULL) or waiting for the account
-            (BookingDetail.payout_status.is_(None))
-            | (BookingDetail.payout_status == WAITING_FOR_ACCOUNT)
+            BookingPayout.razorpay_transfer_id.is_(None),
+            # Paid before payouts existed (no row) or waiting for the account
+            (BookingPayout.booking_id.is_(None))
+            | (BookingPayout.status == WAITING_FOR_ACCOUNT)
         )
         .all()
     )
@@ -269,39 +300,43 @@ def release_waiting_payouts(db: Session, partner: Partner):
         safely_transfer(db, booking, detail)
 
 
-def refresh_transfer(db: Session, detail: BookingDetail):
+def refresh_transfer(db: Session, payout: BookingPayout):
     try:
         transfer = razorpay_request(
             "GET",
-            f"/transfers/{detail.razorpay_transfer_id}",
+            f"/transfers/{payout.razorpay_transfer_id}",
             params={"expand[]": "recipient_settlement"}
         )
     except HTTPException:
         # Keep showing the last known state
         return
 
-    apply_transfer(detail, transfer)
+    apply_transfer(payout, transfer)
     db.commit()
 
 
-def refresh_account_status(db: Session, partner: Partner):
+def refresh_account_status(
+    db: Session,
+    account: Optional[PartnerPayoutAccount]
+):
     if (
-        not partner.razorpay_account_id
-        or not partner.razorpay_product_id
-        or partner.payout_account_status == "ACTIVATED"
+        not account
+        or not account.razorpay_account_id
+        or not account.razorpay_product_id
+        or account.status == "ACTIVATED"
     ):
         return
 
     try:
         product = razorpay_request(
             "GET",
-            f"/accounts/{partner.razorpay_account_id}/products/{partner.razorpay_product_id}",
+            f"/accounts/{account.razorpay_account_id}/products/{account.razorpay_product_id}",
             version="v2"
         )
     except HTTPException:
         return
 
-    apply_product_status(partner, product)
+    apply_product_status(account, product)
     db.commit()
 
 
@@ -385,12 +420,12 @@ def get_payout_account(
     firebase_uid: str = Depends(current_firebase_uid),
     db: Session = Depends(get_db)
 ):
-    partner = get_own_partner(db, identifier, firebase_uid)
+    partner, _, account = get_own_partner(db, identifier, firebase_uid)
 
-    refresh_account_status(db, partner)
-    release_waiting_payouts(db, partner)
+    refresh_account_status(db, account)
+    release_waiting_payouts(db, partner, account)
 
-    return account_response(partner)
+    return account_response(account)
 
 
 @router.put("/partners/{identifier}/account")
@@ -400,15 +435,18 @@ def save_payout_account(
     firebase_uid: str = Depends(current_firebase_uid),
     db: Session = Depends(get_db)
 ):
-    partner = get_own_partner(db, identifier, firebase_uid)
-    user = db.query(User).filter(User.id == partner.user_id).first()
+    partner, user, account = get_own_partner(db, identifier, firebase_uid)
+
+    if not account:
+        account = PartnerPayoutAccount(partner_id=partner.id)
+        db.add(account)
 
     # Each step's ID is saved as soon as Razorpay returns it, so if a later
     # step fails, saving again picks up where it stopped
 
     # 1. The linked account
-    if not partner.razorpay_account_id:
-        account = razorpay_request("POST", "/accounts", {
+    if not account.razorpay_account_id:
+        linked_account = razorpay_request("POST", "/accounts", {
             "email": user.email,
             "phone": data.phone,
             "type": "route",
@@ -431,13 +469,13 @@ def save_payout_account(
             }
         }, version="v2")
 
-        partner.razorpay_account_id = account["id"]
+        account.razorpay_account_id = linked_account["id"]
         db.commit()
 
-    account_id = partner.razorpay_account_id
+    account_id = account.razorpay_account_id
 
     # 2. The person behind it (Route allows exactly one)
-    if not partner.razorpay_stakeholder_id:
+    if not account.razorpay_stakeholder_id:
         stakeholder = razorpay_request(
             "POST",
             f"/accounts/{account_id}/stakeholders",
@@ -449,11 +487,11 @@ def save_payout_account(
             version="v2"
         )
 
-        partner.razorpay_stakeholder_id = stakeholder["id"]
+        account.razorpay_stakeholder_id = stakeholder["id"]
         db.commit()
 
     # 3. Turn on Route for the account
-    if not partner.razorpay_product_id:
+    if not account.razorpay_product_id:
         product = razorpay_request(
             "POST",
             f"/accounts/{account_id}/products",
@@ -461,13 +499,13 @@ def save_payout_account(
             version="v2"
         )
 
-        partner.razorpay_product_id = product["id"]
+        account.razorpay_product_id = product["id"]
         db.commit()
 
     # 4. The bank account Razorpay settles into
     product = razorpay_request(
         "PATCH",
-        f"/accounts/{account_id}/products/{partner.razorpay_product_id}",
+        f"/accounts/{account_id}/products/{account.razorpay_product_id}",
         {
             "settlements": {
                 "account_number": data.account_number,
@@ -479,10 +517,10 @@ def save_payout_account(
         version="v2"
     )
 
-    apply_product_status(partner, product)
-    partner.payout_bank_last4 = data.account_number[-4:]
-    partner.payout_ifsc = data.ifsc
-    partner.payout_beneficiary_name = data.beneficiary_name
+    apply_product_status(account, product)
+    account.bank_last4 = data.account_number[-4:]
+    account.ifsc = data.ifsc
+    account.beneficiary_name = data.beneficiary_name
 
     if not user.phone:
         user.phone = data.phone
@@ -491,22 +529,22 @@ def save_payout_account(
 
     # Jobs already paid start moving now; failed ones get another try,
     # since a bad bank account is the usual cause
-    if partner.payout_account_status == "ACTIVATED":
-        db.query(BookingDetail).filter(
-            BookingDetail.booking_id.in_(
+    if account.status == "ACTIVATED":
+        db.query(BookingPayout).filter(
+            BookingPayout.booking_id.in_(
                 db.query(Booking.id).filter(Booking.partner_id == partner.id)
             ),
-            BookingDetail.payout_status == FAILED,
-            BookingDetail.razorpay_transfer_id.is_(None)
+            BookingPayout.status == FAILED,
+            BookingPayout.razorpay_transfer_id.is_(None)
         ).update(
-            {BookingDetail.payout_status: WAITING_FOR_ACCOUNT},
+            {BookingPayout.status: WAITING_FOR_ACCOUNT},
             synchronize_session=False
         )
         db.commit()
 
-        release_waiting_payouts(db, partner)
+        release_waiting_payouts(db, partner, account)
 
-    return account_response(partner)
+    return account_response(account)
 
 
 # ---------------------------------------------------------
@@ -519,14 +557,15 @@ def get_partner_payouts(
     firebase_uid: str = Depends(current_firebase_uid),
     db: Session = Depends(get_db)
 ):
-    partner = get_own_partner(db, identifier, firebase_uid)
+    partner, _, account = get_own_partner(db, identifier, firebase_uid)
 
-    refresh_account_status(db, partner)
-    release_waiting_payouts(db, partner)
+    refresh_account_status(db, account)
+    release_waiting_payouts(db, partner, account)
 
     rows = (
-        db.query(Booking, BookingDetail, Service, User)
+        db.query(Booking, BookingDetail, BookingPayout, Service, User)
         .join(BookingDetail, BookingDetail.booking_id == Booking.id)
+        .outerjoin(BookingPayout, BookingPayout.booking_id == Booking.id)
         .join(Service, Service.id == Booking.service_id)
         .join(User, User.id == Booking.user_id)
         .filter(
@@ -541,20 +580,22 @@ def get_partner_payouts(
     # Ask Razorpay about money still on its way to the bank
     refreshed = 0
 
-    for _, detail, _, _ in rows:
+    for _, _, payout, _, _ in rows:
         if (
-            detail.payout_status == SENT
-            and detail.razorpay_transfer_id
+            payout
+            and payout.status == SENT
+            and payout.razorpay_transfer_id
             and refreshed < MAX_REFRESH_PER_REQUEST
         ):
-            refresh_transfer(db, detail)
+            refresh_transfer(db, payout)
             refreshed += 1
 
     payouts = []
     totals = {SETTLED: 0.0, SENT: 0.0, WAITING_FOR_ACCOUNT: 0.0, FAILED: 0.0}
 
-    for booking, detail, service, customer in rows:
-        status = detail.payout_status or WAITING_FOR_ACCOUNT
+    for booking, detail, payout, service, customer in rows:
+        payout = payout or BookingPayout()
+        status = payout.status or WAITING_FOR_ACCOUNT
         amount = round(partner_share(detail), 2)
         totals[status] = totals.get(status, 0.0) + amount
 
@@ -565,15 +606,15 @@ def get_partner_payouts(
             "amount": amount,
             "status": status,
             "paid_at": to_iso_utc(detail.paid_at),
-            "sent_at": to_iso_utc(detail.payout_sent_at),
-            "settled_at": to_iso_utc(detail.payout_settled_at),
-            "utr": detail.payout_utr,
-            "transfer_id": detail.razorpay_transfer_id,
-            "error": detail.payout_error,
+            "sent_at": to_iso_utc(payout.sent_at),
+            "settled_at": to_iso_utc(payout.settled_at),
+            "utr": payout.utr,
+            "transfer_id": payout.razorpay_transfer_id,
+            "error": payout.error,
         })
 
     return {
-        "account": account_response(partner),
+        "account": account_response(account),
         "totals": {
             "settled": round(totals[SETTLED], 2),
             "in_transit": round(totals[SENT], 2),

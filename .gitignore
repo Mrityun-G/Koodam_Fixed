@@ -20,3 +20,6 @@ node_modules/
 logs/
 # Build output
 dist/
+
+# Database backups made by backend/migrations (contain personal data)
+backend/db_backups/

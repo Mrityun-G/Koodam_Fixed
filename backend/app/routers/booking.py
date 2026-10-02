@@ -91,7 +91,6 @@ def create_booking(
         latitude=booking_data.latitude,
         longitude=booking_data.longitude,
         total_amount=total_amount,
-        notes=booking_data.notes,
         safety_pin=safety_pin
     )
 
