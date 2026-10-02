@@ -8,7 +8,8 @@ export const MobileFrame = ({ children, overlay = null }) => {
       {/* Main Container */}
       <div className="w-full max-w-[430px] transition-all duration-300 flex justify-center">
         {/* Device Frame */}
-        <div className="w-full bg-[#f8f9ff] text-[#0b1c30] relative overflow-hidden transition-all duration-300 h-[100dvh] sm:h-[min(920px,calc(100dvh-3rem))] rounded-[48px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_0_12px_#1e293b,0_0_0_14px_#334155] border-4 border-[#0f172a] flex flex-col">
+        {/* id: pop-ups portal here so they cover the phone screen only */}
+        <div id="phone-screen" className="w-full bg-[#f8f9ff] text-[#0b1c30] relative overflow-hidden transition-all duration-300 h-[100dvh] sm:h-[min(920px,calc(100dvh-3rem))] rounded-[48px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_0_12px_#1e293b,0_0_0_14px_#334155] border-4 border-[#0f172a] flex flex-col">
           {/* Screen Content Container with Smooth Scroll */}
           <div className="flex-1 w-full overflow-y-auto overflow-x-hidden flex flex-col relative bg-[#f8f9ff] overscroll-contain">
             {children}

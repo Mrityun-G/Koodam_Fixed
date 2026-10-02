@@ -6,7 +6,7 @@ import requests
 from cryptography.x509 import load_pem_x509_certificate
 from fastapi import Header, HTTPException
 
-from app.config import FIREBASE_PROJECT_ID
+from app.config import firebase_project_id
 
 
 # =========================================================
@@ -57,10 +57,16 @@ def _signing_certs() -> dict:
 
 
 def verify_firebase_token(token: str) -> dict:
-    if not FIREBASE_PROJECT_ID:
+    project_id = firebase_project_id()
+
+    if not project_id:
         raise HTTPException(
             status_code=500,
-            detail="FIREBASE_PROJECT_ID is missing on the server"
+            detail=(
+                "The server doesn't know your Firebase project. Set "
+                "VITE_FIREBASE_PROJECT_ID in .env or FIREBASE_PROJECT_ID "
+                "in backend/.env."
+            )
         )
 
     try:
@@ -80,8 +86,8 @@ def verify_firebase_token(token: str) -> dict:
             token,
             public_key,
             algorithms=["RS256"],
-            audience=FIREBASE_PROJECT_ID,
-            issuer=f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}",
+            audience=project_id,
+            issuer=f"https://securetoken.google.com/{project_id}",
             leeway=60
         )
     except jwt.ExpiredSignatureError:

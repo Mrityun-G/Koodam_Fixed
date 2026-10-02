@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
+from typing import Optional
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 load_dotenv()
 
@@ -24,12 +26,35 @@ PLATFORM_COMMISSION_PERCENT = float(
     os.getenv("KOODAM_PLATFORM_COMMISSION_PERCENT", "10")
 )
 
-# Firebase project whose ID tokens the backend accepts (same as the
-# frontend's VITE_FIREBASE_PROJECT_ID)
-FIREBASE_PROJECT_ID = (
-    os.getenv("FIREBASE_PROJECT_ID")
-    or os.getenv("VITE_FIREBASE_PROJECT_ID")
-)
+# backend/.env and the frontend's .env in the project root
+_BACKEND_ENV = Path(__file__).resolve().parent.parent / ".env"
+_FRONTEND_ENV = _BACKEND_ENV.parent.parent / ".env"
+
+
+def firebase_project_id() -> Optional[str]:
+    """
+    Firebase project whose ID tokens the backend accepts.
+    Read when needed rather than once at startup, so a value added to
+    either .env file works without restarting the server. Falls back to
+    the frontend's VITE_FIREBASE_PROJECT_ID, so it only has to be set once.
+    """
+    value = os.getenv("FIREBASE_PROJECT_ID")
+
+    if value:
+        return value.strip()
+
+    for path in (_BACKEND_ENV, _FRONTEND_ENV):
+        values = dotenv_values(path) if path.exists() else {}
+        value = (
+            values.get("FIREBASE_PROJECT_ID")
+            or values.get("VITE_FIREBASE_PROJECT_ID")
+        )
+
+        if value and value.strip():
+            os.environ["FIREBASE_PROJECT_ID"] = value.strip()
+            return value.strip()
+
+    return None
 
 # Business category Razorpay files each partner's Route linked account
 # under (values from Razorpay's business category list)
