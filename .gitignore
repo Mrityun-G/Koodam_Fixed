@@ -22,4 +22,4 @@ logs/
 dist/
 
 # Database backups made by backend/migrations (contain personal data)
-backend/db_backups/
+backend/db_backups/p
