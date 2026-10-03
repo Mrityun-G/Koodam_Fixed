@@ -49,6 +49,7 @@ def simulate_call(
         "parts": [{"lang": lang, "text": text} for lang, text in reply.parts],
         "digits": reply.digits,
         "hangup": reply.hangup,
+        "note": reply.note,
     }
 
 

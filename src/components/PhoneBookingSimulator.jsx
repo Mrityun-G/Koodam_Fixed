@@ -30,7 +30,8 @@ export const PhoneBookingSimulator = () => {
       setLines((current) => [
         ...current,
         ...(digits != null ? [{ from: 'caller', text: digits || '(no key pressed)' }] : []),
-        ...reply.parts.map((part) => ({ from: 'koodam', text: part.text }))
+        ...reply.parts.map((part) => ({ from: 'koodam', text: part.text })),
+        ...(reply.note ? [{ from: 'note', text: `Why: ${reply.note}` }] : [])
       ]);
       setExpecting(reply.hangup ? 0 : reply.digits);
 
@@ -107,6 +108,8 @@ export const PhoneBookingSimulator = () => {
               className={
                 line.from === 'caller'
                   ? 'text-right font-mono font-bold text-[#a14000]'
+                  : line.from === 'note'
+                  ? 'rounded-lg bg-amber-50 p-1.5 text-amber-700'
                   : 'text-[#0b1c30]'
               }
             >

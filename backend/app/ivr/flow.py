@@ -46,6 +46,8 @@ class Reply:
     # How many keys to collect next; 0 means nothing is expected
     digits: int = 0
     hangup: bool = False
+    # For KOODAM staff in the simulator only; never spoken on a call
+    note: str = ""
 
 
 @dataclass
@@ -291,7 +293,7 @@ def _offer(db: Session, session: Session_) -> Reply:
     match = pb.nearest_partner(db, service, lat, lng, tuple(session.data.get("excluded", [])))
 
     if not match:
-        return _join(session, say("no_partner", session.lang), say("goodbye", session.lang), hangup=True)
+        return _no_partner(db, session, service, lat, lng)
 
     session.data["partner_id"] = str(match["partner"].id)
     session.state = "CONFIRM"
@@ -308,6 +310,12 @@ def _offer(db: Session, session: Session_) -> Reply:
     )
 
 
+def _no_partner(db: Session, session: Session_, service: Service, lat: float, lng: float) -> Reply:
+    reply = _join(session, say("no_partner", session.lang), say("goodbye", session.lang), hangup=True)
+    reply.note = pb.explain_no_partner(db, service, lat, lng)
+    return reply
+
+
 def _book(db: Session, session: Session_) -> Reply:
     service = db.get(Service, session.data["service_id"])
     lat, lng = session.data["coords"]
@@ -317,7 +325,7 @@ def _book(db: Session, session: Session_) -> Reply:
     match = pb.nearest_partner(db, service, lat, lng, excluded)
 
     if not match:
-        return _join(session, say("no_partner", session.lang), say("goodbye", session.lang), hangup=True)
+        return _no_partner(db, session, service, lat, lng)
 
     customer = pb.get_or_create_phone_customer(db, session.caller)
     order = pb.create_phone_booking(db, customer, service, match, session.data["pincode"], (lat, lng))

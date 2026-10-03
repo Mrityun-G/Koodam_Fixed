@@ -202,6 +202,72 @@ def nearest_partner(
     return {"partner": partner, "user": user, "km": round(km, 1)}
 
 
+_nearby_pincode_cache: dict = {}
+
+
+def pincode_near(lat: float, lng: float) -> Optional[str]:
+    key = (round(lat, 3), round(lng, 3))
+
+    if key in _nearby_pincode_cache:
+        return _nearby_pincode_cache[key]
+
+    try:
+        response = requests.get(
+            "https://nominatim.openstreetmap.org/reverse",
+            params={"lat": lat, "lon": lng, "format": "json", "zoom": 18},
+            headers={"User-Agent": "KOODAM phone booking"},
+            timeout=8
+        )
+        response.raise_for_status()
+        pincode = (response.json().get("address") or {}).get("postcode")
+    except (requests.RequestException, ValueError):
+        return None
+
+    _nearby_pincode_cache[key] = pincode
+    return pincode
+
+
+def explain_no_partner(db: Session, service: Service, lat: float, lng: float) -> str:
+    """
+    Why nobody matched, for KOODAM staff testing in the simulator.
+    Never read out on a real call.
+    """
+    rows = (
+        db.query(Partner, User)
+        .join(PartnerService, PartnerService.partner_id == Partner.id)
+        .join(User, User.id == Partner.user_id)
+        .filter(
+            PartnerService.service_id == service.id,
+            PartnerService.is_active == True
+        )
+        .all()
+    )
+
+    if not rows:
+        return f"No partner offers {service.title}."
+
+    reasons = []
+
+    for partner, user in rows:
+        if not partner.is_online:
+            reason = "offline"
+        elif not can_take_bookings(partner):
+            reason = "suspended or deactivated"
+        elif partner.latitude is None or partner.longitude is None:
+            reason = "no location saved (go Offline and Online again with location allowed)"
+        else:
+            km = distance_km(lat, lng, partner.latitude, partner.longitude)
+            reason = f"{km:.1f} km from this pincode, travels up to {partner.service_radius_km or 5} km"
+            nearby = pincode_near(partner.latitude, partner.longitude)
+
+            if nearby:
+                reason += f"; try pincode {nearby}"
+
+        reasons.append(f"{user.name}: {reason}")
+
+    return "; ".join(reasons)
+
+
 # ---------------------------------------------------------
 # Creating a booking
 # ---------------------------------------------------------
