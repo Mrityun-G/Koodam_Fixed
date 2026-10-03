@@ -84,12 +84,17 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS police_rejection_reason VARCHAR, "
         "ADD COLUMN IF NOT EXISTS service_radius_km "
         "INTEGER NOT NULL DEFAULT 5, "
-        "ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMP; "
+        "ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMP, "
+        "ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMP, "
+        "ADD COLUMN IF NOT EXISTS deactivation_reason VARCHAR; "
         "ALTER TABLE booking_details "
         "ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR, "
         "ADD COLUMN IF NOT EXISTS trust_fee DOUBLE PRECISION, "
         "ADD COLUMN IF NOT EXISTS commission_amount DOUBLE PRECISION, "
-        "ADD COLUMN IF NOT EXISTS partner_payout DOUBLE PRECISION"
+        "ADD COLUMN IF NOT EXISTS partner_payout DOUBLE PRECISION, "
+        "ADD COLUMN IF NOT EXISTS repair_photo_url VARCHAR; "
+        "ALTER TABLE booking_extra_charges "
+        "ADD COLUMN IF NOT EXISTS photo_url VARCHAR"
     ))
 
 

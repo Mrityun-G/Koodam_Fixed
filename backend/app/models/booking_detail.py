@@ -33,6 +33,9 @@ class BookingDetail(Base):
 
     extra_amount = Column(Float, nullable=False, default=0.0)
 
+    # Photo of the finished repair the partner shared before payment
+    repair_photo_url = Column(String, nullable=True)
+
     payment_status = Column(String, nullable=False, default="PENDING")
 
     amount_paid = Column(Float, nullable=False, default=0.0)
@@ -100,6 +103,9 @@ class BookingExtraCharge(Base):
 
     # PENDING / APPROVED / DECLINED
     status = Column(String, nullable=False, default="PENDING")
+
+    # Photo of the part, if the partner attached one
+    photo_url = Column(String, nullable=True)
 
     created_at = Column(DateTime, nullable=True)
 

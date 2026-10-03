@@ -4,6 +4,7 @@ import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
 import { Avatar } from '../components/Avatar';
 import { LiveMap } from '../components/LiveMap';
+import { RepairBill } from '../components/RepairBill';
 import { useSecondsLeft } from '../lib/useSecondsLeft';
 
 export const LiveTrackingScreen = () => {
@@ -20,7 +21,8 @@ export const LiveTrackingScreen = () => {
     liveDistanceKm,
     liveEtaMinutes,
     respondToExtraCharge,
-    cancelBookingRequest
+    cancelBookingRequest,
+    trustFee
   } = useApp();
 
   const extraCharges = Object.entries(activeOrder.extraCharges || {}).sort(
@@ -29,6 +31,10 @@ export const LiveTrackingScreen = () => {
   const hasPendingExtraCharges = extraCharges.some(
     ([, charge]) => charge.status === 'PENDING'
   );
+  // The job can be completed once the repair photo is in and every extra
+  // cost has an answer
+  const isReadyToComplete =
+    Boolean(activeOrder.repairPhotoUrl) && !hasPendingExtraCharges;
 
   // Only show an ETA once the partner's device is sharing real GPS
   const liveDistanceLabel = liveDistanceKm != null
@@ -273,6 +279,16 @@ export const LiveTrackingScreen = () => {
                       <span className="text-sm font-extrabold text-[#0b1c30] shrink-0">₹{charge.amount}</span>
                     </div>
 
+                    {charge.photoUrl && (
+                      <a href={charge.photoUrl} target="_blank" rel="noreferrer" className="block">
+                        <img
+                          src={charge.photoUrl}
+                          alt={charge.item}
+                          className="w-full max-h-40 rounded-lg object-cover"
+                        />
+                      </a>
+                    )}
+
                     {charge.status === 'PENDING' ? (
                       <div className="flex gap-2">
                         <button
@@ -305,6 +321,32 @@ export const LiveTrackingScreen = () => {
             </div>
           )}
 
+          {/* Finished repair: the partner's photo with the bill so far */}
+          {activeOrder.currentStep === 4 && activeOrder.repairPhotoUrl && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#6ffbbe]/40 text-[#006c49] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined">photo_camera</span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-bold text-[#0b1c30]">Repair Finished</h3>
+                  <p className="text-[11px] text-slate-500">
+                    {`Check the work and the bill. If you're happy, ask ${helperFirstName} for the completion code below.`}
+                  </p>
+                </div>
+              </div>
+
+              <RepairBill order={activeOrder} fallbackTrustFee={trustFee} />
+
+              {hasPendingExtraCharges && (
+                <p className="text-[11px] font-medium text-amber-700 text-center">
+                  Approve or decline the extra parts cost above first.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Payment Required After Completion */}
 {activeOrder.currentStep === 5 &&
   activeOrder.paymentStatus !== 'PAID' && (
@@ -328,15 +370,7 @@ export const LiveTrackingScreen = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between bg-[#eff4ff] rounded-xl px-4 py-3">
-        <span className="text-xs font-medium text-slate-500">
-          Amount to Pay
-        </span>
-
-        <span className="text-lg font-extrabold text-[#0b1c30]">
-          ₹{activeOrder.totalAmount || 0}
-        </span>
-      </div>
+      <RepairBill order={activeOrder} fallbackTrustFee={trustFee} />
 
       {hasPendingExtraCharges && (
         <p className="text-[11px] font-medium text-amber-700 text-center">
@@ -570,7 +604,11 @@ export const LiveTrackingScreen = () => {
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-[#0b1c30]">Confirm Job Completion</h3>
                   <p className="text-[11px] text-slate-500">
-                    Once you're happy with the work, ask {activeOrder.helperName} for the completion code.
+                    {!activeOrder.repairPhotoUrl
+                      ? `Waiting for ${helperName} to upload a photo of the finished repair.`
+                      : hasPendingExtraCharges
+                      ? 'Answer the extra parts cost first.'
+                      : `Once you're happy with the work, ask ${helperName} for the completion code.`}
                   </p>
                 </div>
               </div>
@@ -580,11 +618,12 @@ export const LiveTrackingScreen = () => {
                   onChange={(e) => setCompletionInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   placeholder="Enter 4-digit code"
                   inputMode="numeric"
-                  className="flex-1 rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-sm font-mono tracking-widest text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                  disabled={!isReadyToComplete}
+                  className="flex-1 min-w-0 disabled:opacity-50 rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-sm font-mono tracking-widest text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                 />
                 <button
                   onClick={handleVerifyCompletion}
-                  disabled={completionInput.length !== 4}
+                  disabled={completionInput.length !== 4 || !isReadyToComplete}
                   className="shrink-0 px-4 py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all"
                 >
                   Verify & Pay

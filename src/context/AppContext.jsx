@@ -6,7 +6,16 @@ import React, {
   useRef
 } from 'react';
 
-import { ref, onValue, set, update, remove, push, get } from 'firebase/database';
+import {
+  ref,
+  onValue,
+  set,
+  update,
+  remove,
+  push,
+  get,
+  runTransaction
+} from 'firebase/database';
 
 import {
   onAuthStateChanged,
@@ -34,6 +43,8 @@ import {
 } from '../lib/firebase';
 
 import { authorizedFetch } from '../lib/authorizedFetch';
+
+import { uploadRepairPhoto, isHostedPhoto } from '../lib/repairPhoto';
 
 import {
   haversineDistanceKm,
@@ -673,6 +684,16 @@ useEffect(() => {
         showToast(`Extra cost requested: ${charge.item} ₹${charge.amount}`);
       });
 
+    if (next.repairPhotoAt && next.repairPhotoAt !== previous.repairPhotoAt) {
+      addNotification('member', {
+        title: 'Repair Photo Ready',
+        desc: `${helperName} shared a photo of the finished repair. Check it with the bill on the Requests screen.`,
+        screen: 'tracking',
+        tab: 'requests'
+      });
+      showToast(`${helperName} shared a photo of the repair.`);
+    }
+
     if (
       next.currentStep === 4 &&
       (previous.currentStep ?? 0) < 4
@@ -725,10 +746,14 @@ useEffect(() => {
           item: charge.item,
           amount: Number(charge.amount || 0),
           status: charge.status || 'PENDING',
+          photo_url: isHostedPhoto(charge.photoUrl) ? charge.photoUrl : null,
           created_at: charge.createdAt || null,
           responded_at: charge.respondedAt || null
         })
       ),
+      repair_photo_url: isHostedPhoto(order.repairPhotoUrl)
+        ? order.repairPhotoUrl
+        : null,
       rating: order.rating ? Number(order.rating) : null,
       feedback: order.feedback || null
     };
@@ -805,7 +830,8 @@ useEffect(() => {
           lastOrderSnapshotRef.current = {
             bookingStatus: val.bookingStatus,
             currentStep: val.currentStep,
-            chargeIds: Object.keys(val.extraCharges || {})
+            chargeIds: Object.keys(val.extraCharges || {}),
+            repairPhotoAt: val.repairPhotoAt || null
           };
 
           syncOrderToBackend(activeOrder.orderId, val);
@@ -3030,6 +3056,10 @@ const handleConfirmBooking = async () => {
             selectedService?.tag ||
             'Home Services',
           totalAmount: finalTotal,
+          // The bill as booked; approved extra parts are added on top
+          baseAmount: finalTotal,
+          servicePrice: Number(selectedService?.price || 0),
+          trustFee: Number(trustFee || 0),
           totalPaid: 0,
           paymentStatus: 'PENDING',
           bookingStatus: 'PENDING',
@@ -3177,6 +3207,9 @@ const handleConfirmBooking = async () => {
     paymentStatus: 'PENDING',
     totalPaid: 0,
     totalAmount: finalTotal,
+    baseAmount: finalTotal,
+    servicePrice: Number(selectedService?.price || 0),
+    trustFee: Number(trustFee || 0),
 
     etaMinutes: 12,
 
@@ -3346,11 +3379,12 @@ const verifyArrivalOtp = async (rawCode) => {
   const targetOrderId = matchedOrder.orderId;
 
   if (targetOrderId !== activeOrder.orderId) {
-    // Switch the partner to the job the customer is actually on
-    setActiveOrder((prev) => ({
-      ...prev,
+    // Switch the partner to the job the customer is actually on. Start
+    // clean so the last job's extra costs and photos don't carry over.
+    setActiveOrder({
+      ...EMPTY_ORDER,
       ...matchedOrder
-    }));
+    });
 
     setChatPartner({
       name: matchedOrder.customerName || 'KOODAM Customer',
@@ -3388,9 +3422,10 @@ const verifyArrivalOtp = async (rawCode) => {
 // Extra Parts Cost (added by partner during the work)
 // =========================================================
 
-// Partner: request an extra cost for a component/part found during the job.
-// It is only added to the bill once the member approves it.
-const requestExtraCharge = (item, amount) => {
+// Partner: request an extra cost for a component/part found during the job,
+// optionally with a photo of the part. It is only added to the bill once
+// the member approves it.
+const requestExtraCharge = async (item, amount, photoFile = null) => {
   const name = String(item || '').trim();
   const value = Math.round(Number(amount));
 
@@ -3409,52 +3444,94 @@ const requestExtraCharge = (item, amount) => {
     return false;
   }
 
-  push(
-    ref(db, `orders/${toDbKey(activeOrder.orderId)}/extraCharges`),
-    {
+  const orderKey = toDbKey(activeOrder.orderId);
+
+  try {
+    const photoUrl = photoFile
+      ? await uploadRepairPhoto(photoFile, orderKey, 'part')
+      : null;
+
+    await push(ref(db, `orders/${orderKey}/extraCharges`), {
       item: name,
       amount: value,
       status: 'PENDING',
+      photoUrl,
       createdAt: Date.now()
-    }
-  ).catch((error) => {
+    });
+  } catch (error) {
     console.error('❌ Failed to add extra cost:', error);
-    showToast('Unable to send the extra cost. Please try again.');
-  });
+    showToast(error?.message || 'Unable to send the extra cost. Please try again.');
+    return false;
+  }
 
   showToast(`Sent ₹${value} for ${name} to the customer for approval.`);
   return true;
 };
 
+const sumApprovedExtras = (charges) =>
+  Object.values(charges || {})
+    .filter((charge) => charge?.status === 'APPROVED')
+    .reduce((sum, charge) => sum + Number(charge.amount || 0), 0);
+
 // Member: approve or decline an extra cost. Approving adds it to the bill.
-const respondToExtraCharge = (chargeId, approve) => {
+// Runs as a transaction on the order so the total is always the booked
+// amount plus every approved part, even if two answers cross.
+const respondToExtraCharge = async (chargeId, approve) => {
   const charge = activeOrder.extraCharges?.[chargeId];
 
   if (!charge || charge.status !== 'PENDING') {
     return;
   }
 
-  const patch = {
-    [`extraCharges/${chargeId}/status`]:
-      approve ? 'APPROVED' : 'DECLINED',
-    [`extraCharges/${chargeId}/respondedAt`]:
-      Date.now()
-  };
-
-  if (approve) {
-    patch.totalAmount =
-      Number(activeOrder.totalAmount || 0) +
-      Number(charge.amount || 0);
+  if (!isFirebaseConfigured || !db || !activeOrder.orderId) {
+    showToast('Unable to update the extra cost. Please try again.');
+    return;
   }
 
-  if (isFirebaseConfigured && db && activeOrder.orderId) {
-    update(
+  try {
+    const result = await runTransaction(
       ref(db, `orders/${toDbKey(activeOrder.orderId)}`),
-      patch
-    ).catch((error) => {
-      console.error('❌ Failed to respond to extra cost:', error);
-      showToast('Unable to update the extra cost. Please try again.');
-    });
+      (order) => {
+        // Not cached yet: Firebase retries with the server's copy
+        if (!order) return order;
+
+        const current = order.extraCharges?.[chargeId];
+
+        // Already answered elsewhere, or the bill is already paid
+        if (
+          !current ||
+          current.status !== 'PENDING' ||
+          order.paymentStatus === 'PAID'
+        ) {
+          return undefined;
+        }
+
+        // Orders made before baseAmount existed: work it out from the
+        // total before this answer changes anything
+        const baseAmount =
+          order.baseAmount != null
+            ? Number(order.baseAmount)
+            : Number(order.totalAmount || 0) -
+              sumApprovedExtras(order.extraCharges);
+
+        current.status = approve ? 'APPROVED' : 'DECLINED';
+        current.respondedAt = Date.now();
+
+        order.baseAmount = baseAmount;
+        order.totalAmount =
+          baseAmount + sumApprovedExtras(order.extraCharges);
+
+        return order;
+      }
+    );
+
+    if (!result.committed) {
+      return;
+    }
+  } catch (error) {
+    console.error('❌ Failed to respond to extra cost:', error);
+    showToast('Unable to update the extra cost. Please try again.');
+    return;
   }
 
   showToast(
@@ -3462,6 +3539,40 @@ const respondToExtraCharge = (chargeId, approve) => {
       ? `Approved ₹${charge.amount} for ${charge.item}.`
       : `Declined ${charge.item}.`
   );
+};
+
+// Partner: upload a photo of the finished repair. The customer sees it
+// with the final bill before the job can be completed and paid for.
+const submitRepairPhoto = async (photoFile) => {
+  if (activeOrder.currentStep !== 4) {
+    showToast('The repair photo can only be added while the work is in progress.');
+    return false;
+  }
+
+  if (!isFirebaseConfigured || !db || !activeOrder.orderId) {
+    showToast('Unable to upload the photo. Please check your connection.');
+    return false;
+  }
+
+  try {
+    const repairPhotoUrl = await uploadRepairPhoto(
+      photoFile,
+      toDbKey(activeOrder.orderId),
+      'repair'
+    );
+
+    await update(ref(db, `orders/${toDbKey(activeOrder.orderId)}`), {
+      repairPhotoUrl,
+      repairPhotoAt: Date.now()
+    });
+  } catch (error) {
+    console.error('❌ Failed to upload repair photo:', error);
+    showToast(error?.message || 'Unable to upload the photo. Please try again.');
+    return false;
+  }
+
+  showToast('Repair photo sent to the customer.');
+  return true;
 };
 
 const verifyCompletionOtp = async (rawCode) => {
@@ -3487,6 +3598,24 @@ const verifyCompletionOtp = async (rawCode) => {
   ) {
     showToast(
       'The service must be in progress before completion can be verified.'
+    );
+    return false;
+  }
+
+  // The customer must have seen the finished repair and settled every
+  // extra cost before the bill is final
+  if (
+    Object.values(order.extraCharges || {}).some(
+      (charge) => charge?.status === 'PENDING'
+    )
+  ) {
+    showToast('Approve or decline the extra parts cost before completing the job.');
+    return false;
+  }
+
+  if (!order.repairPhotoUrl) {
+    showToast(
+      `Waiting for ${order.helperName || 'your partner'} to upload a photo of the repair.`
     );
     return false;
   }
@@ -3773,8 +3902,9 @@ etaMinutes: 12,
 
     setHasIncomingJob(false);
 
+    // A different job starts clean, without the last job's extra costs
     setActiveOrder((prev) => ({
-      ...prev,
+      ...(prev.orderId === requestId ? prev : EMPTY_ORDER),
       orderId: requestId,
       requestId,
       partnerId,
@@ -4110,6 +4240,7 @@ return (
       verifyCompletionOtp,
       requestExtraCharge,
       respondToExtraCharge,
+      submitRepairPhoto,
       markPaymentCompleted,
 
       submitRating,

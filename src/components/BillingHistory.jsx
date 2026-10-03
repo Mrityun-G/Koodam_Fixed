@@ -251,6 +251,21 @@ export const BillingHistory = ({
                   </div>
                 )}
 
+                {bill.repair_photo_url && (
+                  <a
+                    href={bill.repair_photo_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block pt-1"
+                  >
+                    <img
+                      src={bill.repair_photo_url}
+                      alt="Finished repair"
+                      className="w-full max-h-32 rounded-xl object-cover"
+                    />
+                  </a>
+                )}
+
                 {bill.extra_charges.length > 0 && (
                   <div className="pt-1">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
@@ -266,6 +281,17 @@ export const BillingHistory = ({
                           className="flex justify-between gap-3 mt-1"
                         >
                           <span className="min-w-0">
+                            {charge.photo_url && (
+                              <a
+                                href={charge.photo_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="material-symbols-outlined text-[14px] text-[#a14000] align-middle mr-1"
+                                aria-label={`Photo of ${charge.item}`}
+                              >
+                                image
+                              </a>
+                            )}
                             <span className={isApproved ? 'text-[#5a4136]' : 'text-slate-400 line-through'}>
                               {charge.item}
                             </span>
