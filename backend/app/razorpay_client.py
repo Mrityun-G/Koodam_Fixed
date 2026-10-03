@@ -46,6 +46,18 @@ def razorpay_request(
         except (ValueError, KeyError, TypeError):
             message = response.text
 
+        # Razorpay hasn't switched on Route (partner payouts) for the
+        # KOODAM account yet; this is on KOODAM's side, not the partner's
+        if "route feature not enabled" in str(message).lower():
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Bank payouts aren't switched on for KOODAM yet. Your "
+                    "earnings are recorded and will be paid once they are. "
+                    "Please try adding your bank account again later."
+                )
+            )
+
         raise HTTPException(
             status_code=502,
             detail=f"Razorpay error: {message}"

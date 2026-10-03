@@ -15,6 +15,7 @@ from app.models.service import Service
 from app.models.user import User
 from app.routers.partner_service import resolve_partner
 from app.routers.payment import calculate_split
+from app.routers.escalations import complaints_by_booking
 
 
 # =========================================================
@@ -405,6 +406,8 @@ def build_bills(db: Session, filters: list) -> list:
                 "status": charge.status
             })
 
+    complaints = complaints_by_booking(db, booking_ids)
+
     bills = []
 
     for booking, detail, service, partner, partner_user, customer in rows:
@@ -444,7 +447,8 @@ def build_bills(db: Session, filters: list) -> list:
             "payment_status": detail.payment_status if detail else "PENDING",
             "amount_paid": detail.amount_paid if detail else 0.0,
             "razorpay_payment_id": detail.razorpay_payment_id if detail else None,
-            "paid_at": to_iso_utc(detail.paid_at if detail else None)
+            "paid_at": to_iso_utc(detail.paid_at if detail else None),
+            "complaint": complaints.get(booking.id)
         })
 
     return bills

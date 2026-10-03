@@ -7,6 +7,7 @@ from app.models.service import Service
 from app.models.partner_service import PartnerService
 from app.models.partner import Partner
 from app.models.user import User
+from app.escalations import is_suspended
 from app.schemas.service import ServiceCreate, ServiceResponse
 
 
@@ -46,6 +47,10 @@ def get_services(
     ).all()
 
 
+def is_bookable(partner) -> bool:
+    return bool(partner.is_online) and not is_suspended(partner)
+
+
 def partner_listing(partner, user, partner_service) -> dict:
     return {
         "partner_id": partner.id,
@@ -57,6 +62,8 @@ def partner_listing(partner, user, partner_service) -> dict:
         "rating": partner.rating,
         "reviews_count": partner.reviews_count,
         "completion_rate": partner.completion_rate,
+        # 100 = no escalations; lower partners rank lower in search
+        "reliability_score": partner.reliability_score,
         "hourly_rate": (
             partner_service.price_override
             if partner_service.price_override is not None
@@ -70,7 +77,8 @@ def partner_listing(partner, user, partner_service) -> dict:
             partner.police_verification_status == "VERIFIED"
         ),
         "latitude": partner.latitude,
-        "longitude": partner.longitude
+        "longitude": partner.longitude,
+        "service_radius_km": partner.service_radius_km or 5
     }
 
 
@@ -106,7 +114,8 @@ def get_services_with_partners(
             "partners": []
         })
 
-        if partner and user:
+        # Offline or suspended partners aren't offered to customers
+        if partner and user and is_bookable(partner):
             entry["partners"].append(
                 partner_listing(partner, user, partner_service)
             )
@@ -170,6 +179,8 @@ def get_partners_for_service(
         )
         .all()
     )
+
+    results = [row for row in results if is_bookable(row[0])]
 
     partners = [
         partner_listing(partner, user, partner_service)

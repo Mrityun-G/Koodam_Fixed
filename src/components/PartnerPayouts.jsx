@@ -1,10 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
-import { auth } from '../lib/firebase';
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+import { authorizedFetch, BACKEND_URL } from '../lib/authorizedFetch';
 
 const formatRupees = (value) =>
   `₹${Number(value || 0).toLocaleString('en-IN', {
@@ -78,40 +75,6 @@ const EMPTY_FORM = {
   city: '',
   state: 'Tamil Nadu',
   postal_code: ''
-};
-
-// The signed-in partner's Firebase ID token; the backend checks it so only
-// the partner can see or change where their money goes
-const authorizedFetch = async (url, options = {}) => {
-  const user = auth?.currentUser;
-
-  if (!user) {
-    throw new Error('Please sign in again to manage payouts.');
-  }
-
-  const token = await user.getIdToken();
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {})
-    }
-  });
-
-  const body = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    // FastAPI validation errors arrive as a list
-    const detail = Array.isArray(body?.detail)
-      ? body.detail.map((item) => String(item.msg).replace(/^Value error, /, '')).join(' · ')
-      : body?.detail;
-
-    throw new Error(detail || `Request failed (${response.status})`);
-  }
-
-  return body;
 };
 
 // Earnings tab: where the partner's money goes after each paid job.

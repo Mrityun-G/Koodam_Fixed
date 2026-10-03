@@ -5,7 +5,9 @@ from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 
+from app.auth import current_firebase_uid
 from app.database import get_db
+from app.escalations import is_suspended
 from app.models.partner import Partner
 from app.models.user import User
 from app.models.partner_document import PartnerDocument
@@ -263,6 +265,50 @@ def update_service_radius(
     }
 
 
+class OnlineStatusUpdate(BaseModel):
+    is_online: bool
+    # Where the partner is when going online; customers see the distance
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+# Partners only receive bookings while online; only the partner can switch
+@router.patch("/{identifier}/online")
+def update_online_status(
+    identifier: UUID,
+    data: OnlineStatusUpdate,
+    firebase_uid: str = Depends(current_firebase_uid),
+    db: Session = Depends(get_db)
+):
+    partner = get_partner_or_404(db, identifier)
+    owner = db.get(User, partner.user_id)
+
+    if not owner or owner.firebase_uid != firebase_uid:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only change your own status"
+        )
+
+    if data.is_online and is_suspended(partner):
+        raise HTTPException(
+            status_code=403,
+            detail="Your account is suspended, so you can't go online yet"
+        )
+
+    partner.is_online = data.is_online
+
+    if data.latitude is not None and data.longitude is not None:
+        partner.latitude = data.latitude
+        partner.longitude = data.longitude
+
+    db.commit()
+
+    return {
+        "partner_id": partner.id,
+        "is_online": partner.is_online
+    }
+
+
 def to_iso_utc(value: Optional[datetime]) -> Optional[str]:
     # Stored times are naive UTC; mark them so the browser converts correctly
     return f"{value.isoformat()}Z" if value else None
@@ -353,6 +399,7 @@ def get_partner_overview(
         "rating": round(partner.rating or 0.0, 2),
         "reviews_count": partner.reviews_count or 0,
         "service_radius_km": partner.service_radius_km or 5,
+        "is_online": bool(partner.is_online),
         "upcoming_jobs": [
             {
                 "booking_id": booking.id,

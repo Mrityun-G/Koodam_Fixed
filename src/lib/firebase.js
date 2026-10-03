@@ -1,6 +1,11 @@
-  import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
-import { getAuth } from 'firebase/auth';
+import {
+  getAuth,
+  initializeAuth,
+  browserSessionPersistence,
+  browserPopupRedirectResolver
+} from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -24,7 +29,26 @@ export const firebaseApp = isFirebaseConfigured
   : null;
 
 export const db = isFirebaseConfigured ? getDatabase(firebaseApp) : null;
-export const auth = isFirebaseConfigured ? getAuth(firebaseApp) : null;
+// During local development (npm run dev) each tab keeps its own sign-in,
+// so a customer and a partner can be tested side by side in one browser.
+// Built apps keep the normal sign-in shared by every tab.
+const createAuth = () => {
+  if (!import.meta.env.DEV) {
+    return getAuth(firebaseApp);
+  }
+
+  try {
+    return initializeAuth(firebaseApp, {
+      persistence: browserSessionPersistence,
+      popupRedirectResolver: browserPopupRedirectResolver
+    });
+  } catch {
+    // Already set up (hot reload re-runs this file)
+    return getAuth(firebaseApp);
+  }
+};
+
+export const auth = isFirebaseConfigured ? createAuth() : null;
 
 // Only set up once a storage bucket is actually configured — used to upload
 // service partner KYC documents (Aadhaar/PAN/Voter ID).

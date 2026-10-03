@@ -7,6 +7,7 @@ import {
 } from '../lib/schedule';
 import { useSecondsLeft } from '../lib/useSecondsLeft';
 import { PartnerPayouts } from '../components/PartnerPayouts';
+import { PartnerReliability } from '../components/PartnerReliability';
 import { Avatar } from '../components/Avatar';
 
 export const PartnerDashboard = () => {
@@ -40,6 +41,7 @@ export const PartnerDashboard = () => {
     partnerUpcomingJobs,
     cycleServiceRadius,
     trustFee,
+    platformCommissionPercent,
     refreshPartnerOverview
   } = useApp();
 
@@ -64,8 +66,6 @@ export const PartnerDashboard = () => {
   // total minus KOODAM's trust fee and commission (same split the backend
   // makes when the customer pays; extra parts added later go to the
   // partner in full)
-  const PLATFORM_COMMISSION_PERCENT = 10;
-
   const partnerShareOf = (customerTotal) => {
     const servicePrice = Math.max(
       Number(customerTotal || 0) - Number(trustFee || 0),
@@ -73,7 +73,7 @@ export const PartnerDashboard = () => {
     );
 
     return Math.round(
-      servicePrice * (1 - PLATFORM_COMMISSION_PERCENT / 100)
+      servicePrice * (1 - Number(platformCommissionPercent || 0) / 100)
     );
   };
 
@@ -820,7 +820,12 @@ export const PartnerDashboard = () => {
 
     const destination = hasCoords
       ? `${activeOrder.customerLat},${activeOrder.customerLng}`
-      : activeOrder.area || 'Indiranagar, Bengaluru';
+      : activeOrder.area;
+
+    if (!destination) {
+      showToast("The customer's location isn't available yet. Message them for the address.");
+      return;
+    }
 
     window.open(
       `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`,
@@ -1016,6 +1021,8 @@ export const PartnerDashboard = () => {
               : 'Go online to receive jobs'}
           </div>
         </div>
+
+        <PartnerReliability />
 
         {/* ========================================= */}
         {/* NEW JOB REQUEST */}

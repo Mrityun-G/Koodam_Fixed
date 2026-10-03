@@ -103,13 +103,21 @@ const helperScore = (helper) => {
     (reviews + PRIOR_REVIEWS);
 
   return (
-    adjustedRating +
+    adjustedRating -
+    reliabilityPenalty(helper) +
     (helper.policeVerified ? 0.4 : 0) +
     (helper.isVerified ? 0.3 : 0) +
     (helper.isOnline ? 0.2 : 0) +
     Number(helper.completionRate || 0) / 500
   );
 };
+
+/**
+ * Rating points lost for escalations on the partner's record: every 20
+ * reliability points below 100 (one strike) cost a full star.
+ */
+export const reliabilityPenalty = (helper) =>
+  (100 - Number(helper.reliabilityScore ?? 100)) / 20;
 
 /** The best partner offering the given service, or null. */
 export const pickBestHelper = (helpers, serviceTitle) =>

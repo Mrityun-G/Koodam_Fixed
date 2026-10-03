@@ -6,6 +6,8 @@ export const Header = ({ subtitle = 'Home' }) => {
   const {
     location,
     setLocation,
+    userCoords,
+    setUserCoords,
     showToast,
     navigateTo,
     notifications: allNotifications,
@@ -27,23 +29,40 @@ export const Header = ({ subtitle = 'Home' }) => {
   // A new photo gets a fresh chance to load
   useEffect(() => setAvatarFailed(false), [headerAvatar]);
 
-  // Prevent GPS from overriding a location manually selected by the user.
-  const userSelectedLocation = useRef(false);
+  // Area name for a point, e.g. "Sholinganallur, Chennai"
+  const describePlace = (address = {}) => {
+    const area =
+      address.neighbourhood ||
+      address.suburb ||
+      address.residential ||
+      address.city_district ||
+      address.quarter;
 
-  // Automatically detect the user's current location.
-  useEffect(() => {
+    const city =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.municipality ||
+      address.county;
+
+    return [area, city].filter(Boolean).join(', ');
+  };
+
+  const [locating, setLocating] = useState(false);
+
+  // Detect where the user is from the device GPS
+  const detectLocation = (announce = false) => {
     if (!navigator.geolocation) {
-      console.warn('Geolocation is not supported by this browser.');
+      if (announce) showToast('Location is not supported on this device.');
       return;
     }
 
-    let isActive = true;
+    setLocating(true);
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        if (!isActive || userSelectedLocation.current) return;
-
         const { latitude, longitude } = position.coords;
+        setUserCoords({ lat: latitude, lng: longitude });
 
         try {
           const response = await fetch(
@@ -62,38 +81,19 @@ export const Header = ({ subtitle = 'Home' }) => {
             );
           }
 
-          const data = await response.json();
-          if (!isActive || userSelectedLocation.current) return;
+          const detectedLocation = describePlace(
+            (await response.json()).address
+          );
 
-          const address = data.address || {};
-
-          const area =
-            address.neighbourhood ||
-            address.suburb ||
-            address.residential ||
-            address.city_district ||
-            address.quarter;
-
-          const city =
-            address.city ||
-            address.town ||
-            address.village ||
-            address.municipality ||
-            address.county;
-
-          const detectedLocation = [area, city]
-            .filter(Boolean)
-            .join(', ');
-
-          if (detectedLocation && !userSelectedLocation.current) {
+          if (detectedLocation) {
             setLocation(detectedLocation);
-          } else {
-            console.warn(
-              'Could not determine a readable neighborhood and city.'
-            );
+            if (announce) showToast(`Location set to ${detectedLocation}`);
           }
         } catch (error) {
           console.error('Location lookup failed:', error);
+        } finally {
+          setLocating(false);
+          setShowLocationMenu(false);
         }
       },
       (error) => {
@@ -101,6 +101,10 @@ export const Header = ({ subtitle = 'Home' }) => {
           'Unable to detect user location:',
           error.message
         );
+        setLocating(false);
+        if (announce) {
+          showToast('Allow location access for this site, then try again.');
+        }
       },
       {
         enableHighAccuracy: false,
@@ -108,19 +112,63 @@ export const Header = ({ subtitle = 'Home' }) => {
         maximumAge: 300000
       }
     );
+  };
 
-    return () => {
-      isActive = false;
-    };
-  }, [setLocation]);
+  // Detect once per session; a place picked by hand is kept too
+  useEffect(() => {
+    if (!userCoords) {
+      detectLocation();
+    }
+  }, []);
 
-  const locations = [
-    'Indiranagar, Bengaluru',
-    'Koramangala, Bengaluru',
-    'HSR Layout, Bengaluru',
-    'Whitefield, Bengaluru',
-    'Jayanagar, Bengaluru'
-  ];
+  // Search for an area by name (OpenStreetMap)
+  const [placeQuery, setPlaceQuery] = useState('');
+  const [placeResults, setPlaceResults] = useState([]);
+  const [searchingPlaces, setSearchingPlaces] = useState(false);
+
+  const searchPlaces = async (event) => {
+    event.preventDefault();
+    const query = placeQuery.trim();
+    if (query.length < 3) return;
+
+    setSearchingPlaces(true);
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=in&q=${encodeURIComponent(query)}`,
+        { headers: { 'Accept': 'application/json', 'Accept-Language': 'en' } }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Place search failed: ${response.status}`);
+      }
+
+      const places = await response.json();
+
+      setPlaceResults(
+        places.map((place) => ({
+          id: place.place_id,
+          label: describePlace(place.address) || place.display_name,
+          lat: Number(place.lat),
+          lng: Number(place.lon)
+        }))
+      );
+    } catch (error) {
+      console.error('Place search failed:', error);
+      showToast('Could not search places. Please try again.');
+    } finally {
+      setSearchingPlaces(false);
+    }
+  };
+
+  const pickPlace = (place) => {
+    setLocation(place.label);
+    setUserCoords({ lat: place.lat, lng: place.lng });
+    setShowLocationMenu(false);
+    setPlaceResults([]);
+    setPlaceQuery('');
+    showToast(`Location set to ${place.label}`);
+  };
 
   const notifications = allNotifications.filter(
     n => n.target === 'member'
@@ -310,31 +358,40 @@ export const Header = ({ subtitle = 'Home' }) => {
               </button>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              {locations.map(loc => (
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => detectLocation(true)}
+                disabled={locating}
+                className="flex items-center gap-2 p-3 rounded-2xl text-left text-sm font-semibold bg-[#eff4ff] text-[#a14000] border-2 border-[#ff6a00] disabled:opacity-60"
+              >
+                <span className="material-symbols-outlined text-lg">my_location</span>
+                {locating ? 'Finding you…' : 'Use my current location'}
+              </button>
+
+              <form onSubmit={searchPlaces} className="flex gap-2">
+                <input
+                  value={placeQuery}
+                  onChange={(event) => setPlaceQuery(event.target.value)}
+                  placeholder="Search area, e.g. Velachery"
+                  className="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                />
                 <button
-                  key={loc}
-                  onClick={() => {
-                    // Preserve the user's manual location choice.
-                    userSelectedLocation.current = true;
-
-                    setLocation(loc);
-                    setShowLocationMenu(false);
-                    showToast(`Location set to ${loc}`);
-                  }}
-                  className={`flex items-center justify-between p-3 rounded-2xl text-left text-sm font-semibold transition-all ${
-                    location === loc
-                      ? 'bg-[#eff4ff] text-[#a14000] border-2 border-[#ff6a00]'
-                      : 'bg-slate-50 hover:bg-slate-100 text-[#0b1c30]'
-                  }`}
+                  type="submit"
+                  disabled={searchingPlaces || placeQuery.trim().length < 3}
+                  className="px-4 rounded-2xl bg-[#ff6a00] text-white text-xs font-bold disabled:opacity-50"
                 >
-                  <span>{loc}</span>
+                  {searchingPlaces ? '…' : 'Search'}
+                </button>
+              </form>
 
-                  {location === loc && (
-                    <span className="material-symbols-outlined text-[#a14000] text-lg">
-                      check_circle
-                    </span>
-                  )}
+              {placeResults.map((place) => (
+                <button
+                  key={place.id}
+                  onClick={() => pickPlace(place)}
+                  className="flex items-center gap-2 p-3 rounded-2xl text-left text-sm font-semibold bg-slate-50 hover:bg-slate-100 text-[#0b1c30]"
+                >
+                  <span className="material-symbols-outlined text-slate-400 text-lg">location_on</span>
+                  <span className="truncate">{place.label}</span>
                 </button>
               ))}
             </div>

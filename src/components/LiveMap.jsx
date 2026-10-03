@@ -22,6 +22,11 @@ const Recenter = ({ center }) => {
 export const LiveMap = ({ partnerLocation, destination }) => {
   const center = partnerLocation || destination;
 
+  // Nothing to show until either location is known
+  if (!center) {
+    return <div className="absolute inset-0 bg-slate-100" />;
+  }
+
   return (
     <MapContainer
       center={center}
@@ -32,19 +37,21 @@ export const LiveMap = ({ partnerLocation, destination }) => {
       scrollWheelZoom={false}
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <Marker position={destination} icon={destinationIcon} />
+      {destination && (
+        <Marker position={destination} icon={destinationIcon} />
+      )}
       {partnerLocation && (
-        <>
-          <CircleMarker
-            center={partnerLocation}
-            radius={8}
-            pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#ff6a00', fillOpacity: 1 }}
-          />
-          <Polyline
-            positions={[partnerLocation, destination]}
-            pathOptions={{ color: '#ff6a00', weight: 3, opacity: 0.8 }}
-          />
-        </>
+        <CircleMarker
+          center={partnerLocation}
+          radius={8}
+          pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#ff6a00', fillOpacity: 1 }}
+        />
+      )}
+      {partnerLocation && destination && (
+        <Polyline
+          positions={[partnerLocation, destination]}
+          pathOptions={{ color: '#ff6a00', weight: 3, opacity: 0.8 }}
+        />
       )}
       <Recenter center={center} />
     </MapContainer>

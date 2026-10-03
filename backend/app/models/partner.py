@@ -1,13 +1,15 @@
 from sqlalchemy import (
-    Column, String, Float, Boolean, Integer, ForeignKey,
+    Column, String, Float, Boolean, Integer, DateTime, ForeignKey,
     select, func, cast, case
 )
 from sqlalchemy.orm import column_property
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
+from app.config import RELIABILITY_DAYS, WARNING_POINTS, STRIKE_POINTS
 from app.database import Base
 from app.models.booking import Booking
+from app.models.escalation import PartnerEscalation
 from app.models.review import Review
 
 
@@ -57,6 +59,9 @@ class Partner(Base):
 
     longitude = Column(Float, nullable=True)
 
+    # Hidden from customers until then, after too many strikes
+    suspended_until = Column(DateTime, nullable=True)
+
 
 # Rating, review count and completion rate are worked out from the
 # reviews and bookings tables in the same SELECT that loads the partner,
@@ -96,5 +101,36 @@ Partner.completion_rate = column_property(
     )
     .where(Booking.partner_id == Partner.id, _finished)
     .correlate_except(Booking)
+    .scalar_subquery()
+)
+
+# 100 minus points for each warning and strike in the last
+# RELIABILITY_DAYS days (overturned ones don't count); never below 0.
+# Times are stored as naive UTC, so compare against UTC "now".
+_utc_now = func.timezone("utc", func.now())
+
+Partner.reliability_score = column_property(
+    select(
+        func.greatest(
+            0,
+            100
+            - func.coalesce(
+                func.sum(
+                    case(
+                        (PartnerEscalation.severity == "STRIKE", STRIKE_POINTS),
+                        else_=WARNING_POINTS
+                    )
+                ),
+                0
+            )
+        ).cast(Float)
+    )
+    .where(
+        PartnerEscalation.partner_id == Partner.id,
+        PartnerEscalation.status == "ACTIVE",
+        PartnerEscalation.created_at
+        > _utc_now - func.make_interval(0, 0, 0, int(RELIABILITY_DAYS))
+    )
+    .correlate_except(PartnerEscalation)
     .scalar_subquery()
 )

@@ -1,14 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
 import { Avatar } from '../components/Avatar';
 import { VoiceAssistant } from '../components/VoiceAssistant';
-import { detectService, pickBestHelper } from '../lib/voiceIntent';
+import { detectService, pickBestHelper, reliabilityPenalty } from '../lib/voiceIntent';
+import { helpersFromServices, withDistance } from '../lib/helpers';
 
 export const UserHomeScreen = () => {
   const {
     location,
+    userCoords,
     handleBookHelper,
     setIsChatOpen,
     setChatPartner,
@@ -95,101 +97,7 @@ useEffect(() => {
 
       const services = await response.json();
 
-      const allHelpers = services.flatMap((service) =>
-        (service.partners || []).map((partner) => ({
-
-          id:
-            `${partner.partner_id}-${service.id}`,
-
-          partnerId:
-            partner.partner_id,
-
-          serviceId:
-            service.id,
-
-          serviceTitle:
-            service.title,
-
-          serviceCategory:
-            service.category,
-
-          name:
-            partner.name || 'KOODAM Partner',
-
-          title:
-            service.title,
-
-          rating:
-            Number(partner.rating || 0),
-
-          reviewsCount:
-            Number(partner.reviews_count || 0),
-
-          experienceYears:
-            Number(
-              partner.experience_years || 0
-            ),
-
-          completionRate:
-            Number(
-              partner.completion_rate || 0
-            ),
-
-          rate:
-            Number(
-              partner.hourly_rate ??
-              service.price ??
-              0
-            ),
-
-          unit:
-            ' / service',
-
-          avatar:
-            partner.avatar || '',
-
-          phone:
-            partner.phone || '',
-
-          vehicle:
-            partner.vehicle || '',
-
-          vehicleNumber:
-            partner.vehicle_number || '',
-
-          email:
-            partner.email || '',
-
-          latitude:
-            partner.latitude,
-
-          longitude:
-            partner.longitude,
-
-          isOnline:
-            partner.is_online,
-
-          isVerified:
-            partner.is_verified,
-
-          policeVerified:
-            Boolean(partner.police_verified),
-
-          badge:
-            partner.is_verified
-              ? 'Verified Partner'
-              : 'KOODAM Partner',
-
-          badgeColor:
-            partner.is_verified
-              ? 'bg-[#6ffbbe] text-[#002113]'
-              : 'bg-[#dce1ff] text-[#05164b]',
-
-          distance:
-            'Nearby'
-
-        }))
-      );
+      const allHelpers = helpersFromServices(services);
 
       setHelpers(allHelpers);
       hasLoadedHelpersRef.current = true;
@@ -240,8 +148,16 @@ useEffect(() => {
 
 }, []);
 
+  // Real distances; helpers out of their service radius are left out
+  const nearbyHelpers = useMemo(
+    () => withDistance(helpers, userCoords),
+    [helpers, userCoords]
+  );
+
+  const areaName = location.split(',')[0] || 'your area';
+
   // Filter logic
-  const filteredHelpers = helpers.filter((helper) => {
+  const filteredHelpers = nearbyHelpers.filter((helper) => {
 
   const query =
     searchQuery.trim().toLowerCase();
@@ -299,7 +215,7 @@ useEffect(() => {
       return;
     }
 
-    const best = pickBestHelper(helpers, service);
+    const best = pickBestHelper(nearbyHelpers, service);
 
     if (!best) {
       setSearchQuery(service);
@@ -314,9 +230,10 @@ useEffect(() => {
     handleBookHelper(best);
   };
 
+  // Escalations push partners down the list
   const topHelpers = [...filteredHelpers].sort(
     (a, b) =>
-      b.rating - a.rating ||
+      (b.rating - reliabilityPenalty(b)) - (a.rating - reliabilityPenalty(a)) ||
       b.reviewsCount - a.reviewsCount
   );
 
@@ -375,9 +292,9 @@ useEffect(() => {
               </span>
               <span className="text-[11px] text-[#0b1c30] font-semibold truncate">
                 {helpersLoading
-                  ? `Finding helpers in ${location.split(',')[0]}…`
+                  ? `Finding helpers in ${areaName}…`
                   : availableHelperCount > 0
-                  ? `${availableHelperCount} helpers ready to book in ${location.split(',')[0]}`
+                  ? `${availableHelperCount} helpers ready to book in ${areaName}`
                   : 'No helpers for this service yet'}
               </span>
             </div>
@@ -498,7 +415,7 @@ useEffect(() => {
                 <span className="text-[11px] text-[#5a4136] truncate">
                   {helpersLoading
                     ? 'Finding helpers near you…'
-                    : `${availableHelperCount} helpers available near ${location.split(',')[0]}`}
+                    : `${availableHelperCount} helpers available near ${areaName}`}
                 </span>
               </div>
             </div>

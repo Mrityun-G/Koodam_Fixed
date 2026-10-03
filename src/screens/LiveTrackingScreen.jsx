@@ -19,7 +19,8 @@ export const LiveTrackingScreen = () => {
     destinationCoords,
     liveDistanceKm,
     liveEtaMinutes,
-    respondToExtraCharge
+    respondToExtraCharge,
+    cancelBookingRequest
   } = useApp();
 
   const extraCharges = Object.entries(activeOrder.extraCharges || {}).sort(
@@ -39,9 +40,19 @@ export const LiveTrackingScreen = () => {
 
   const helperName = activeOrder.helperName || 'Your partner';
   const isPaid = activeOrder.paymentStatus === 'PAID';
-  const isClosed = ['DECLINED', 'EXPIRED', 'CANCELLED'].includes(
+  const isWithdrawn = activeOrder.bookingStatus === 'WITHDRAWN';
+  const isClosed = ['DECLINED', 'EXPIRED', 'CANCELLED', 'WITHDRAWN'].includes(
     activeOrder.bookingStatus
   );
+  const canCancel = activeOrder.bookingStatus === 'PENDING';
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancelRequest = async () => {
+    if (!window.confirm(`Cancel your request to ${helperName}?`)) return;
+    setIsCancelling(true);
+    await cancelBookingRequest();
+    setIsCancelling(false);
+  };
 
   // Once paid, the last step counts as done too
   const progressStep = activeOrder.currentStep === 5 && isPaid
@@ -91,7 +102,9 @@ export const LiveTrackingScreen = () => {
       id: 1,
       title: 'Request Sent',
       time: formatClock(activeOrder.createdAt),
-      desc: isClosed
+      desc: isWithdrawn
+        ? 'You cancelled this request.'
+        : isClosed
         ? `${helperName} couldn't take this request.`
         : activeOrder.currentStep <= 1
         ? `Waiting for ${helperName} to accept your request.`
@@ -175,7 +188,9 @@ export const LiveTrackingScreen = () => {
                 <span className="text-xs text-[#0b1c30] font-bold">{activeOrder.orderId}</span>
               </div>
               <h1 className="text-xl font-extrabold text-[#0b1c30] tracking-tight">
-                {isClosed
+                {isWithdrawn
+                  ? 'Request cancelled'
+                  : isClosed
                   ? 'Request not accepted'
                   : activeOrder.currentStep === 3
                   ? `${helperName} is on the way!`
@@ -186,7 +201,9 @@ export const LiveTrackingScreen = () => {
                   : `Waiting for ${helperName}`}
               </h1>
               <p className="text-xs text-[#5a4136] mt-0.5 font-medium">
-                {isClosed
+                {isWithdrawn
+                  ? 'You cancelled this request. Book again whenever you are ready.'
+                  : isClosed
                   ? `${helperName} couldn't take this booking. Please book another helper.`
                   : activeOrder.currentStep === 3
                   ? (liveEtaMinutes != null
@@ -205,7 +222,9 @@ export const LiveTrackingScreen = () => {
             <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 bg-[#ffdbcc] text-[#7b2f00] rounded-full text-xs font-bold shadow-xs">
               <span className="w-2 h-2 rounded-full bg-[#ff6a00] animate-ping"></span>
               <span>
-                {isClosed
+                {isWithdrawn
+                  ? 'Cancelled'
+                  : isClosed
                   ? 'Closed'
                   : activeOrder.currentStep === 3
                   ? 'En Route'
@@ -217,6 +236,17 @@ export const LiveTrackingScreen = () => {
               </span>
             </div>
           </div>
+
+          {canCancel && (
+            <button
+              onClick={handleCancelRequest}
+              disabled={isCancelling}
+              className="self-end flex items-center gap-1 px-4 py-2 rounded-full border border-red-200 bg-white text-red-500 hover:bg-red-50 text-xs font-bold active:scale-95 transition-all disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+              {isCancelling ? 'Cancelling…' : 'Cancel request'}
+            </button>
+          )}
 
           {/* Extra Parts Cost requested by the partner during the work */}
           {extraCharges.length > 0 && (

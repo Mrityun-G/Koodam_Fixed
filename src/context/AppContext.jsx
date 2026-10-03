@@ -33,6 +33,8 @@ import {
   isStorageConfigured
 } from '../lib/firebase';
 
+import { authorizedFetch } from '../lib/authorizedFetch';
+
 import {
   haversineDistanceKm,
   estimateEtaMinutes
@@ -62,6 +64,11 @@ const LAST_ROLE_KEY = 'koodam-last-role';
 // tracking screen and rating card ({ uid, orderId } only; the order
 // itself is read from Firebase)
 const ACTIVE_ORDER_KEY = 'koodam-active-order';
+
+// Where the two keys above are kept: per tab during local development,
+// to match the per-tab sign-in in lib/firebase.js
+const loginStorage = () =>
+  import.meta.env.DEV ? sessionStorage : localStorage;
 
 // Starting state, also restored on logout so the next person to log in
 // on this device never sees the previous user's profile, job or chat
@@ -121,13 +128,6 @@ const AppContext = createContext(null);
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 
-
-// Member's service address — live ETA/distance is measured against this point.
-// Defaults to Indiranagar, Bengaluru; replace with the real booking address.
-const DESTINATION_COORDS = {
-  lat: 12.9784,
-  lng: 77.6408
-};
 
 
 // Firebase Realtime Database keys can't contain ".", "#", "$", "[", "]"
@@ -311,8 +311,13 @@ export const AppProvider = ({ children }) => {
     document.documentElement.lang = language;
   }, [language]);
 
+  // Detected from GPS (or picked) in the Header; empty until then
   const [location, setLocation] =
-    useState('Indiranagar, Bengaluru');
+    useState('');
+
+  // { lat, lng } of the member, used for distances to helpers
+  const [userCoords, setUserCoords] =
+    useState(null);
 
   const [isLocationModalOpen, setIsLocationModalOpen] =
     useState(false);
@@ -404,7 +409,7 @@ useEffect(() => {
         let lastRole = null;
 
         try {
-          lastRole = localStorage.getItem(LAST_ROLE_KEY);
+          lastRole = loginStorage().getItem(LAST_ROLE_KEY);
         } catch {
           lastRole = null;
         }
@@ -425,7 +430,7 @@ useEffect(() => {
           // loads it from Firebase
           try {
             const saved = JSON.parse(
-              localStorage.getItem(ACTIVE_ORDER_KEY) || 'null'
+              loginStorage().getItem(ACTIVE_ORDER_KEY) || 'null'
             );
 
             if (saved?.orderId && saved.uid === user.uid) {
@@ -498,12 +503,12 @@ const [notificationsEnabled, setNotificationsEnabled] =
 
 
   const [selectedService, setSelectedService] = useState({
-    id: 2,
-    title: 'Emergency Short Circuit Diagnostic',
-    price: 399,
-    duration: '~45 mins',
-    tag: 'POPULAR',
-    desc: 'Line leakage, spark identification & testing'
+    id: null,
+    title: '',
+    price: 0,
+    duration: '',
+    tag: '',
+    desc: ''
   });
 
 
@@ -514,7 +519,26 @@ const [notificationsEnabled, setNotificationsEnabled] =
   const [selectedTime, setSelectedTime] =
     useState('');
 
-  const [trustFee] = useState(20);
+  // Fees come from the backend (GET /config) so the app always shows
+  // what is actually charged; these are only used until it answers
+  const [trustFee, setTrustFee] = useState(20);
+  const [platformCommissionPercent, setPlatformCommissionPercent] =
+    useState(10);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/config`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((config) => {
+        if (!config) return;
+        setTrustFee(Number(config.trust_fee));
+        setPlatformCommissionPercent(
+          Number(config.platform_commission_percent)
+        );
+      })
+      .catch((error) => {
+        console.error('Failed to load app settings:', error);
+      });
+  }, []);
 
 
 // =========================================================
@@ -531,13 +555,13 @@ useEffect(() => {
 
   const finished =
     (activeOrder.paymentStatus === 'PAID' && activeOrder.rating) ||
-    ['DECLINED', 'EXPIRED', 'CANCELLED'].includes(activeOrder.bookingStatus);
+    ['DECLINED', 'EXPIRED', 'CANCELLED', 'WITHDRAWN'].includes(activeOrder.bookingStatus);
 
   try {
     if (finished) {
-      localStorage.removeItem(ACTIVE_ORDER_KEY);
+      loginStorage().removeItem(ACTIVE_ORDER_KEY);
     } else {
-      localStorage.setItem(
+      loginStorage().setItem(
         ACTIVE_ORDER_KEY,
         JSON.stringify({ uid: authUser.uid, orderId: activeOrder.orderId })
       );
@@ -1013,10 +1037,19 @@ useEffect(() => {
   };
 
 
-  const liveDistanceKm = partnerLocation
+  // Where the job is: the location saved with the booking, else (for
+  // the member) where they are now. Live ETA/distance is measured to it.
+  const destinationCoords =
+    activeOrder.customerLat != null && activeOrder.customerLng != null
+      ? { lat: activeOrder.customerLat, lng: activeOrder.customerLng }
+      : role === 'member'
+      ? userCoords
+      : null;
+
+  const liveDistanceKm = partnerLocation && destinationCoords
     ? haversineDistanceKm(
         partnerLocation,
-        DESTINATION_COORDS
+        destinationCoords
       )
     : null;
 
@@ -1031,8 +1064,9 @@ useEffect(() => {
   // Service Partner State
   // =========================================================
 
+  // Saved in Supabase; loaded with the partner overview
   const [isPartnerOnline, setIsPartnerOnline] =
-    useState(true);
+    useState(false);
 
 
   const [partnerStats, setPartnerStats] =
@@ -1186,6 +1220,8 @@ const refreshPartnerOverview = async () => {
       serviceRadiusKm: overview.service_radius_km || 5
     }));
 
+    setIsPartnerOnline(Boolean(overview.is_online));
+
     setPartnerUpcomingJobs(overview.upcoming_jobs || []);
   } catch (error) {
     console.error('Failed to load partner overview:', error);
@@ -1263,38 +1299,117 @@ const getRequestSecondsLeft = (request) => {
   );
 };
 
-// Mark an unanswered request as expired so it stops reappearing,
-// and let the member's order listener know the partner didn't respond
-const expireBookingRequest = (partnerId, requestId) => {
+// Close a request that was never accepted so it stops reappearing:
+// EXPIRED when the partner didn't respond, WITHDRAWN when the member
+// cancelled it. Neither counts against the partner.
+const expireBookingRequest = (partnerId, requestId, status = 'EXPIRED') => {
   if (!isFirebaseConfigured || !db || !partnerId || !requestId) {
-    return;
+    return Promise.resolve();
   }
 
-  const expiredAt = Date.now();
+  const closed = {
+    status,
+    bookingStatus: status,
+    [status === 'EXPIRED' ? 'expiredAt' : 'withdrawnAt']: Date.now()
+  };
 
-  Promise.all([
+  return Promise.all([
     update(
       ref(db, `bookingRequests/${partnerId}/${requestId}`),
-      {
-        status: 'EXPIRED',
-        bookingStatus: 'EXPIRED',
-        expiredAt
-      }
+      closed
     ),
     update(
       ref(db, `orders/${toDbKey(requestId)}`),
-      {
-        status: 'EXPIRED',
-        bookingStatus: 'EXPIRED',
-        expiredAt
-      }
+      closed
     )
   ]).catch((error) => {
     console.error(
-      '❌ Failed to expire booking request:',
+      '❌ Failed to close booking request:',
       error
     );
   });
+};
+
+// Read the order's live status, so a request is never closed after
+// the partner has already accepted it
+const isOrderStillPending = async (orderId) => {
+  const snapshot = await get(ref(db, `orders/${toDbKey(orderId)}`));
+  return (snapshot.val()?.bookingStatus || 'PENDING') === 'PENDING';
+};
+
+// MEMBER: expire the request when the partner never answers.
+// Otherwise it stays pending forever if the partner's app is closed.
+useEffect(() => {
+  if (
+    role !== 'member' ||
+    !isFirebaseConfigured ||
+    !db ||
+    activeOrder.bookingStatus !== 'PENDING' ||
+    !activeOrder.orderId ||
+    !activeOrder.partnerId
+  ) {
+    return;
+  }
+
+  // A little grace so the partner's own countdown normally wins
+  const graceMs = 10000;
+  const waitMs =
+    getRequestSecondsLeft({
+      createdAt: activeOrder.createdAt || Date.now()
+    }) *
+      1000 +
+    graceMs;
+
+  const { orderId, partnerId } = activeOrder;
+
+  const timer = setTimeout(async () => {
+    try {
+      if (await isOrderStillPending(orderId)) {
+        await expireBookingRequest(partnerId, orderId);
+      }
+    } catch (error) {
+      console.error('❌ Failed to check booking request:', error);
+    }
+  }, waitMs);
+
+  return () => clearTimeout(timer);
+}, [
+  role,
+  activeOrder.orderId,
+  activeOrder.partnerId,
+  activeOrder.bookingStatus,
+  activeOrder.createdAt
+]);
+
+// MEMBER: cancel a request the partner hasn't accepted yet
+const cancelBookingRequest = async () => {
+  const { orderId, partnerId } = activeOrder;
+
+  if (!orderId || activeOrder.bookingStatus !== 'PENDING') {
+    return;
+  }
+
+  try {
+    if (isFirebaseConfigured && db) {
+      if (!(await isOrderStillPending(orderId))) {
+        showToast('Your partner has already responded to this request.');
+        return;
+      }
+
+      await expireBookingRequest(partnerId, orderId, 'WITHDRAWN');
+    }
+
+    setActiveOrder((prev) => ({
+      ...prev,
+      status: 'WITHDRAWN',
+      bookingStatus: 'WITHDRAWN'
+    }));
+
+    showToast('Booking request cancelled.');
+  } catch (error) {
+    console.error('❌ Failed to cancel booking request:', error);
+    showToast('Could not cancel the request. Please try again.');
+  }
 };
 
 // When the countdown runs out on screen, expire the request
@@ -1512,29 +1627,7 @@ const requestsRef = ref(db, requestPath);
 
 
   const [messages, setMessages] =
-    useState([
-      {
-        id: 1,
-        sender: 'partner',
-        text:
-          'Namaskara! I am at 12th Main cross, reaching in about 10 minutes.',
-        time: '10:35 AM'
-      },
-      {
-        id: 2,
-        sender: 'member',
-        text:
-          'Sounds great Arun! Please ring the bell on the 2nd floor.',
-        time: '10:36 AM'
-      },
-      {
-        id: 3,
-        sender: 'partner',
-        text:
-          'Sure thing, will do! I have the multimeter and safety gear ready.',
-        time: '10:37 AM'
-      }
-    ]);
+    useState([]);
 
 
   // Firebase chat listener
@@ -1700,7 +1793,7 @@ const requestsRef = ref(db, requestPath);
 
     // Remembered so a page reload returns to the same side of the app
     try {
-      localStorage.setItem(LAST_ROLE_KEY, targetRole);
+      loginStorage().setItem(LAST_ROLE_KEY, targetRole);
     } catch {
       // Without storage a reload falls back to the account's own role
     }
@@ -2388,8 +2481,8 @@ const signIn = async (
 
     // A reload after logging out should stay on the welcome screen
     try {
-      localStorage.removeItem(LAST_ROLE_KEY);
-      localStorage.removeItem(ACTIVE_ORDER_KEY);
+      loginStorage().removeItem(LAST_ROLE_KEY);
+      loginStorage().removeItem(ACTIVE_ORDER_KEY);
     } catch {
       // Nothing to clear
     }
@@ -2748,6 +2841,23 @@ const handleConfirmBooking = async () => {
     return;
   }
 
+  // The helper list can be minutes old; don't book a partner who has
+  // since gone offline. A failed check doesn't block the booking.
+  try {
+    const response = await fetch(
+      `${BACKEND_URL}/partners/${targetPartnerId}`
+    );
+
+    if (response.ok && !(await response.json()).is_online) {
+      showToast(
+        `${selectedHelper.name || 'This partner'} just went offline. Please choose another helper.`
+      );
+      return;
+    }
+  } catch (error) {
+    console.error('Failed to check partner status:', error);
+  }
+
   // Generate a request ID and write the request to Firebase.
   // The initial status must remain PENDING until the partner accepts.
   let createdRequestId = null;
@@ -2914,9 +3024,17 @@ const handleConfirmBooking = async () => {
         }
       );
 
-      // Save where the customer is so the partner can navigate there.
-      // Runs in the background; the booking never waits on it.
-      if (navigator.geolocation) {
+      // Save where the customer is so the partner can navigate there:
+      // the place picked in the header, else the device GPS (in the
+      // background; the booking never waits on it).
+      if (userCoords) {
+        update(
+          ref(db, `orders/${toDbKey(createdRequestId)}`),
+          { customerLat: userCoords.lat, customerLng: userCoords.lng }
+        ).catch((error) => {
+          console.error('❌ Failed to save customer location:', error);
+        });
+      } else if (navigator.geolocation) {
         const orderIdForLocation = createdRequestId;
 
         navigator.geolocation.getCurrentPosition(
@@ -3467,25 +3585,55 @@ const markPaymentCompleted = (paymentResponse = {}) => {
   // Partner Duty
   // =========================================================
 
-  const togglePartnerDuty = () => {
-
-    setIsPartnerOnline(
-      (prev) => {
-
-        const newState =
-          !prev;
-
-
-        showToast(
-          newState
-            ? 'You are now ONLINE. Receiving local orders within 5km.'
-            : 'You are now OFFLINE.'
-        );
-
-
-        return newState;
+  // The device's position, or null if location is blocked or slow
+  const getCurrentCoords = () =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
       }
-    );
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+
+  // Saved to Supabase: offline partners are hidden from customers
+  const togglePartnerDuty = async () => {
+    if (!partnerProfile?.id) {
+      return;
+    }
+
+    const newState = !isPartnerOnline;
+
+    // Going online saves where the partner is, so customers see real
+    // distances and only nearby partners within their radius
+    const position = newState ? await getCurrentCoords() : null;
+
+    try {
+      await authorizedFetch(`/partners/${partnerProfile.id}/online`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          is_online: newState,
+          latitude: position?.lat ?? null,
+          longitude: position?.lng ?? null
+        })
+      });
+
+      setIsPartnerOnline(newState);
+
+      showToast(
+        newState
+          ? `You are now ONLINE. Receiving local orders within ${partnerStats.serviceRadiusKm || 5}km.`
+          : "You are now OFFLINE. Customers won't see you until you go online."
+      );
+    } catch (error) {
+      console.error('Failed to update online status:', error);
+      showToast(error.message || 'Could not change your status. Please try again.');
+    }
   };
 
 
@@ -3554,6 +3702,13 @@ const acceptIncomingJob = async () => {
   }
 
   try {
+    // The member may have cancelled, or the request expired, meanwhile
+    if (isFirebaseConfigured && db && !(await isOrderStillPending(requestId))) {
+      setHasIncomingJob(false);
+      showToast('This request was cancelled or has expired.');
+      return;
+    }
+
     if (isFirebaseConfigured && db) {
       await update(
         ref(
@@ -3822,6 +3977,8 @@ return (
 
       location,
       setLocation,
+      userCoords,
+      setUserCoords,
 
       isLocationModalOpen,
       setIsLocationModalOpen,
@@ -3861,6 +4018,7 @@ return (
       setSelectedTime,
 
       trustFee,
+      platformCommissionPercent,
 
       activeOrder,
       setActiveOrder,
@@ -3874,8 +4032,7 @@ return (
       liveDistanceKm,
       liveEtaMinutes,
 
-      destinationCoords:
-        DESTINATION_COORDS,
+      destinationCoords,
 
       isFirebaseConfigured,
 
@@ -3929,6 +4086,7 @@ return (
       markPaymentCompleted,
 
       submitRating,
+      cancelBookingRequest,
 
       togglePartnerDuty,
 

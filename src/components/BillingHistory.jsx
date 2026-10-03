@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { ComplaintPanel } from './ComplaintPanel';
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
@@ -32,6 +33,9 @@ const getBillStatus = (bill) => {
   return { label: 'Work in progress', icon: 'construction', tone: 'bg-[#dce1ff] text-[#4e5c92]' };
 };
 
+// Bills shown before "View more"
+const RECENT_BILLS = 3;
+
 const EXTRA_STATUS_LABELS = {
   APPROVED: 'Approved',
   DECLINED: 'Declined',
@@ -62,6 +66,9 @@ export const BillingHistory = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [openBillId, setOpenBillId] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  // Bumped after a complaint changes, to reload the bills
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!ownerId) {
@@ -90,7 +97,12 @@ export const BillingHistory = ({
       .then((data) => {
         if (cancelled) return;
         setBills(data);
-        setOpenBillId(data[0]?.booking_id || null);
+        // Keep the bill that's open open across a reload
+        setOpenBillId((current) =>
+          data.some((bill) => bill.booking_id === current)
+            ? current
+            : data[0]?.booking_id || null
+        );
         onBillsLoaded?.(data);
       })
       .catch((fetchError) => {
@@ -108,7 +120,7 @@ export const BillingHistory = ({
     };
     // onBillsLoaded is a callback for the parent, not an input
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ownerId, isPartnerView, partnerId, customerId]);
+  }, [ownerId, isPartnerView, partnerId, customerId, reloadKey]);
 
   if (loading) {
     return (
@@ -144,7 +156,7 @@ export const BillingHistory = ({
 
   return (
     <div className="space-y-2">
-      {bills.map((bill) => {
+      {(showAll ? bills : bills.slice(0, RECENT_BILLS)).map((bill) => {
         const status = getBillStatus(bill);
         const isOpen = openBillId === bill.booking_id;
         const isPaid = bill.payment_status === 'PAID';
@@ -185,6 +197,12 @@ export const BillingHistory = ({
                   <span className="material-symbols-outlined text-[12px]">{status.icon}</span>
                   {status.label}
                 </span>
+                {bill.complaint?.status === 'OPEN' && (
+                  <span className="inline-flex items-center gap-0.5 mt-1 ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">
+                    <span className="material-symbols-outlined text-[12px]">report</span>
+                    {isPartnerView ? 'Reply needed' : 'Problem reported'}
+                  </span>
+                )}
               </div>
 
               <div className="text-right shrink-0">
@@ -325,11 +343,30 @@ export const BillingHistory = ({
                     </p>
                   </div>
                 )}
+
+                <ComplaintPanel
+                  bill={bill}
+                  viewer={viewer}
+                  onChanged={() => setReloadKey((key) => key + 1)}
+                />
               </div>
             )}
           </div>
         );
       })}
+
+      {bills.length > RECENT_BILLS && (
+        <button
+          type="button"
+          onClick={() => setShowAll(!showAll)}
+          className="w-full flex items-center justify-center gap-1 text-xs font-bold text-[#a14000] bg-white border border-slate-100 rounded-2xl py-2.5 active:scale-95 transition-all"
+        >
+          {showAll ? 'Show less' : `View more (${bills.length - RECENT_BILLS})`}
+          <span className="material-symbols-outlined text-[16px]">
+            {showAll ? 'expand_less' : 'expand_more'}
+          </span>
+        </button>
+      )}
     </div>
   );
 };

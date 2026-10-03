@@ -1,40 +1,29 @@
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { estimateEtaMinutes } from '../lib/geo';
+import { helpersFromServices, withDistance } from '../lib/helpers';
 
-// Existing services retained as fallbacks.
-// Replace these with live service data through AppContext
-// when your backend or admin configuration is ready.
-const DEFAULT_EMERGENCY_SERVICES = [
-  {
-    id: 'water-leak',
-    title: 'Immediate Rooftop Water Leak Patch',
-    eta: '10-15 mins',
-    icon: 'roofing',
-    price: '₹450'
-  },
-  {
-    id: 'flood-barrier',
-    title: 'Flood Barrier / Sandbag Dispatch',
-    eta: '20 mins',
-    icon: 'waves',
-    price: 'Free Volunteer'
-  },
-  {
-    id: 'electrical-safety',
-    title: 'Emergency Electrical Line Cut-off & Check',
-    eta: '12 mins',
-    icon: 'power_off',
-    price: '₹350'
-  },
-  {
-    id: 'tree-clearing',
-    title: 'Fallen Tree Branch Clearing',
-    eta: '30 mins',
-    icon: 'nature',
-    price: 'Free Volunteer'
-  }
-];
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+
+// Icon for each service category
+const CATEGORY_ICONS = {
+  Cleaning: 'cleaning_services',
+  Electrical: 'electrical_services',
+  Plumbing: 'plumbing',
+  'AC Repair': 'ac_unit',
+  'Appliance Repair': 'kitchen',
+  Carpentry: 'carpenter',
+  Painting: 'format_paint',
+  'Tech & Wi-Fi': 'router',
+  'Elder & Pets': 'pets',
+  'Pest Control': 'pest_control'
+};
+
+// Closest first; a helper with no known distance goes last
+const byDistance = (a, b) =>
+  (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
 
 export const EmergencyModal = () => {
   const app = useApp();
@@ -43,8 +32,58 @@ export const EmergencyModal = () => {
     isEmergencyModalOpen,
     setIsEmergencyModalOpen,
     showToast,
-    location
+    location,
+    userCoords,
+    handleBookHelper
   } = app;
+
+  // Online partners for every service, loaded each time the popup opens
+  const [helpers, setHelpers] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isEmergencyModalOpen) return;
+
+    let isActive = true;
+    setLoading(true);
+
+    fetch(`${BACKEND_URL}/services/with-partners`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load services (${response.status})`);
+        }
+        return response.json();
+      })
+      .then((services) => {
+        if (isActive) setHelpers(helpersFromServices(services));
+      })
+      .catch((error) => {
+        console.error('Failed to load emergency services:', error);
+        if (isActive) showToast('Could not load available helpers.');
+      })
+      .finally(() => {
+        if (isActive) setLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [isEmergencyModalOpen]);
+
+  // For each service, the nearest online helper who covers the member
+  const emergencyServices = useMemo(() => {
+    const nearestByService = new Map();
+
+    withDistance(helpers, userCoords)
+      .sort(byDistance)
+      .forEach((helper) => {
+        if (!nearestByService.has(helper.serviceId)) {
+          nearestByService.set(helper.serviceId, helper);
+        }
+      });
+
+    return [...nearestByService.values()].sort(byDistance);
+  }, [helpers, userCoords]);
 
   // Optional dynamic values from AppContext.
   // Existing defaults are retained for compatibility.
@@ -65,13 +104,8 @@ export const EmergencyModal = () => {
     app.emergencyAlertMessage ||
     `Emergency assistance information for ${
       location || 'your selected area'
-    }. Choose an available service below or call the emergency hotline if you need immediate assistance.`;
+    }. Book the nearest available helper below, or call the emergency hotline if anyone is in danger.`;
 
-  const emergencyServices =
-    Array.isArray(app.emergencyServices) &&
-    app.emergencyServices.length > 0
-      ? app.emergencyServices
-      : DEFAULT_EMERGENCY_SERVICES;
 
   if (!isEmergencyModalOpen) return null;
 
@@ -79,17 +113,11 @@ export const EmergencyModal = () => {
     setIsEmergencyModalOpen(false);
   };
 
-  const handleServiceRequest = (service) => {
-    const serviceTitle =
-      service.title || 'Emergency Service';
-
-    // Preserve the existing notification behavior.
-    // This does not create a backend dispatch.
-    showToast(
-      `Emergency dispatch triggered for: ${serviceTitle}`
-    );
-
+  // Opens the normal booking screen with this helper already picked
+  const handleServiceRequest = (helper) => {
     setIsEmergencyModalOpen(false);
+    handleBookHelper(helper);
+    showToast(`Pick the earliest free slot to book ${helper.name}.`);
   };
 
   return (
@@ -279,10 +307,14 @@ export const EmergencyModal = () => {
               px-1
             "
           >
-            Available Emergency Services
+            Nearest available helpers
           </h4>
 
-          {emergencyServices.length === 0 ? (
+          {loading && emergencyServices.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-6">
+              Finding helpers near you…
+            </p>
+          ) : emergencyServices.length === 0 ? (
             <div
               className="
                 p-5
@@ -303,15 +335,15 @@ export const EmergencyModal = () => {
               </span>
 
               <p className="text-sm text-slate-600 mt-2">
-                No emergency services are currently listed.
+                No helpers are online near you right now. Call the hotline below if it's urgent.
               </p>
             </div>
           ) : (
-            emergencyServices.map((service, index) => (
+            emergencyServices.map((helper) => (
               <button
                 type="button"
-                key={service.id || service.service_id || index}
-                onClick={() => handleServiceRequest(service)}
+                key={helper.id}
+                onClick={() => handleServiceRequest(helper)}
                 className="
                   w-full
                   text-left
@@ -348,7 +380,7 @@ export const EmergencyModal = () => {
                         text-xl
                       "
                     >
-                      {service.icon || 'emergency'}
+                      {CATEGORY_ICONS[helper.serviceCategory] || 'home_repair_service'}
                     </span>
                   </div>
 
@@ -361,7 +393,7 @@ export const EmergencyModal = () => {
                         break-words
                       "
                     >
-                      {service.title || 'Emergency Service'}
+                      {helper.serviceTitle}
                     </h5>
 
                     <p
@@ -382,7 +414,9 @@ export const EmergencyModal = () => {
                         bolt
                       </span>
 
-                      ETA: {service.eta || 'Contact for ETA'}
+                      {helper.distanceKm == null
+                        ? `${helper.name} • Nearby`
+                        : `${helper.name} • ${helper.distance} • ~${estimateEtaMinutes(helper.distanceKm)} mins`}
                     </p>
                   </div>
                 </div>
@@ -402,7 +436,7 @@ export const EmergencyModal = () => {
                       text-red-600
                     "
                   >
-                    {service.price || 'Contact for price'}
+                    {`₹${helper.rate}`}
                   </span>
 
                   <span
@@ -411,7 +445,7 @@ export const EmergencyModal = () => {
                       text-slate-400
                     "
                   >
-                    Request
+                    Book
                   </span>
                 </div>
               </button>

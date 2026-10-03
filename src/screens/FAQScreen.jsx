@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { SubHeader } from '../components/SubHeader';
+import { useApp } from '../context/AppContext';
 
-const faqs = [
+// Fees come from the backend settings, so the answers stay accurate
+const buildFaqs = ({ trustFee, commissionPercent }) => [
   {
     q: 'How do I book a helper?',
     a: 'From the Home screen, browse verified helpers nearby and tap "Quick Book" on any card. Pick a service, date and time, then confirm — your request is sent instantly.'
@@ -12,7 +14,7 @@ const faqs = [
   },
   {
     q: 'How do I cancel or reschedule a booking?',
-    a: 'Open the Requests tab to view your active booking, then use the in-app chat or call button to coordinate changes directly with your helper.'
+    a: 'Until your helper accepts, you can tap "Cancel request" on the Requests tab. After that, use the in-app chat or call button to coordinate changes directly with your helper.'
   },
   {
     q: 'How does payment work?',
@@ -20,7 +22,7 @@ const faqs = [
   },
   {
     q: 'As a partner, how much do I earn from a job?',
-    a: 'You set your own price. KOODAM keeps a 10% commission on the job price, and every extra part you add is passed to you in full. The ₹20 trust fee is paid by the customer, not you. Tap the receipt icon in your chat with a customer to see exactly what you earned from each job.'
+    a: `You set your own price. KOODAM keeps a ${commissionPercent}% commission on the job price, and every extra part you add is passed to you in full. The ₹${trustFee} trust fee is paid by the customer, not you. Tap the receipt icon in your chat with a customer to see exactly what you earned from each job.`
   },
   {
     q: 'How do I rate a helper after service?',
@@ -37,7 +39,13 @@ const faqs = [
 ];
 
 export const FAQScreen = () => {
+  const { trustFee, platformCommissionPercent } = useApp();
   const [openIndex, setOpenIndex] = useState(0);
+
+  const faqs = buildFaqs({
+    trustFee,
+    commissionPercent: platformCommissionPercent
+  });
 
   return (
     <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">

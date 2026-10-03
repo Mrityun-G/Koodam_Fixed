@@ -7,6 +7,7 @@ import { AuthScreen } from './screens/AuthScreen';
 import { UserHomeScreen } from './screens/UserHomeScreen';
 import { BookingScreen } from './screens/BookingScreen';
 import { PaymentScreen } from './screens/PaymentScreen';
+import { AdminEscalationsScreen } from './screens/AdminEscalationsScreen';
 import { LiveTrackingScreen } from './screens/LiveTrackingScreen';
 import { PartnerDashboard } from './screens/PartnerDashboard';
 import { ProfileScreen } from './screens/ProfileScreen';
@@ -50,6 +51,7 @@ const AppContent = () => {
       {currentScreen === 'faq' && <FAQScreen />}
       {currentScreen === 'terms' && <TermsScreen />}
       {currentScreen === 'billing' && <BillingScreen />}
+      {currentScreen === 'admin' && <AdminEscalationsScreen />}
 
       {/* Global Modals & Overlays */}
       <EmergencyModal />

@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
 import { Avatar } from '../components/Avatar';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 export const ProfileScreen = () => {
   const { userProfile, partnerProfile, role, navigateTo, logout } = useApp();
   const profile = role === 'partner' ? partnerProfile : userProfile;
+
+  // KOODAM staff get the escalations screen (the backend decides who)
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    authorizedFetch('/admin/me')
+      .then((data) => setIsAdmin(Boolean(data?.is_admin)))
+      .catch(() => setIsAdmin(false));
+  }, []);
 
   const menuItems = [
     { id: 'editProfile', icon: 'edit', label: 'Edit Profile', desc: 'Name, phone, email & photo', screen: 'editProfile' },
@@ -17,7 +27,10 @@ export const ProfileScreen = () => {
     { id: 'settings', icon: 'settings', label: 'Settings', desc: 'Notifications, language & location', screen: 'settings' },
     { id: 'resetPassword', icon: 'lock_reset', label: 'Reset Password', desc: 'Update your account password', screen: 'resetPassword' },
     { id: 'faq', icon: 'help', label: 'FAQ', desc: 'Answers to common questions', screen: 'faq' },
-    { id: 'terms', icon: 'policy', label: 'Terms & Policy', desc: 'Terms of service & privacy policy', screen: 'terms' }
+    { id: 'terms', icon: 'policy', label: 'Terms & Policy', desc: 'Terms of service & privacy policy', screen: 'terms' },
+    ...(isAdmin
+      ? [{ id: 'admin', icon: 'gavel', label: 'Partner Escalations', desc: 'KOODAM staff: complaints & penalties', screen: 'admin' }]
+      : [])
   ];
 
   return (
