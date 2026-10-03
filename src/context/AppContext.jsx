@@ -3781,20 +3781,29 @@ const markPaymentCompleted = (paymentResponse = {}) => {
   // =========================================================
 
   // The device's position, or null if location is blocked or slow
-  const getCurrentCoords = () =>
-    new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        resolve(null);
-        return;
-      }
+  const getCurrentCoords = () => {
+    const locate = (options) =>
+      new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) =>
+            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve(null),
+          options
+        );
+      });
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) =>
-          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => resolve(null),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    if (!navigator.geolocation) {
+      return Promise.resolve(null);
+    }
+
+    // GPS first; laptops and phones indoors often never get a GPS fix,
+    // so fall back to the Wi-Fi/network position rather than saving none
+    return locate({ enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 })
+      .then((coords) =>
+        coords ||
+        locate({ enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 })
       );
-    });
+  };
 
   // Saved to Supabase: offline partners are hidden from customers
   const togglePartnerDuty = async () => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { authorizedFetch } from '../lib/authorizedFetch';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
@@ -16,6 +16,13 @@ export const PhoneBookingSimulator = () => {
   const [keys, setKeys] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const transcriptRef = useRef(null);
+
+  // Keep the newest line in view, like a call log
+  useEffect(() => {
+    const box = transcriptRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [lines]);
 
   const send = async (id, digits) => {
     setBusy(true);
@@ -100,7 +107,7 @@ export const PhoneBookingSimulator = () => {
       </div>
 
       {lines.length > 0 && (
-        <div className="max-h-64 overflow-y-auto space-y-1.5 bg-[#f8f9ff] rounded-xl p-2">
+        <div ref={transcriptRef} className="max-h-64 overflow-y-auto space-y-1.5 bg-[#f8f9ff] rounded-xl p-2">
           {lines.map((line, index) => (
             <p
               key={index}
