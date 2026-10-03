@@ -60,7 +60,8 @@ const PAYOUT_STATUS = {
   SETTLED: { label: 'In your bank', tone: 'bg-[#c8f7e1] text-[#006c49]', icon: 'check_circle' },
   SENT: { label: 'On the way', tone: 'bg-[#dce1ff] text-[#4e5c92]', icon: 'schedule_send' },
   WAITING_FOR_ACCOUNT: { label: 'Needs bank account', tone: 'bg-amber-100 text-amber-700', icon: 'account_balance' },
-  FAILED: { label: 'Transfer failed', tone: 'bg-red-100 text-red-600', icon: 'error' }
+  FAILED: { label: 'Transfer failed', tone: 'bg-red-100 text-red-600', icon: 'error' },
+  CASH_COLLECTED: { label: 'Collected in cash', tone: 'bg-[#ffdbcc] text-[#7b2f00]', icon: 'payments' }
 };
 
 const EMPTY_FORM = {
@@ -239,6 +240,17 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
           ))}
         </div>
 
+        {totals.cash_collected > 0 && (
+          <div className="bg-[#fff8f4] rounded-2xl p-3 border border-[#ffdbcc] text-[11px] text-[#7b2f00]">
+            <p className="font-bold">
+              {`Phone bookings: you kept ${formatRupees(totals.cash_collected)} as your share in cash`}
+            </p>
+            <p className="mt-0.5">
+              {`KOODAM's trust fee and commission on them: ${formatRupees(totals.koodam_share_due)}, settled from your earnings.`}
+            </p>
+          </div>
+        )}
+
         {/* List */}
         {loading && !data ? (
           <div className="py-6 flex flex-col items-center text-slate-400">
@@ -298,6 +310,12 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
                     {payout.status === 'WAITING_FOR_ACCOUNT' && (
                       <p className="text-[10px] text-slate-400 mt-1">
                         Sent automatically once your bank account is active
+                      </p>
+                    )}
+
+                    {payout.status === 'CASH_COLLECTED' && (
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        {`Customer paid you in cash • KOODAM's share ${formatRupees(payout.koodam_share_due)}`}
                       </p>
                     )}
 

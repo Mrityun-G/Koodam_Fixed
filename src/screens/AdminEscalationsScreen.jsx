@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { SubHeader } from '../components/SubHeader';
 import { useApp } from '../context/AppContext';
 import { authorizedFetch } from '../lib/authorizedFetch';
+import { PhoneBookingSimulator } from '../components/PhoneBookingSimulator';
 
 const formatDate = (iso) =>
   iso
@@ -326,6 +327,9 @@ export const AdminEscalationsScreen = () => {
                 </Card>
               ))
             )}
+
+            <SectionTitle>Phone booking simulator</SectionTitle>
+            <PhoneBookingSimulator />
 
             <SectionTitle>Recent escalations</SectionTitle>
             {data.escalations.length === 0 ? (

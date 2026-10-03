@@ -42,6 +42,9 @@ WAITING_FOR_ACCOUNT = "WAITING_FOR_ACCOUNT"
 SENT = "SENT"
 SETTLED = "SETTLED"
 FAILED = "FAILED"
+# Phone bookings: the customer paid the partner in cash, so nothing is
+# transferred; the partner owes KOODAM its trust fee and commission
+CASH_COLLECTED = "CASH_COLLECTED"
 
 # How many in-transit transfers one payouts request re-checks with Razorpay
 MAX_REFRESH_PER_REQUEST = 10
@@ -591,13 +594,21 @@ def get_partner_payouts(
             refreshed += 1
 
     payouts = []
-    totals = {SETTLED: 0.0, SENT: 0.0, WAITING_FOR_ACCOUNT: 0.0, FAILED: 0.0}
+    totals = {SETTLED: 0.0, SENT: 0.0, WAITING_FOR_ACCOUNT: 0.0, FAILED: 0.0, CASH_COLLECTED: 0.0}
+    koodam_share_due = 0.0
 
     for booking, detail, payout, service, customer in rows:
         payout = payout or BookingPayout()
         status = payout.status or WAITING_FOR_ACCOUNT
         amount = round(partner_share(detail), 2)
         totals[status] = totals.get(status, 0.0) + amount
+
+        # What the partner kept beyond their own share
+        cash_due = (
+            round((detail.amount_paid or 0.0) - amount, 2)
+            if status == CASH_COLLECTED else 0.0
+        )
+        koodam_share_due += cash_due
 
         payouts.append({
             "booking_id": booking.id,
@@ -611,6 +622,7 @@ def get_partner_payouts(
             "utr": payout.utr,
             "transfer_id": payout.razorpay_transfer_id,
             "error": payout.error,
+            "koodam_share_due": cash_due,
         })
 
     return {
@@ -620,6 +632,8 @@ def get_partner_payouts(
             "in_transit": round(totals[SENT], 2),
             "waiting": round(totals[WAITING_FOR_ACCOUNT], 2),
             "failed": round(totals[FAILED], 2),
+            "cash_collected": round(totals[CASH_COLLECTED], 2),
+            "koodam_share_due": round(koodam_share_due, 2),
         },
         "payouts": payouts,
     }

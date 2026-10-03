@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { MobileFrame } from './components/MobileFrame';
 import { LandingScreen } from './screens/LandingScreen';
+import { OfflineModeScreen } from './screens/OfflineModeScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { AuthScreen } from './screens/AuthScreen';
 import { UserHomeScreen } from './screens/UserHomeScreen';
@@ -34,6 +35,7 @@ const AppContent = () => {
     <MobileFrame overlay={<ChatModal />}>
       {/* Dynamic Screen Routing */}
       {currentScreen === 'landing' && <LandingScreen />}
+      {currentScreen === 'offline' && <OfflineModeScreen />}
       {currentScreen === 'welcome' && <WelcomeScreen />}
       {(currentScreen === 'memberLogin' ||
         currentScreen === 'memberSignup' ||

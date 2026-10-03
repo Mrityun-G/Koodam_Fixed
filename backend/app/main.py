@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import (
     ALLOWED_ORIGINS,
+    IVR_PHONE_NUMBER,
     PLATFORM_COMMISSION_PERCENT,
     TRUST_FEE,
 )
@@ -32,6 +33,7 @@ from app.routers.booking_sync import router as booking_sync_router
 from app.routers.payment import router as payment_router
 from app.routers.payouts import router as payouts_router
 from app.routers.escalations import router as escalations_router
+from app.routers.ivr import router as ivr_router
 
 from app.escalations import start_sweeper
 
@@ -68,6 +70,7 @@ app.include_router(booking_sync_router)
 app.include_router(payment_router)
 app.include_router(payouts_router)
 app.include_router(escalations_router)
+app.include_router(ivr_router)
 
 
 # Create database tables
@@ -92,7 +95,9 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS trust_fee DOUBLE PRECISION, "
         "ADD COLUMN IF NOT EXISTS commission_amount DOUBLE PRECISION, "
         "ADD COLUMN IF NOT EXISTS partner_payout DOUBLE PRECISION, "
-        "ADD COLUMN IF NOT EXISTS repair_photo_url VARCHAR; "
+        "ADD COLUMN IF NOT EXISTS repair_photo_url VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS source VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS payment_method VARCHAR; "
         "ALTER TABLE booking_extra_charges "
         "ADD COLUMN IF NOT EXISTS photo_url VARCHAR"
     ))
@@ -123,7 +128,9 @@ def health():
 def public_config():
     return {
         "trust_fee": TRUST_FEE,
-        "platform_commission_percent": PLATFORM_COMMISSION_PERCENT
+        "platform_commission_percent": PLATFORM_COMMISSION_PERCENT,
+        # The number customers without a smartphone call to book
+        "phone_booking_number": IVR_PHONE_NUMBER
     }
 
 

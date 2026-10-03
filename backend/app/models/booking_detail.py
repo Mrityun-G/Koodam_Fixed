@@ -38,6 +38,12 @@ class BookingDetail(Base):
 
     payment_status = Column(String, nullable=False, default="PENDING")
 
+    # APP or PHONE (booked by calling KOODAM, see app/ivr)
+    source = Column(String, nullable=True)
+
+    # ONLINE (Razorpay) or CASH (paid to the partner; phone bookings)
+    payment_method = Column(String, nullable=True)
+
     amount_paid = Column(Float, nullable=False, default=0.0)
 
     razorpay_payment_id = Column(String, nullable=True)

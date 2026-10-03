@@ -27,3 +27,7 @@ dist/
 
 # Database backups made by backend/migrations (contain personal data)
 backend/db_backups/
+
+# Firebase service account keys (backend phone booking)
+*service-account*.json
+*firebase-adminsdk*.json

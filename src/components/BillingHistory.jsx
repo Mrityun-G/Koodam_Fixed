@@ -354,6 +354,11 @@ export const BillingHistory = ({
                         {`Paid on ${formatDate(bill.paid_at, true)}`}
                       </p>
                     )}
+                    {bill.payment_method === 'CASH' && (
+                      <p className="text-[10px] text-[#006c49]">
+                        Paid in cash (phone booking)
+                      </p>
+                    )}
                     {bill.razorpay_payment_id && (
                       <p className="text-[10px] text-[#006c49] break-all">
                         {`Payment ID: ${bill.razorpay_payment_id}`}
