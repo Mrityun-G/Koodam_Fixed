@@ -1,6 +1,7 @@
 import json
 import logging
 import threading
+from pathlib import Path
 from typing import Optional
 
 import firebase_admin
@@ -21,6 +22,8 @@ from app.config import env_setting
 # =========================================================
 
 logger = logging.getLogger(__name__)
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 _lock = threading.Lock()
 _app: Optional[firebase_admin.App] = None
@@ -45,10 +48,15 @@ def _firebase_app() -> firebase_admin.App:
                 "FIREBASE_SERVICE_ACCOUNT and FIREBASE_DATABASE_URL must be set"
             )
 
+        if raw.lstrip().startswith("{"):
+            key = json.loads(raw)
+        else:
+            # A relative path means the backend folder, wherever it runs from
+            key = Path(raw)
+            key = str(key if key.is_absolute() else BACKEND_DIR / key)
+
         try:
-            certificate = credentials.Certificate(
-                json.loads(raw) if raw.lstrip().startswith("{") else raw
-            )
+            certificate = credentials.Certificate(key)
             _app = firebase_admin.initialize_app(
                 certificate,
                 {"databaseURL": url},
