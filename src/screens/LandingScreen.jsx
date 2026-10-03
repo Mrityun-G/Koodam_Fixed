@@ -9,19 +9,22 @@ export const LandingScreen = () => {
       name: 'KOODAM',
       tagline: 'Neighborhood Mutual Aid & Services',
       quote: 'People Helping People, Stronger Together',
-      cta: 'Get Started'
+      cta: 'Get Started',
+      offline: 'No smartphone? Book by phone call'
     },
     ta: {
       name: 'KOODAM',
       tagline: 'சமூக பரஸ்பர உதவி & சேவைகள்',
       quote: 'மக்கள் மக்களுக்கு உதவுகிறோம், ஒன்றாக வலிமையாக',
-      cta: 'தொடங்குங்கள்'
+      cta: 'தொடங்குங்கள்',
+      offline: 'ஸ்மார்ட்போன் இல்லையா? தொலைபேசி அழைப்பில் முன்பதிவு செய்யுங்கள்'
     },
     kn: {
       name: 'KOODAM',
       tagline: 'ನೆರೆಹೊರೆ ಪರಸ್ಪರ ನೆರವು & ಸೇವೆಗಳು',
       quote: 'ಜನರು ಜನರಿಗೆ ಸಹಾಯ, ಒಟ್ಟಿಗೆ ಬಲಿಷ್ಠ',
-      cta: 'ಪ್ರಾರಂಭಿಸಿ'
+      cta: 'ಪ್ರಾರಂಭಿಸಿ',
+      offline: 'ಸ್ಮಾರ್ಟ್‌ಫೋನ್ ಇಲ್ಲವೇ? ಫೋನ್ ಕರೆಯಲ್ಲಿ ಬುಕ್ ಮಾಡಿ'
     }
   };
 
@@ -61,6 +64,16 @@ export const LandingScreen = () => {
           type="button"
         >
           {t.cta}
+        </button>
+
+        {/* Offline mode: customers without a smartphone book by calling */}
+        <button
+          onClick={() => navigateTo('offline')}
+          className="w-full mt-2.5 py-3 px-4 rounded-2xl border border-[#ffdbcc] bg-[#fff8f4] text-[#a14000] text-sm font-bold flex items-center justify-center gap-2 active:scale-98 transition-all"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-[18px]">call</span>
+          {t.offline}
         </button>
       </div>
     </main>

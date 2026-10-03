@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.auth import current_firebase_uid
+
 from app.config import (
     PLATFORM_COMMISSION_PERCENT,
     RAZORPAY_KEY_ID,
@@ -13,11 +15,14 @@ from app.config import (
     TRUST_FEE,
 )
 from app.database import get_db
+from app.firebase_rtdb import FirebaseUnavailable, rtdb, to_db_key
 from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail, BookingExtraCharge
+from app.models.partner import Partner
 from app.models.payout import BookingPayout
+from app.models.user import User
 from app.razorpay_client import razorpay_request, to_paise
-from app.routers.payouts import safely_transfer
+from app.routers.payouts import CASH_COLLECTED, safely_transfer
 
 
 # =========================================================
@@ -109,6 +114,12 @@ def create_payment_order(
         raise HTTPException(
             status_code=409,
             detail="This booking is already paid."
+        )
+
+    if detail.payment_method == "CASH":
+        raise HTTPException(
+            status_code=409,
+            detail="This booking is paid in cash to the partner."
         )
 
     if booking.status != "COMPLETED":
@@ -251,6 +262,117 @@ def verify_payment(
     # 4. Send the partner's share to their bank via Razorpay Route.
     #    If their bank account isn't set up yet, it waits until it is.
     safely_transfer(db, booking, detail)
+
+    return payment_result(detail, split)
+
+
+# =========================================================
+# CASH (phone bookings)
+# The customer has no app, so the partner confirms the cash they were
+# handed. The bill comes from the live order, and only once the job was
+# started with the customer's code, the repair photo is in and every
+# extra part has the customer's answer (given on the phone menu).
+# =========================================================
+
+class CashPaymentRequest(BaseModel):
+    firebase_order_id: str
+
+
+class CashRejected(Exception):
+    pass
+
+
+@router.post("/cash")
+def record_cash_payment(
+    data: CashPaymentRequest,
+    firebase_uid: str = Depends(current_firebase_uid),
+    db: Session = Depends(get_db)
+):
+    booking, detail = get_booking_for_order(db, data.firebase_order_id)
+
+    partner = db.get(Partner, booking.partner_id)
+    owner = db.get(User, partner.user_id) if partner else None
+
+    if not owner or owner.firebase_uid != firebase_uid:
+        raise HTTPException(status_code=403, detail="Only this job's partner can record its payment.")
+
+    if detail.payment_method != "CASH":
+        raise HTTPException(status_code=409, detail="This booking is paid online by the customer.")
+
+    if detail.payment_status == "PAID":
+        return payment_result(detail)
+
+    paid_at = datetime.utcnow()
+
+    def complete(order):
+        if not order:
+            raise CashRejected("This booking couldn't be found.")
+
+        if order.get("paymentStatus") == "PAID":
+            return order
+
+        if int(order.get("currentStep") or 0) != 4:
+            raise CashRejected("Start the job with the customer's arrival code first.")
+
+        if any(
+            charge and charge.get("status") == "PENDING"
+            for charge in (order.get("extraCharges") or {}).values()
+        ):
+            raise CashRejected(
+                "The customer must approve or decline the extra parts cost first. "
+                "Ask them to call KOODAM's number."
+            )
+
+        if not order.get("repairPhotoUrl"):
+            raise CashRejected("Upload a photo of the finished repair first.")
+
+        stamp = f"{paid_at.isoformat()}Z"
+        order.update({
+            "currentStep": 5,
+            "bookingStatus": "COMPLETED",
+            "status": "COMPLETED",
+            "serviceStatus": "completed",
+            "paymentStatus": "PAID",
+            "paymentMethod": "CASH",
+            "totalPaid": float(order.get("totalAmount") or 0),
+            "completedAt": stamp,
+            "paidAt": stamp
+        })
+        return order
+
+    try:
+        order = rtdb(f"orders/{to_db_key(data.firebase_order_id)}").transaction(complete)
+    except CashRejected as error:
+        raise HTTPException(status_code=409, detail=str(error))
+    except FirebaseUnavailable:
+        raise HTTPException(status_code=503, detail="Cash payments aren't set up on the server yet.")
+
+    total = float(order.get("totalAmount") or 0)
+    extras = sum(
+        float(charge.get("amount") or 0)
+        for charge in (order.get("extraCharges") or {}).values()
+        if charge and charge.get("status") == "APPROVED"
+    )
+    split = calculate_split(total, extras)
+
+    booking.status = "COMPLETED"
+    booking.total_amount = total
+
+    detail.payment_status = "PAID"
+    detail.amount_paid = total
+    detail.extra_amount = extras
+    detail.base_amount = total - extras
+    detail.paid_at = paid_at
+    detail.completed_at = detail.completed_at or paid_at
+    detail.trust_fee = split["trust_fee"]
+    detail.commission_amount = split["commission"]
+    detail.partner_payout = split["partner_payout"]
+
+    # Nothing to transfer: the partner already holds the money
+    if not db.get(BookingPayout, booking.id):
+        db.add(BookingPayout(booking_id=booking.id, status=CASH_COLLECTED))
+
+    db.commit()
 
     return payment_result(detail, split)
 

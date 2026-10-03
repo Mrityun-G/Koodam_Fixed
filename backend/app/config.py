@@ -64,6 +64,46 @@ def firebase_project_id() -> Optional[str]:
 
     return None
 
+def env_setting(*names: str) -> Optional[str]:
+    """
+    The first of these settings that has a value, from the environment or
+    either .env file (so a frontend VITE_ value only has to be set once).
+    """
+    for name in names:
+        value = os.getenv(name)
+
+        if value and value.strip():
+            return value.strip()
+
+    for path in (_BACKEND_ENV, _FRONTEND_ENV):
+        values = dotenv_values(path) if path.exists() else {}
+
+        for name in names:
+            value = values.get(name)
+
+            if value and value.strip():
+                return value.strip()
+
+    return None
+
+
+# =========================================================
+# PHONE BOOKING (offline mode)
+# Customers without a smartphone book by calling KOODAM's number. The
+# backend creates the same Firebase booking the app does, so partners
+# get it in their usual portal. Phone bookings are paid in cash.
+# =========================================================
+
+# The number customers call, as shown on the landing page
+IVR_PHONE_NUMBER = os.getenv("KOODAM_IVR_NUMBER", "")
+
+# The public https address of this backend, used to check that a call
+# webhook really came from the phone provider (e.g. https://api.koodam.in)
+IVR_PUBLIC_URL = os.getenv("KOODAM_IVR_PUBLIC_URL", "").rstrip("/")
+
+# Twilio signs every webhook with the account's auth token
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+
 # Business category Razorpay files each partner's Route linked account
 # under (values from Razorpay's business category list)
 ROUTE_BUSINESS_CATEGORY = os.getenv("KOODAM_ROUTE_CATEGORY", "services")

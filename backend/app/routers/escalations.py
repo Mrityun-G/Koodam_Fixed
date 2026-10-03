@@ -24,6 +24,7 @@ from app.escalations import (
     safe_sweep,
 )
 from app.models.booking import Booking
+from app.models.booking_detail import BookingDetail
 from app.models.escalation import Complaint, PartnerEscalation
 from app.models.partner import Partner
 from app.models.service import Service
@@ -309,7 +310,15 @@ def respond_to_complaint(
 
     complaint.partner_response = data.response.strip()
     complaint.responded_at = datetime.utcnow()
-    complaint.status = "RESPONDED"
+
+    # A phone customer has no app to read the reply and accept or
+    # escalate it, so KOODAM decides straight away
+    detail = db.get(BookingDetail, complaint.booking_id)
+    complaint.status = (
+        "NEEDS_REVIEW"
+        if detail and detail.source == "PHONE"
+        else "RESPONDED"
+    )
     db.commit()
 
     return complaint_response(complaint)

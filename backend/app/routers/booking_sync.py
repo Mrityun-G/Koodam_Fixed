@@ -462,6 +462,7 @@ def build_bills(db: Session, filters: list) -> list:
             "repair_photo_url": detail.repair_photo_url if detail else None,
             "total_amount": total,
             "payment_status": detail.payment_status if detail else "PENDING",
+            "payment_method": (detail.payment_method if detail else None) or "ONLINE",
             "amount_paid": detail.amount_paid if detail else 0.0,
             "razorpay_payment_id": detail.razorpay_payment_id if detail else None,
             "paid_at": to_iso_utc(detail.paid_at if detail else None),

@@ -10,6 +10,15 @@ import { PartnerPayouts } from '../components/PartnerPayouts';
 import { PartnerReliability } from '../components/PartnerReliability';
 import { Avatar } from '../components/Avatar';
 
+// Marks a job the customer booked by phone call (offline mode): they have
+// no app and pay in cash
+const PhoneBookingBadge = () => (
+  <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#7b2f00] bg-[#ffdbcc] px-2 py-0.5 rounded-full">
+    <span className="material-symbols-outlined text-[13px]">call</span>
+    Phone booking • Cash
+  </span>
+);
+
 export const PartnerDashboard = () => {
   const {
     isPartnerOnline,
@@ -39,6 +48,8 @@ export const PartnerDashboard = () => {
     setActiveTab,
     requestExtraCharge,
     submitRepairPhoto,
+    confirmCashPayment,
+    phoneBookingNumber,
     partnerUpcomingJobs,
     cycleServiceRadius,
     trustFee,
@@ -116,6 +127,7 @@ export const PartnerDashboard = () => {
   const [extraPhoto, setExtraPhoto] = useState(null);
   const [isSendingExtra, setIsSendingExtra] = useState(false);
   const [isUploadingRepair, setIsUploadingRepair] = useState(false);
+  const [isRecordingCash, setIsRecordingCash] = useState(false);
 
   // ================================
   // PARTNER BOTTOM NAVIGATION
@@ -829,6 +841,22 @@ export const PartnerDashboard = () => {
     setIsSendingExtra(false);
   };
 
+  // Booked by phone call (offline mode): the customer has no app, so they
+  // can't chat or see a completion code, and they pay in cash
+  const isPhoneBooking = activeOrder.source === 'PHONE';
+
+  const handleCashReceived = async () => {
+    if (isRecordingCash) return;
+
+    if (!window.confirm(`Confirm you received ₹${activeOrder.totalAmount} in cash from the customer?`)) {
+      return;
+    }
+
+    setIsRecordingCash(true);
+    await confirmCashPayment();
+    setIsRecordingCash(false);
+  };
+
   const handleRepairPhoto = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -1094,6 +1122,8 @@ export const PartnerDashboard = () => {
             <h3 className="font-bold text-base text-[#0b1c30] line-clamp-1">
               {incomingJobDetails.title}
             </h3>
+
+            {incomingJobDetails.isPhoneBooking && <PhoneBookingBadge />}
 
             <div className="mt-2 space-y-1.5 text-xs text-[#5a4136]">
 
@@ -1461,6 +1491,8 @@ export const PartnerDashboard = () => {
                   {incomingJobDetails.title}
                 </h3>
 
+                {incomingJobDetails.isPhoneBooking && <PhoneBookingBadge />}
+
                 <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
 
                   <span className="material-symbols-outlined text-[15px] text-[#a14000]">
@@ -1588,6 +1620,34 @@ export const PartnerDashboard = () => {
           </section>
         )}
 
+        {isPhoneBooking &&
+          activeOrder.currentStep >= 3 &&
+          activeOrder.currentStep <= 4 && (
+            <section className="bg-[#fff8f4] rounded-2xl p-4 border border-[#ffdbcc] flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">call</span>
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#0b1c30]">Phone booking • Cash</p>
+                  <p className="text-[11px] text-slate-600">
+                    {`This customer booked by phone and has no app. Call them for the exact address. They pay ₹${activeOrder.totalAmount} in cash after the work.`}
+                  </p>
+                </div>
+              </div>
+
+              {activeOrder.customerPhone && (
+                <a
+                  href={`tel:${activeOrder.customerPhone}`}
+                  className="w-full py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold text-center active:scale-95 transition-all"
+                >
+                  <span data-no-translate>{`Call ${activeOrder.customerPhone}`}</span>
+                </a>
+              )}
+            </section>
+          )}
+
         {activeOrder.currentStep >= 3 &&
   activeOrder.currentStep < 4 && (
           <section className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 space-y-3">
@@ -1642,6 +1702,7 @@ export const PartnerDashboard = () => {
         )}
 
         {activeOrder.currentStep === 4 &&
+          !isPhoneBooking &&
           activeOrder.completionOtp &&
           canShareCompletionCode && (
             <section className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex items-center justify-between gap-3">
@@ -1695,7 +1756,9 @@ export const PartnerDashboard = () => {
                 </p>
 
                 <p className="text-[11px] text-slate-500">
-                  Need a costly component? Send the estimate for the customer to approve.
+                  {isPhoneBooking
+                    ? `Send the estimate, then ask the customer to call ${phoneBookingNumber || "KOODAM's phone booking number"} to approve it.`
+                    : 'Need a costly component? Send the estimate for the customer to approve.'}
                 </p>
               </div>
             </div>
@@ -1853,7 +1916,11 @@ export const PartnerDashboard = () => {
 
             {!canShareCompletionCode && (
               <p className="text-[11px] font-medium text-amber-700">
-                {hasPendingExtraCharge
+                {isPhoneBooking
+                  ? hasPendingExtraCharge
+                    ? 'Cash collection opens once the customer approves or declines the extra parts cost by phone.'
+                    : 'Cash collection opens once the repair photo is uploaded.'
+                  : hasPendingExtraCharge
                   ? 'The completion code appears once the customer answers the extra parts cost.'
                   : 'The completion code appears once the repair photo is uploaded.'}
               </p>
@@ -1861,6 +1928,40 @@ export const PartnerDashboard = () => {
           </section>
         )}
 
+        {isPhoneBooking &&
+          activeOrder.currentStep === 4 &&
+          canShareCompletionCode && (
+            <section className="bg-white rounded-2xl p-4 shadow-xs border border-[#6ffbbe]/60 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-[#6ffbbe]/40 text-[#006c49] flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[18px]">payments</span>
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-[#0b1c30]">Collect Cash</p>
+                    <p className="text-[11px] text-slate-500">
+                      Take the full amount, then confirm to finish the job
+                    </p>
+                  </div>
+                </div>
+
+                <span className="shrink-0 text-lg font-extrabold text-[#006c49]">
+                  ₹{activeOrder.totalAmount}
+                </span>
+              </div>
+
+              <button
+                onClick={handleCashReceived}
+                disabled={isRecordingCash}
+                className="w-full py-2.5 rounded-xl bg-[#006c49] hover:bg-[#005237] disabled:opacity-60 text-white text-xs font-bold active:scale-95 transition-all"
+              >
+                {isRecordingCash ? 'Recording…' : 'Cash Received'}
+              </button>
+            </section>
+          )}
+
+        {!isPhoneBooking && (
         <button
           onClick={() => {
             setChatPartner({
@@ -1897,6 +1998,7 @@ export const PartnerDashboard = () => {
             chevron_right
           </span>
         </button>
+        )}
 
         {activeOrder.bookingStatus === 'ACCEPTED' && (
           <button

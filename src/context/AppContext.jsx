@@ -126,6 +126,7 @@ const EMPTY_ORDER = {
 // Screens shown before login; a restored login moves past these
 const SIGNED_OUT_SCREENS = [
   'landing',
+  'offline',
   'welcome',
   'memberLogin',
   'memberSignup',
@@ -563,6 +564,9 @@ const [notificationsEnabled, setNotificationsEnabled] =
   const [platformCommissionPercent, setPlatformCommissionPercent] =
     useState(10);
 
+  // The number customers without a smartphone call to book (offline mode)
+  const [phoneBookingNumber, setPhoneBookingNumber] = useState('');
+
   useEffect(() => {
     fetch(`${BACKEND_URL}/config`)
       .then((response) => (response.ok ? response.json() : null))
@@ -572,6 +576,7 @@ const [notificationsEnabled, setNotificationsEnabled] =
         setPlatformCommissionPercent(
           Number(config.platform_commission_percent)
         );
+        setPhoneBookingNumber(config.phone_booking_number || '');
       })
       .catch((error) => {
         console.error('Failed to load app settings:', error);
@@ -1624,7 +1629,12 @@ const requestsRef = ref(db, requestPath);
             scheduledAt:
               latestRequest.scheduledAt || null,
             customerId:
-              latestRequest.customerId || null
+              latestRequest.customerId || null,
+            // Booked by calling KOODAM: no app, pays in cash
+            isPhoneBooking:
+              latestRequest.source === 'PHONE',
+            customerPhone:
+              latestRequest.customerPhone || ''
           });
 
           setHasIncomingJob(true);
@@ -3652,6 +3662,35 @@ const verifyCompletionOtp = async (rawCode) => {
   return true;
 };
 
+// Partner: a phone customer paid in cash. The backend checks the live
+// order (job started, repair photo in, extra costs answered) and marks
+// it paid; this phone's order listener then shows the job as done.
+const confirmCashPayment = async () => {
+  if (!activeOrder.orderId) return false;
+
+  try {
+    await authorizedFetch('/payments/cash', {
+      method: 'POST',
+      body: JSON.stringify({
+        firebase_order_id: String(activeOrder.orderId)
+      })
+    });
+  } catch (error) {
+    showToast(error.message || 'Unable to record the cash payment. Please try again.');
+    return false;
+  }
+
+  addNotification('partner', {
+    title: 'Cash Payment Recorded',
+    desc: `₹${activeOrder.totalAmount} cash for ${activeOrder.serviceTitle}. KOODAM's share is settled from your earnings.`,
+    screen: 'partner',
+    tab: 'jobs'
+  });
+
+  showToast('Cash payment recorded. Job complete!');
+  return true;
+};
+
 const markPaymentCompleted = (paymentResponse = {}) => {
   updateActiveOrder({
     paymentStatus: 'PAID',
@@ -4241,6 +4280,8 @@ return (
       requestExtraCharge,
       respondToExtraCharge,
       submitRepairPhoto,
+      confirmCashPayment,
+      phoneBookingNumber,
       markPaymentCompleted,
 
       submitRating,
