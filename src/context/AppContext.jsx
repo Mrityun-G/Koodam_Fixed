@@ -268,7 +268,34 @@ const authErrorMessage = (err) => {
     return 'Too many attempts. Please try again in a moment.';
   }
 
+  // fetch() couldn't reach the backend (offline, or the server is
+  // restarting / waking up)
+  if (err instanceof TypeError && /fetch/i.test(err.message)) {
+    return "Couldn't reach the KOODAM server. Check your internet and try again in a minute.";
+  }
+
   return err?.message || 'Something went wrong. Please try again.';
+};
+
+// fetch() that tries again when the backend is briefly unreachable:
+// a network error, or 502/503/504 while the server restarts after a
+// deploy or wakes from sleep. Other responses are returned as they are.
+const fetchWithRetry = async (url, options, retries = 2, delayMs = 4000) => {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const response = await fetch(url, options);
+
+      if (![502, 503, 504].includes(response.status) || attempt >= retries) {
+        return response;
+      }
+    } catch (error) {
+      if (attempt >= retries) {
+        throw error;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
 };
 
 
@@ -1838,7 +1865,7 @@ const requestsRef = ref(db, requestPath);
 
   const idToken = await firebaseUser.getIdToken();
 
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `${BACKEND_URL}/users/sync`,
     {
       method: 'POST',
