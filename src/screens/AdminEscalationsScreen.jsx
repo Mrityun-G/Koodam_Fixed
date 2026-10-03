@@ -144,6 +144,30 @@ export const AdminEscalationsScreen = () => {
     }
   };
 
+  const deactivate = (partner) => {
+    const reason = window.prompt(
+      `Why deactivate ${partner.name}? They'll see this reason.`
+    );
+
+    if (reason && reason.trim().length >= 3) {
+      act(
+        `/admin/partners/${partner.id}/deactivate`,
+        { reason },
+        `${partner.name} is deactivated. Customers can't book them.`
+      );
+    }
+  };
+
+  const reactivate = (partner) => {
+    if (window.confirm(`Reactivate ${partner.name}? Customers will be able to book them again.`)) {
+      act(
+        `/admin/partners/${partner.id}/reactivate`,
+        {},
+        `${partner.name} is active again.`
+      );
+    }
+  };
+
   const submitManual = async () => {
     const done = await act(
       '/admin/escalations',
@@ -223,7 +247,7 @@ export const AdminEscalationsScreen = () => {
                 <option value="">Choose a partner</option>
                 {data.partners.map((partner) => (
                   <option key={partner.id} value={partner.id}>
-                    {`${partner.name} (score ${Math.round(partner.reliability_score)}${partner.suspended ? ', suspended' : ''})`}
+                    {`${partner.name} (score ${Math.round(partner.reliability_score)}${partner.deactivated ? ', deactivated' : partner.suspended ? ', suspended' : ''})`}
                   </option>
                 ))}
               </select>
@@ -255,6 +279,53 @@ export const AdminEscalationsScreen = () => {
                 </button>
               </div>
             </Card>
+
+            <SectionTitle>Partner accounts</SectionTitle>
+            <p className="text-[11px] text-slate-400">
+              Deactivating hides a partner from customers until you reactivate them. No strike is added to their record.
+            </p>
+            {data.partners.length === 0 ? (
+              <p className="text-[11px] text-slate-400">No partners yet.</p>
+            ) : (
+              data.partners.map((partner) => (
+                <Card key={partner.id}>
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold text-[#0b1c30] truncate">{partner.name}</p>
+                      <p className={partner.deactivated ? 'text-red-500 font-bold' : partner.suspended ? 'text-amber-600 font-bold' : 'text-[#006c49] font-bold'}>
+                        {partner.deactivated
+                          ? `Deactivated ${formatDate(partner.deactivated_at)}`
+                          : partner.suspended
+                          ? `Suspended until ${formatDate(partner.suspended_until)}`
+                          : 'Active'}
+                      </p>
+                    </div>
+                    {partner.deactivated ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => reactivate(partner)}
+                        className="shrink-0 font-bold text-white bg-[#006c49] rounded-lg px-3 py-2 disabled:opacity-60"
+                      >
+                        Reactivate
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => deactivate(partner)}
+                        className="shrink-0 font-bold text-red-500 border border-red-200 rounded-lg px-3 py-2 disabled:opacity-60"
+                      >
+                        Deactivate
+                      </button>
+                    )}
+                  </div>
+                  {partner.deactivated && partner.deactivation_reason && (
+                    <p className="text-[#5a4136]">{`Reason: ${partner.deactivation_reason}`}</p>
+                  )}
+                </Card>
+              ))
+            )}
 
             <SectionTitle>Recent escalations</SectionTitle>
             {data.escalations.length === 0 ? (

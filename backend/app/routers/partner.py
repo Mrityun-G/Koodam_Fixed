@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from app.auth import current_firebase_uid
 from app.database import get_db
-from app.escalations import is_suspended
+from app.escalations import is_deactivated, is_suspended
 from app.models.partner import Partner
 from app.models.user import User
 from app.models.partner_document import PartnerDocument
@@ -287,6 +287,12 @@ def update_online_status(
         raise HTTPException(
             status_code=403,
             detail="You can only change your own status"
+        )
+
+    if data.is_online and is_deactivated(partner):
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been deactivated by KOODAM, so you can't go online"
         )
 
     if data.is_online and is_suspended(partner):
