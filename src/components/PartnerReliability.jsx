@@ -67,7 +67,21 @@ export const PartnerReliability = () => {
 
   return (
     <section className="space-y-2">
-      {record.suspended && (
+      {record.deactivated && (
+        <div className="rounded-2xl bg-red-50 border border-red-100 p-3.5">
+          <p className="text-xs font-extrabold text-red-600 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[16px]">block</span>
+            Account deactivated by KOODAM
+          </p>
+          <p className="text-[11px] text-red-600/80 mt-0.5">
+            {record.deactivation_reason
+              ? `Reason: ${record.deactivation_reason}. Customers can't book you until KOODAM reactivates your account.`
+              : "Customers can't book you until KOODAM reactivates your account."}
+          </p>
+        </div>
+      )}
+
+      {!record.deactivated && record.suspended && (
         <div className="rounded-2xl bg-red-50 border border-red-100 p-3.5">
           <p className="text-xs font-extrabold text-red-600 flex items-center gap-1">
             <span className="material-symbols-outlined text-[16px]">block</span>

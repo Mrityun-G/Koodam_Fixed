@@ -117,6 +117,18 @@ def create_payment_order(
             detail="Payment opens once the partner's work is verified as complete."
         )
 
+    # Every extra part must be approved or declined before the bill is final
+    has_pending_extras = db.query(BookingExtraCharge).filter(
+        BookingExtraCharge.booking_id == booking.id,
+        BookingExtraCharge.status == "PENDING"
+    ).first()
+
+    if has_pending_extras:
+        raise HTTPException(
+            status_code=409,
+            detail="Approve or decline the extra parts cost before paying."
+        )
+
     total = booking.total_amount or 0.0
 
     if total <= 0:

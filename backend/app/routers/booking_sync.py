@@ -40,6 +40,7 @@ class ExtraChargeSync(BaseModel):
     item: str
     amount: float
     status: str = "PENDING"
+    photo_url: Optional[str] = None
     created_at: Timestamp = None
     responded_at: Timestamp = None
 
@@ -75,6 +76,8 @@ class BookingSync(BaseModel):
 
     extra_charges: list[ExtraChargeSync] = []
 
+    repair_photo_url: Optional[str] = None
+
     rating: Optional[int] = None
     feedback: Optional[str] = None
 
@@ -94,6 +97,14 @@ def parse_timestamp(value: Timestamp) -> Optional[datetime]:
         return parsed.replace(tzinfo=None)
     except (ValueError, OverflowError, OSError):
         return None
+
+
+def photo_link(value: Optional[str]) -> Optional[str]:
+    # Only hosted photos are kept; anything else isn't a link we can show
+    if value and value.startswith(("https://", "http://")) and len(value) <= 2048:
+        return value
+
+    return None
 
 
 def parse_uuid(value: Optional[str]) -> Optional[UUID]:
@@ -206,6 +217,7 @@ def sync_extra_charges(db: Session, booking: Booking, data: BookingSync) -> floa
         record.item = charge.item
         record.amount = charge.amount
         record.status = charge.status
+        record.photo_url = photo_link(charge.photo_url) or record.photo_url
         record.created_at = parse_timestamp(charge.created_at)
         record.responded_at = parse_timestamp(charge.responded_at)
 
@@ -274,6 +286,9 @@ def apply_sync(db: Session, data: BookingSync) -> Booking:
         booking.longitude = data.longitude
 
     detail.current_step = data.current_step
+    detail.repair_photo_url = (
+        photo_link(data.repair_photo_url) or detail.repair_photo_url
+    )
     detail.extra_amount = sync_extra_charges(db, booking, data)
     detail.base_amount = (booking.total_amount or 0.0) - detail.extra_amount
 
@@ -403,7 +418,8 @@ def build_bills(db: Session, filters: list) -> list:
             charges_by_booking.setdefault(charge.booking_id, []).append({
                 "item": charge.item,
                 "amount": charge.amount,
-                "status": charge.status
+                "status": charge.status,
+                "photo_url": charge.photo_url
             })
 
     complaints = complaints_by_booking(db, booking_ids)
@@ -443,6 +459,7 @@ def build_bills(db: Session, filters: list) -> list:
             "partner_payout": split["partner_payout"],
             "extra_amount": extra,
             "extra_charges": charges_by_booking.get(booking.id, []),
+            "repair_photo_url": detail.repair_photo_url if detail else None,
             "total_amount": total,
             "payment_status": detail.payment_status if detail else "PENDING",
             "amount_paid": detail.amount_paid if detail else 0.0,

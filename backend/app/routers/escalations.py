@@ -17,6 +17,7 @@ from app.config import (
 )
 from app.database import get_db
 from app.escalations import (
+    is_deactivated,
     is_suspended,
     penalize,
     refresh_suspension,
@@ -358,6 +359,8 @@ def get_partner_reliability(
         "reliability_score": partner.reliability_score,
         "suspended": is_suspended(partner),
         "suspended_until": to_iso_utc(partner.suspended_until),
+        "deactivated": is_deactivated(partner),
+        "deactivation_reason": partner.deactivation_reason,
         "recent_strikes": recent_strikes,
         "strikes_to_suspend": STRIKES_TO_SUSPEND,
         "strike_window_days": STRIKE_WINDOW_DAYS,
@@ -446,6 +449,9 @@ def admin_overview(
                 "reliability_score": partner.reliability_score,
                 "suspended": is_suspended(partner),
                 "suspended_until": to_iso_utc(partner.suspended_until),
+                "deactivated": is_deactivated(partner),
+                "deactivated_at": to_iso_utc(partner.deactivated_at),
+                "deactivation_reason": partner.deactivation_reason,
             }
             for partner, name in partners
         ],
@@ -566,3 +572,69 @@ def overturn_escalation(
     db.commit()
 
     return escalation_response(escalation)
+
+
+# ---------------------------------------------------------
+# Removing a partner. Unlike a suspension this has no end date and
+# leaves no strike on their record; it lasts until KOODAM reactivates
+# them. Jobs they already accepted can still be finished.
+# ---------------------------------------------------------
+
+class Deactivation(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)
+
+
+def admin_partner_response(partner: Partner) -> dict:
+    return {
+        "id": partner.id,
+        "deactivated": is_deactivated(partner),
+        "deactivated_at": to_iso_utc(partner.deactivated_at),
+        "deactivation_reason": partner.deactivation_reason,
+    }
+
+
+@router.post("/admin/partners/{partner_id}/deactivate")
+def deactivate_partner(
+    partner_id: UUID,
+    data: Deactivation,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    partner = db.get(Partner, partner_id)
+
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+
+    if is_deactivated(partner):
+        raise HTTPException(status_code=409, detail="This partner is already deactivated.")
+
+    partner.deactivated_at = datetime.utcnow()
+    partner.deactivation_reason = data.reason.strip()
+    # Stop new requests reaching them straight away
+    partner.is_online = False
+
+    db.commit()
+
+    return admin_partner_response(partner)
+
+
+@router.post("/admin/partners/{partner_id}/reactivate")
+def reactivate_partner(
+    partner_id: UUID,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    partner = db.get(Partner, partner_id)
+
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+
+    if not is_deactivated(partner):
+        raise HTTPException(status_code=409, detail="This partner is already active.")
+
+    partner.deactivated_at = None
+    partner.deactivation_reason = None
+
+    db.commit()
+
+    return admin_partner_response(partner)

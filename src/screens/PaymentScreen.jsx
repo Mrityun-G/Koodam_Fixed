@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { RepairBill } from '../components/RepairBill';
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
@@ -32,25 +33,10 @@ export const PaymentScreen = () => {
     : Number(selectedService?.price || 0) +
       Number(trustFee || 0);
 
-  // Bill lines for a completed job: the total is the backend's figure,
-  // the lines just explain it
-  const approvedExtras = Object.entries(activeOrder?.extraCharges || {})
-    .filter(([, charge]) => charge.status === 'APPROVED');
-
-  const extrasTotal = approvedExtras.reduce(
-    (sum, [, charge]) => sum + Number(charge.amount || 0),
-    0
-  );
-
-  const billTrustFee = Math.min(
-    Number(trustFee || 0),
-    Math.max(totalAmount - extrasTotal, 0)
-  );
-
-  const servicePrice = Math.max(
-    totalAmount - extrasTotal - billTrustFee,
-    0
-  );
+  // The bill isn't final while an extra part is still waiting for an answer
+  const hasPendingExtraCharges = Object.values(
+    activeOrder?.extraCharges || {}
+  ).some((charge) => charge.status === 'PENDING');
 
   const loadRazorpay = () =>
     new Promise((resolve) => {
@@ -116,6 +102,11 @@ export const PaymentScreen = () => {
   const handleRazorpayPayment = async () => {
     if (!totalAmount || !activeOrder?.orderId) {
       showToast('Invalid payment amount.');
+      return;
+    }
+
+    if (hasPendingExtraCharges) {
+      showToast('Approve or decline the extra parts cost before paying.');
       return;
     }
 
@@ -269,52 +260,7 @@ export const PaymentScreen = () => {
 
             <div className="my-3 border-t border-slate-100" />
 
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500">
-                {activeOrder.serviceTitle || 'Service'}
-              </span>
-
-              <span className="font-bold text-[#0b1c30]">
-                ₹{servicePrice}
-              </span>
-            </div>
-
-            <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">
-                Trust Shield fee
-              </span>
-
-              <span className="font-bold text-[#0b1c30]">
-                ₹{billTrustFee}
-              </span>
-            </div>
-
-            {approvedExtras.map(([chargeId, charge]) => (
-              <div
-                key={chargeId}
-                className="mt-2 flex items-center justify-between gap-2 text-xs"
-              >
-                <span className="truncate text-slate-500">
-                  {charge.item} (extra part)
-                </span>
-
-                <span className="shrink-0 font-bold text-[#0b1c30]">
-                  ₹{Number(charge.amount || 0)}
-                </span>
-              </div>
-            ))}
-
-            <div className="my-3 border-t border-slate-100" />
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-[#0b1c30]">
-                Total
-              </span>
-
-              <span className="text-xl font-extrabold text-[#a14000]">
-                ₹{totalAmount}
-              </span>
-            </div>
+            <RepairBill order={activeOrder} fallbackTrustFee={trustFee} />
 
           </div>
 
@@ -333,7 +279,7 @@ export const PaymentScreen = () => {
 
           <button
             type="button"
-            disabled={processing}
+            disabled={processing || hasPendingExtraCharges}
             onClick={handleRazorpayPayment}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-[#ff6a00] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#ff6a00]/30 disabled:opacity-60"
           >

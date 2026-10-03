@@ -38,6 +38,7 @@ export const PartnerDashboard = () => {
     activeTab,
     setActiveTab,
     requestExtraCharge,
+    submitRepairPhoto,
     partnerUpcomingJobs,
     cycleServiceRadius,
     trustFee,
@@ -112,6 +113,9 @@ export const PartnerDashboard = () => {
   );
   const [extraItem, setExtraItem] = useState('');
   const [extraAmount, setExtraAmount] = useState('');
+  const [extraPhoto, setExtraPhoto] = useState(null);
+  const [isSendingExtra, setIsSendingExtra] = useState(false);
+  const [isUploadingRepair, setIsUploadingRepair] = useState(false);
 
   // ================================
   // PARTNER BOTTOM NAVIGATION
@@ -802,11 +806,38 @@ export const PartnerDashboard = () => {
     ([, a], [, b]) => (a.createdAt || 0) - (b.createdAt || 0)
   );
 
-  const handleRequestExtraCharge = () => {
-    if (requestExtraCharge(extraItem, extraAmount)) {
+  const hasPendingExtraCharge = extraChargeList.some(
+    ([, charge]) => charge.status === 'PENDING'
+  );
+
+  // The customer completes the job only after seeing the finished repair
+  // and settling every extra cost, so the code is held back until then
+  const canShareCompletionCode =
+    Boolean(activeOrder.repairPhotoUrl) && !hasPendingExtraCharge;
+
+  const handleRequestExtraCharge = async () => {
+    if (isSendingExtra) return;
+
+    setIsSendingExtra(true);
+
+    if (await requestExtraCharge(extraItem, extraAmount, extraPhoto)) {
       setExtraItem('');
       setExtraAmount('');
+      setExtraPhoto(null);
     }
+
+    setIsSendingExtra(false);
+  };
+
+  const handleRepairPhoto = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file || isUploadingRepair) return;
+
+    setIsUploadingRepair(true);
+    await submitRepairPhoto(file);
+    setIsUploadingRepair(false);
   };
 
   // ================================
@@ -1611,7 +1642,8 @@ export const PartnerDashboard = () => {
         )}
 
         {activeOrder.currentStep === 4 &&
-          activeOrder.completionOtp && (
+          activeOrder.completionOtp &&
+          canShareCompletionCode && (
             <section className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex items-center justify-between gap-3">
 
               <div className="flex items-center gap-3 min-w-0">
@@ -1675,9 +1707,19 @@ export const PartnerDashboard = () => {
                     key={chargeId}
                     className="flex items-center justify-between gap-2 bg-[#f8f9ff] rounded-xl px-3 py-2"
                   >
-                    <span className="text-xs text-[#0b1c30] truncate">
-                      {charge.item} • ₹{charge.amount}
-                    </span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {charge.photoUrl && (
+                        <img
+                          src={charge.photoUrl}
+                          alt={charge.item}
+                          className="w-8 h-8 rounded-lg object-cover shrink-0"
+                        />
+                      )}
+
+                      <span className="text-xs text-[#0b1c30] truncate">
+                        {charge.item} • ₹{charge.amount}
+                      </span>
+                    </div>
 
                     <span
                       className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${EXTRA_CHARGE_STATUS[charge.status]?.tone || 'bg-slate-100 text-slate-500'}`}
@@ -1710,13 +1752,112 @@ export const PartnerDashboard = () => {
               />
             </div>
 
+            <label className="flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-[#f8f9ff] px-3 py-2 text-xs text-slate-500 cursor-pointer">
+              <span className="material-symbols-outlined text-[18px] text-[#a14000]">
+                photo_camera
+              </span>
+
+              <span className="flex-1 min-w-0 truncate">
+                {extraPhoto ? extraPhoto.name : 'Add a photo of the part (optional)'}
+              </span>
+
+              {extraPhoto && (
+                <button
+                  type="button"
+                  aria-label="Remove photo"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setExtraPhoto(null);
+                  }}
+                  className="material-symbols-outlined text-[16px] text-slate-400"
+                >
+                  close
+                </button>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  setExtraPhoto(e.target.files?.[0] || null);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+
             <button
               onClick={handleRequestExtraCharge}
-              disabled={!extraItem.trim() || !extraAmount}
+              disabled={!extraItem.trim() || !extraAmount || isSendingExtra}
               className="w-full py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all"
             >
-              Send for Approval
+              {isSendingExtra ? 'Sending…' : 'Send for Approval'}
             </button>
+          </section>
+        )}
+
+        {activeOrder.currentStep === 4 && (
+          <section className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
+
+            <div className="flex items-center gap-3">
+
+              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">
+                  add_a_photo
+                </span>
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#0b1c30]">
+                  Repair Photo
+                </p>
+
+                <p className="text-[11px] text-slate-500">
+                  {activeOrder.repairPhotoUrl
+                    ? 'The customer can see this with the final bill.'
+                    : 'Take a photo of the finished work. The customer sees it with the bill before paying.'}
+                </p>
+              </div>
+            </div>
+
+            {activeOrder.repairPhotoUrl && (
+              <img
+                src={activeOrder.repairPhotoUrl}
+                alt="Finished repair"
+                className="w-full max-h-48 rounded-xl object-cover"
+              />
+            )}
+
+            <label
+              className={`w-full py-2.5 rounded-xl text-xs font-bold text-center cursor-pointer active:scale-95 transition-all ${
+                activeOrder.repairPhotoUrl
+                  ? 'border border-slate-200 text-[#0b1c30] bg-white'
+                  : 'bg-[#ff6a00] hover:bg-[#a14000] text-white'
+              } ${isUploadingRepair ? 'opacity-60 pointer-events-none' : ''}`}
+            >
+              {isUploadingRepair
+                ? 'Uploading…'
+                : activeOrder.repairPhotoUrl
+                ? 'Retake Photo'
+                : 'Upload Repair Photo'}
+
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleRepairPhoto}
+              />
+            </label>
+
+            {!canShareCompletionCode && (
+              <p className="text-[11px] font-medium text-amber-700">
+                {hasPendingExtraCharge
+                  ? 'The completion code appears once the customer answers the extra parts cost.'
+                  : 'The completion code appears once the repair photo is uploaded.'}
+              </p>
+            )}
           </section>
         )}
 

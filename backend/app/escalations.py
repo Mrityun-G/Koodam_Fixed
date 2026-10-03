@@ -55,6 +55,15 @@ def is_suspended(partner: Partner) -> bool:
     )
 
 
+def is_deactivated(partner: Partner) -> bool:
+    return partner.deactivated_at is not None
+
+
+def can_take_bookings(partner: Partner) -> bool:
+    # Neither suspended for strikes nor removed by KOODAM
+    return not is_suspended(partner) and not is_deactivated(partner)
+
+
 def refresh_suspension(db: Session, partner: Partner, new_strike: bool):
     """
     Suspend the partner when a new strike takes them to the limit, and

@@ -7,7 +7,7 @@ from app.models.service import Service
 from app.models.partner_service import PartnerService
 from app.models.partner import Partner
 from app.models.user import User
-from app.escalations import is_suspended
+from app.escalations import can_take_bookings
 from app.schemas.service import ServiceCreate, ServiceResponse
 
 
@@ -48,7 +48,7 @@ def get_services(
 
 
 def is_bookable(partner) -> bool:
-    return bool(partner.is_online) and not is_suspended(partner)
+    return bool(partner.is_online) and can_take_bookings(partner)
 
 
 def partner_listing(partner, user, partner_service) -> dict:
