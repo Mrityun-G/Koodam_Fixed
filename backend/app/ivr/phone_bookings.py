@@ -104,7 +104,7 @@ def phone_services(db: Session) -> list:
     return (
         db.query(Service)
         .filter(Service.is_active == True)
-        .order_by(Service.title.asc())
+        .order_by(Service.sort_order, Service.title)
         .limit(9)
         .all()
     )

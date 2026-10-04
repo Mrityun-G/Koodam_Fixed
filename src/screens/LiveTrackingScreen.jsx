@@ -20,6 +20,7 @@ export const LiveTrackingScreen = () => {
     destinationCoords,
     liveDistanceKm,
     liveEtaMinutes,
+    liveRoute,
     respondToExtraCharge,
     cancelBookingRequest,
     trustFee
@@ -51,6 +52,7 @@ export const LiveTrackingScreen = () => {
     activeOrder.bookingStatus
   );
   const canCancel = activeOrder.bookingStatus === 'PENDING';
+  const [mapExpanded, setMapExpanded] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
   const handleCancelRequest = async () => {
@@ -633,8 +635,17 @@ export const LiveTrackingScreen = () => {
           )}
 
           {/* Live GPS Map Card */}
-          <div className="relative w-full h-36 rounded-2xl overflow-hidden shadow-xs flex flex-col justify-end p-3 border border-slate-200">
-            <LiveMap partnerLocation={partnerLocation} destination={destinationCoords} />
+          <div
+            className={`relative w-full rounded-2xl overflow-hidden shadow-xs flex flex-col justify-end p-3 border border-slate-200 transition-[height] duration-300 ${
+              mapExpanded ? 'h-[420px]' : 'h-44'
+            }`}
+          >
+            <LiveMap
+              partnerLocation={partnerLocation}
+              destination={destinationCoords}
+              route={liveRoute?.path}
+              interactive={mapExpanded}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0b1c30]/90 via-[#0b1c30]/10 to-transparent pointer-events-none"></div>
 
             <div className="relative z-10 flex items-center justify-between">
@@ -657,11 +668,13 @@ export const LiveTrackingScreen = () => {
               </div>
 
               <button
-                onClick={() => showToast(partnerLocation ? 'Zoomed into live GPS map' : 'Waiting for partner to start sharing live GPS')}
+                onClick={() => setMapExpanded((expanded) => !expanded)}
                 className="px-3 py-1 rounded-full bg-white text-[#a14000] text-xs font-bold shadow-md hover:bg-slate-100 transition-colors flex items-center gap-1 active:scale-95"
               >
-                <span>Zoom Map</span>
-                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                <span>{mapExpanded ? 'Collapse' : 'Expand Map'}</span>
+                <span className="material-symbols-outlined text-[14px]">
+                  {mapExpanded ? 'close_fullscreen' : 'open_in_full'}
+                </span>
               </button>
             </div>
           </div>

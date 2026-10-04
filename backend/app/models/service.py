@@ -27,3 +27,13 @@ class Service(Base):
     tag = Column(String, nullable=True)
 
     is_active = Column(Boolean, default=True)
+
+    # How the service's tile looks on the customer Home screen
+    icon = Column(String, nullable=True)
+
+    bg_color = Column(String, nullable=True)
+
+    icon_color = Column(String, nullable=True)
+
+    # Tiles are listed lowest first
+    sort_order = Column(Integer, nullable=False, default=0)

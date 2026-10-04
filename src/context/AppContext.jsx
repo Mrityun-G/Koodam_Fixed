@@ -44,6 +44,8 @@ import {
 
 import { authorizedFetch } from '../lib/authorizedFetch';
 
+import { useRoute } from '../lib/route';
+
 import { uploadRepairPhoto, isHostedPhoto } from '../lib/repairPhoto';
 
 import {
@@ -949,6 +951,9 @@ useEffect(() => {
 
   const geoWatchIdRef = useRef(null);
 
+  // The order the partner's GPS is being written under
+  const sharingOrderIdRef = useRef(null);
+
 
   // Member side: subscribe to partner live location
   useEffect(() => {
@@ -993,6 +998,8 @@ useEffect(() => {
 
 
   const startSharingLocation = () => {
+    const orderId = activeOrder.orderId;
+
     if (!isFirebaseConfigured || !db) {
       showToast(
         'Live GPS needs Firebase setup — add keys to .env.local first.'
@@ -1004,6 +1011,11 @@ useEffect(() => {
       showToast(
         'Geolocation is not supported on this device/browser.'
       );
+      return;
+    }
+
+    if (!orderId) {
+      showToast('Live GPS is shared with the customer of an active job.');
       return;
     }
 
@@ -1020,7 +1032,7 @@ useEffect(() => {
           set(
             ref(
               db,
-              `liveLocations/${toDbKey(activeOrder.orderId)}`
+              `liveLocations/${toDbKey(orderId)}`
             ),
             {
               lat: latitude,
@@ -1047,6 +1059,7 @@ useEffect(() => {
           // Stop the watch too, or it keeps running while the UI shows stopped
           navigator.geolocation.clearWatch(watchId);
           geoWatchIdRef.current = null;
+          sharingOrderIdRef.current = null;
           setIsSharingLocation(false);
         },
 
@@ -1058,6 +1071,7 @@ useEffect(() => {
       );
 
     geoWatchIdRef.current = watchId;
+    sharingOrderIdRef.current = orderId;
 
     setIsSharingLocation(true);
 
@@ -1067,7 +1081,7 @@ useEffect(() => {
   };
 
 
-  const stopSharingLocation = () => {
+  const stopSharingLocation = ({ quiet = false } = {}) => {
     if (geoWatchIdRef.current != null) {
       navigator.geolocation.clearWatch(
         geoWatchIdRef.current
@@ -1078,20 +1092,29 @@ useEffect(() => {
 
     setIsSharingLocation(false);
 
+    // Clear the order the GPS was written under, which may not be the
+    // order on screen any more
+    const orderId =
+      sharingOrderIdRef.current || activeOrder.orderId;
+
+    sharingOrderIdRef.current = null;
+
     if (
       isFirebaseConfigured &&
       db &&
-      activeOrder.orderId
+      orderId
     ) {
       remove(
         ref(
           db,
-          `liveLocations/${toDbKey(activeOrder.orderId)}`
+          `liveLocations/${toDbKey(orderId)}`
         )
       );
     }
 
-    showToast('Stopped sharing live location.');
+    if (!quiet) {
+      showToast('Stopped sharing live location.');
+    }
   };
 
 
@@ -1104,14 +1127,24 @@ useEffect(() => {
       ? userCoords
       : null;
 
+  // Road route from the partner to the job, re-fetched as they move;
+  // null until found, then distance/ETA fall back to a straight line
+  const liveRoute = useRoute(
+    partnerLocation,
+    destinationCoords
+  );
+
   const liveDistanceKm = partnerLocation && destinationCoords
-    ? haversineDistanceKm(
+    ? liveRoute?.distanceKm ??
+      haversineDistanceKm(
         partnerLocation,
         destinationCoords
       )
     : null;
 
 
+  // From the road distance at city-traffic speed: OSRM's own duration
+  // assumes empty roads, far too optimistic for Indian traffic
   const liveEtaMinutes =
     liveDistanceKm != null
       ? estimateEtaMinutes(liveDistanceKm)
@@ -1125,6 +1158,103 @@ useEffect(() => {
   // Saved in Supabase; loaded with the partner overview
   const [isPartnerOnline, setIsPartnerOnline] =
     useState(false);
+
+
+  // Partner: share live GPS by itself while heading to the job (accepted,
+  // not yet arrived), and stop once they arrive or the job ends. A
+  // partner who taps Stop on the way isn't restarted for that job.
+  const autoSharedOrderRef = useRef(null);
+
+  useEffect(() => {
+    if (role !== 'partner' || !isFirebaseConfigured || !db) {
+      return;
+    }
+
+    const enRoute =
+      Boolean(activeOrder.orderId) &&
+      activeOrder.bookingStatus === 'ACCEPTED' &&
+      activeOrder.currentStep === 3;
+
+    const sharingFor = sharingOrderIdRef.current;
+
+    if (
+      sharingFor &&
+      (sharingFor !== activeOrder.orderId ||
+        activeOrder.currentStep >= 4 ||
+        ['DECLINED', 'EXPIRED', 'CANCELLED', 'WITHDRAWN', 'COMPLETED']
+          .includes(activeOrder.bookingStatus))
+    ) {
+      stopSharingLocation({ quiet: true });
+    }
+
+    if (enRoute && autoSharedOrderRef.current !== activeOrder.orderId) {
+      autoSharedOrderRef.current = activeOrder.orderId;
+
+      if (geoWatchIdRef.current == null) {
+        startSharingLocation();
+      }
+    }
+  }, [
+    role,
+    activeOrder.orderId,
+    activeOrder.bookingStatus,
+    activeOrder.currentStep
+  ]);
+
+
+  // While online, keep the partner's saved position fresh so customers'
+  // nearby map shows where they really are. Sent when they've moved
+  // ~100 m (at most every 10 s), or every 2 minutes regardless.
+  useEffect(() => {
+    if (
+      role !== 'partner' ||
+      !isPartnerOnline ||
+      !partnerProfile?.id ||
+      !navigator.geolocation
+    ) {
+      return;
+    }
+
+    let lastSent = null;
+    let lastSentAt = 0;
+
+    const send = (coords) => {
+      const sinceLast = Date.now() - lastSentAt;
+      const movedKm = lastSent
+        ? haversineDistanceKm(lastSent, coords)
+        : Infinity;
+
+      if (
+        !(movedKm >= 0.1 && sinceLast >= 10000) &&
+        sinceLast < 120000
+      ) {
+        return;
+      }
+
+      lastSent = coords;
+      lastSentAt = Date.now();
+
+      authorizedFetch(`/partners/${partnerProfile.id}/location`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          latitude: coords.lat,
+          longitude: coords.lng
+        })
+      }).catch((error) => {
+        console.warn('Could not update partner location:', error.message);
+      });
+    };
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) =>
+        send({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      // Blocked or no fix: the position saved on going online stays
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [role, isPartnerOnline, partnerProfile?.id]);
 
 
   const [partnerStats, setPartnerStats] =
@@ -3581,7 +3711,13 @@ const submitRepairPhoto = async (photoFile) => {
     return false;
   }
 
-  showToast('Repair photo sent to the customer.');
+  // A phone-booking customer has no app, so the partner shows them the
+  // photo in person; it is kept on the order as proof of the work.
+  showToast(
+    activeOrder.source === 'PHONE'
+      ? 'Repair photo saved.'
+      : 'Repair photo sent to the customer.'
+  );
   return true;
 };
 
@@ -4236,6 +4372,7 @@ return (
 
       liveDistanceKm,
       liveEtaMinutes,
+      liveRoute,
 
       destinationCoords,
 

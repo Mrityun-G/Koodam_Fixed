@@ -9,6 +9,7 @@ import { useSecondsLeft } from '../lib/useSecondsLeft';
 import { PartnerPayouts } from '../components/PartnerPayouts';
 import { PartnerReliability } from '../components/PartnerReliability';
 import { Avatar } from '../components/Avatar';
+import { LiveMap } from '../components/LiveMap';
 
 // Marks a job the customer booked by phone call (offline mode): they have
 // no app and pay in cash
@@ -38,6 +39,10 @@ export const PartnerDashboard = () => {
     startSharingLocation,
     stopSharingLocation,
     partnerLocation,
+    destinationCoords,
+    liveRoute,
+    liveDistanceKm,
+    liveEtaMinutes,
     isFirebaseConfigured,
     activeOrder,
     verifyArrivalOtp,
@@ -1757,7 +1762,7 @@ export const PartnerDashboard = () => {
 
                 <p className="text-[11px] text-slate-500">
                   {isPhoneBooking
-                    ? `Send the estimate, then ask the customer to call ${phoneBookingNumber || "KOODAM's phone booking number"} to approve it.`
+                    ? `Show the customer the part, then ask them to call ${phoneBookingNumber || "KOODAM's phone booking number"} to approve it.`
                     : 'Need a costly component? Send the estimate for the customer to approve.'}
                 </p>
               </div>
@@ -1877,7 +1882,9 @@ export const PartnerDashboard = () => {
                 </p>
 
                 <p className="text-[11px] text-slate-500">
-                  {activeOrder.repairPhotoUrl
+                  {isPhoneBooking
+                    ? 'Show this photo to the customer before collecting cash. KOODAM keeps it as proof of the work.'
+                    : activeOrder.repairPhotoUrl
                     ? 'The customer can see this with the final bill.'
                     : 'Take a photo of the finished work. The customer sees it with the bill before paying.'}
                 </p>
@@ -2001,36 +2008,61 @@ export const PartnerDashboard = () => {
         )}
 
         {activeOrder.bookingStatus === 'ACCEPTED' && (
-          <button
-            onClick={openNavigationToCustomer}
-            className="w-full flex items-center justify-between gap-3 bg-white rounded-2xl p-4 shadow-xs border border-slate-100 active:scale-[0.99] transition-all"
-          >
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
 
-              <div className="w-9 h-9 rounded-full bg-[#ff6a00]/15 text-[#a14000] flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[18px]">
-                  navigation
-                </span>
+            {/* Job map: you (live GPS) and the customer, with the road route */}
+            {activeOrder.currentStep === 3 && destinationCoords && (
+              <div className="relative h-48">
+                <LiveMap
+                  partnerLocation={partnerLocation}
+                  destination={destinationCoords}
+                  route={liveRoute?.path}
+                  interactive
+                />
+
+                <div className="absolute left-2 top-2 z-10 bg-white/95 rounded-xl px-2.5 py-1.5 shadow-sm pointer-events-none">
+                  <p className="text-[11px] font-bold text-[#0b1c30]">
+                    {liveEtaMinutes != null
+                      ? `${liveEtaMinutes} min • ${liveDistanceKm.toFixed(1)} km`
+                      : isSharingLocation
+                      ? 'Finding your location…'
+                      : 'Turn on Live GPS to see your route'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={openNavigationToCustomer}
+              className="w-full flex items-center justify-between gap-3 p-4 active:scale-[0.99] transition-all"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+
+                <div className="w-9 h-9 rounded-full bg-[#ff6a00]/15 text-[#a14000] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">
+                    navigation
+                  </span>
+                </div>
+
+                <div className="min-w-0 text-left">
+
+                  <p className="text-xs font-bold text-[#0b1c30]">
+                    Navigate to Customer
+                  </p>
+
+                  <p className="text-[11px] text-slate-500 truncate">
+                    {activeOrder.customerLat != null
+                      ? 'Turn-by-turn directions in Google Maps'
+                      : `Directions to ${activeOrder.area || 'customer area'}`}
+                  </p>
+                </div>
               </div>
 
-              <div className="min-w-0 text-left">
-
-                <p className="text-xs font-bold text-[#0b1c30]">
-                  Navigate to Customer
-                </p>
-
-                <p className="text-[11px] text-slate-500 truncate">
-                  {activeOrder.customerLat != null
-                    ? 'Directions to customer’s live location'
-                    : `Directions to ${activeOrder.area || 'customer area'}`}
-                </p>
-              </div>
-            </div>
-
-            <span className="material-symbols-outlined text-[18px] text-slate-400">
-              open_in_new
-            </span>
-          </button>
+              <span className="material-symbols-outlined text-[18px] text-slate-400">
+                open_in_new
+              </span>
+            </button>
+          </div>
         )}
 
         <section className="space-y-2 pt-1">
