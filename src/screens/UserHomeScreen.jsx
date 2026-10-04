@@ -24,17 +24,8 @@ export const UserHomeScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterActive, setFilterActive] = useState(false);
 
-  // 8 Service Categories from Stitch Design System
-  const categories = [
-    { id: 'cleaning', name: 'Cleaning & Sanitize', icon: 'cleaning_services', bg: 'bg-[#d3e4fe]', color: 'text-[#a14000]' },
-    { id: 'electrical', name: 'Electrical Works', icon: 'bolt', bg: 'bg-[#ffdbcc]', color: 'text-[#a14000]' },
-    { id: 'plumbing', name: 'Plumbing & Repair', icon: 'plumbing', bg: 'bg-[#dce1ff]', color: 'text-[#4e5c92]' },
-    { id: 'ac', name: 'AC & Appliance', icon: 'mode_fan', bg: 'bg-[#6ffbbe]', color: 'text-[#006c49]' },
-    { id: 'carpentry', name: 'Carpentry & Decor', icon: 'carpenter', bg: 'bg-[#e5eeff]', color: 'text-[#5a4136]' },
-    { id: 'painting', name: 'Painting & Decor', icon: 'format_paint', bg: 'bg-[#d3e4fe]', color: 'text-[#a14000]' },
-    { id: 'tech', name: 'Tech & Wi-Fi', icon: 'router', bg: 'bg-[#dce1ff]', color: 'text-[#4e5c92]' },
-    { id: 'elder', name: 'Elder & Pets', icon: 'volunteer_activism', bg: 'bg-[#6ffbbe]', color: 'text-[#006c49]' }
-  ];
+  // One tile per service, in the order and colours set in the backend
+  const [categories, setCategories] = useState([]);
 
   const [helpers, setHelpers] = useState([]);
   const [helpersLoading, setHelpersLoading] = useState(true);
@@ -62,18 +53,6 @@ const BACKEND_URL =
   'http://127.0.0.1:8000';
 
 
-const categoryMap = {
-  cleaning: ['Cleaning'],
-  electrical: ['Electrical'],
-  plumbing: ['Plumbing'],
-  ac: ['AC Repair', 'Appliance Repair'],
-  carpentry: ['Carpentry'],
-  painting: ['Painting'],
-  tech: ['Tech & Wi-Fi'],
-  elder: ['Elder & Pets', 'Pest Control']
-};
-
-
 useEffect(() => {
 
   const loadHelpers = async () => {
@@ -99,6 +78,15 @@ useEffect(() => {
 
       const allHelpers = helpersFromServices(services);
 
+      setCategories(
+        services.map((service) => ({
+          id: service.id,
+          name: service.title,
+          icon: service.icon || 'home_repair_service',
+          bg: service.bg_color || '#e5eeff',
+          color: service.icon_color || '#4e5c92'
+        }))
+      );
       setHelpers(allHelpers);
       hasLoadedHelpersRef.current = true;
 
@@ -178,14 +166,8 @@ useEffect(() => {
     return matchesSearch;
   }
 
-  const allowedCategories =
-    categoryMap[selectedCategory] || [];
-
   const matchesCategory =
-    allowedCategories.some(
-      (category) =>
-        helper.serviceCategory === category
-    );
+    helper.serviceId === selectedCategory;
 
   return (
     matchesSearch &&
@@ -365,6 +347,13 @@ useEffect(() => {
 
           {/* 2x4 Grid */}
           <div className="grid grid-cols-4 gap-2.5">
+            {categories.length === 0 && helpersLoading &&
+              Array.from({ length: 8 }, (_, index) => (
+                <div
+                  key={index}
+                  className="h-[84px] rounded-2xl bg-slate-100 animate-pulse"
+                />
+              ))}
             {categories.map((cat) => {
               const isSelected = selectedCategory === cat.id;
               return (
@@ -382,8 +371,13 @@ useEffect(() => {
                 >
                   <div
                     className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-                      isSelected ? 'bg-white/20 text-white' : `${cat.bg} ${cat.color}`
+                      isSelected ? 'bg-white/20 text-white' : ''
                     }`}
+                    style={
+                      isSelected
+                        ? undefined
+                        : { backgroundColor: cat.bg, color: cat.color }
+                    }
                   >
                     <span className="material-symbols-outlined text-[22px]">{cat.icon}</span>
                   </div>
@@ -403,7 +397,7 @@ useEffect(() => {
         {/* Realtime Help Map & Distance Pulse Micro-banner */}
         <div className="px-4 py-2">
           <div
-            onClick={() => navigateTo('tracking', 'requests')}
+            onClick={() => navigateTo('nearbyMap', 'home')}
             className="relative overflow-hidden rounded-2xl bg-[#eff4ff] p-3 flex items-center justify-between shadow-2xs border border-slate-100 cursor-pointer hover:bg-[#dce9ff] transition-colors"
           >
             <div className="flex items-center gap-2.5 min-w-0">

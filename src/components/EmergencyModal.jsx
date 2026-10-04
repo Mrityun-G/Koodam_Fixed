@@ -7,20 +7,6 @@ import { helpersFromServices, withDistance } from '../lib/helpers';
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 
-// Icon for each service category
-const CATEGORY_ICONS = {
-  Cleaning: 'cleaning_services',
-  Electrical: 'electrical_services',
-  Plumbing: 'plumbing',
-  'AC Repair': 'ac_unit',
-  'Appliance Repair': 'kitchen',
-  Carpentry: 'carpenter',
-  Painting: 'format_paint',
-  'Tech & Wi-Fi': 'router',
-  'Elder & Pets': 'pets',
-  'Pest Control': 'pest_control'
-};
-
 // Closest first; a helper with no known distance goes last
 const byDistance = (a, b) =>
   (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
@@ -380,7 +366,7 @@ export const EmergencyModal = () => {
                         text-xl
                       "
                     >
-                      {CATEGORY_ICONS[helper.serviceCategory] || 'home_repair_service'}
+                      {helper.serviceIcon || 'home_repair_service'}
                     </span>
                   </div>
 

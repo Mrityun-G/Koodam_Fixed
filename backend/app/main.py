@@ -8,7 +8,7 @@ from app.config import (
     PLATFORM_COMMISSION_PERCENT,
     TRUST_FEE,
 )
-from app.database import engine, Base
+from app.database import engine, Base, SessionLocal
 
 from app.models.user import User
 from app.models.partner import Partner
@@ -36,6 +36,7 @@ from app.routers.escalations import router as escalations_router
 from app.routers.ivr import router as ivr_router
 
 from app.escalations import start_sweeper
+from app.service_catalog import sync_service_catalog
 
 
 app = FastAPI(title="KOODAM Backend")
@@ -99,8 +100,18 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS source VARCHAR, "
         "ADD COLUMN IF NOT EXISTS payment_method VARCHAR; "
         "ALTER TABLE booking_extra_charges "
-        "ADD COLUMN IF NOT EXISTS photo_url VARCHAR"
+        "ADD COLUMN IF NOT EXISTS photo_url VARCHAR; "
+        "ALTER TABLE services "
+        "ADD COLUMN IF NOT EXISTS icon VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS bg_color VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS icon_color VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0"
     ))
+
+
+# Services match the tiles customers see on Home
+with SessionLocal() as db:
+    sync_service_catalog(db)
 
 
 # Look for overdue jobs and unanswered complaints while the server runs

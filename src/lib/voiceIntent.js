@@ -2,59 +2,66 @@
 // one of KOODAM's services, and picks the best partner for it.
 // Runs entirely in the browser: no extra API calls or cost per request.
 
-// Keys are the service titles in the backend's services table. Words are
+// Keys are service titles in the backend's services table (a renamed
+// service needs its key renamed here too). Words are
 // matched as substrings of the lower-cased transcript, so stems like
 // "leak" also cover "leaking" and "leakage". Tamil, Kannada and Hindi
 // words cover what the browser transcribes for those languages.
 const SERVICE_KEYWORDS = {
-  Plumber: [
+  'Plumbing & Repair': [
     'plumb', 'leak', 'pipe', 'tap', 'water', 'drain', 'clog', 'block',
     'flush', 'toilet', 'sink', 'basin', 'geyser', 'heater', 'tank',
     'bathroom', 'shower', 'overflow', 'motor',
     'குழாய்', 'தண்ணீர்', 'கசிவு', 'ಪೈಪ್', 'ನೀರು', 'ನಲ್ಲಿ', 'नल', 'पानी', 'पाइप'
   ],
-  Electrician: [
+  'Electrical Works': [
     'electric', 'wiring', 'wire', 'switch', 'socket', 'plug', 'power',
     'current', 'shock', 'short circuit', 'fuse', 'mcb', 'light', 'bulb',
     'tube', 'fan', 'inverter', 'meter', 'spark',
     'மின்', 'கரண்ட்', 'ವಿದ್ಯುತ್', 'ಕರೆಂಟ್', 'बिजली', 'करंट'
   ],
-  'AC Repair': [
+  'AC & Appliance': [
     'ac ', ' ac', 'a/c', 'air condition', 'aircon', 'cooling', 'not cool',
     'gas refill', 'split ac', 'window ac',
-    'ஏசி', 'ಎಸಿ', 'एसी'
-  ],
-  'Home Cleaning': [
-    'clean', 'dust', 'sweep', 'mop', 'sanitiz', 'sanitis', 'deep clean',
-    'maid', 'housekeep',
-    'சுத்தம்', 'ಸ್ವಚ್ಛ', 'सफाई'
-  ],
-  Carpenter: [
-    'carpent', 'wood', 'door', 'furniture', 'cupboard', 'wardrobe',
-    'table', 'chair', 'bed', 'hinge', 'lock', 'drawer', 'shelf',
-    'தச்சு', 'கதவு', 'ಬಡಗಿ', 'ಬಾಗಿಲು', 'बढ़ई', 'दरवाजा'
-  ],
-  Painting: [
-    'paint', 'wall', 'colour', 'color', 'whitewash', 'putty', 'polish',
-    'damp',
-    'பெயிண்ட்', 'வர்ணம்', 'ಬಣ್ಣ', 'पेंट'
-  ],
-  'Appliance Repair': [
+    'ஏசி', 'ಎಸಿ', 'एसी',
     'appliance', 'fridge', 'refrigerator', 'washing machine', 'microwave',
     'oven', 'mixer', 'grinder', 'tv', 'television', 'ro ', 'purifier',
     'chimney', 'stove',
     'ஃப்ரிட்ஜ்', 'ಫ್ರಿಡ್ಜ್', 'फ्रिज'
   ],
-  'Pest Control': [
+  'Cleaning & Sanitize': [
+    'clean', 'dust', 'sweep', 'mop', 'sanitiz', 'sanitis', 'deep clean',
+    'maid', 'housekeep',
+    'சுத்தம்', 'ಸ್ವಚ್ಛ', 'सफाई',
     'pest', 'cockroach', 'termite', 'ant', 'mosquito', 'rat', 'mice',
     'mouse', 'bug', 'insect', 'lizard',
     'கரப்பான்', 'எறும்பு', 'ಜಿರಳೆ', 'कॉकरोच', 'दीमक'
+  ],
+  'Carpentry & Decor': [
+    'carpent', 'wood', 'door', 'furniture', 'cupboard', 'wardrobe',
+    'table', 'chair', 'bed', 'hinge', 'lock', 'drawer', 'shelf',
+    'தச்சு', 'கதவு', 'ಬಡಗಿ', 'ಬಾಗಿಲು', 'बढ़ई', 'दरवाजा'
+  ],
+  'Painting & Decor': [
+    'paint', 'wall', 'colour', 'color', 'whitewash', 'putty', 'polish',
+    'damp',
+    'பெயிண்ட்', 'வர்ணம்', 'ಬಣ್ಣ', 'पेंट'
+  ],
+  'Tech & Wi-Fi': [
+    'wifi', 'wi-fi', 'internet', 'router', 'modem', 'broadband', 'network',
+    'laptop', 'computer', 'printer', 'cctv', 'camera', 'set top', 'dth',
+    'வைஃபை', 'இணையம்', 'ವೈಫೈ', 'ಇಂಟರ್ನೆಟ್', 'वाईफाई', 'इंटरनेट'
+  ],
+  'Elder & Pets': [
+    'elder', 'elderly', 'old age', 'grandfather', 'grandmother', 'caretaker',
+    'companion', 'attendant', 'pet', 'dog', 'cat', 'puppy', 'groom',
+    'முதியோர்', 'நாய்', 'ಹಿರಿಯ', 'ನಾಯಿ', 'बुजुर्ग', 'कुत्ता'
   ]
 };
 
 // Short words that would match inside unrelated words ("ant" in
 // "want", "rat" in "rate") only count as whole words
-const WHOLE_WORD_ONLY = new Set(['ant', 'rat', 'tap', 'bed', 'fan', 'tv', 'mice']);
+const WHOLE_WORD_ONLY = new Set(['ant', 'rat', 'tap', 'bed', 'fan', 'tv', 'mice', 'pet', 'dog', 'cat', 'dth']);
 
 const countMatches = (text, words) =>
   words.reduce((count, word) => {

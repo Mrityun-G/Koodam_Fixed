@@ -8,7 +8,8 @@ from app.models.partner_service import PartnerService
 from app.models.partner import Partner
 from app.models.user import User
 from app.escalations import can_take_bookings
-from app.schemas.service import ServiceCreate, ServiceResponse
+from app.routers.escalations import require_admin
+from app.schemas.service import ServiceCreate, ServiceResponse, ServiceUpdate
 
 
 router = APIRouter(
@@ -17,18 +18,18 @@ router = APIRouter(
 )
 
 
+# Adding or changing services is for KOODAM staff only
 @router.post("/", response_model=ServiceResponse)
 def create_service(
     service_data: ServiceCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
 ):
     new_service = Service(
-        title=service_data.title,
-        description=service_data.description,
-        category=service_data.category,
-        price=service_data.price,
-        duration_minutes=service_data.duration_minutes,
-        tag=service_data.tag
+        **service_data.model_dump(exclude={"category"}),
+        # Home tiles match helpers by category; one tile per service
+        category=service_data.category or service_data.title,
+        is_active=True
     )
 
     db.add(new_service)
@@ -42,9 +43,36 @@ def create_service(
 def get_services(
     db: Session = Depends(get_db)
 ):
-    return db.query(Service).filter(
-        Service.is_active == True
-    ).all()
+    return (
+        db.query(Service)
+        .filter(Service.is_active == True)
+        .order_by(Service.sort_order, Service.title)
+        .all()
+    )
+
+
+@router.patch("/{service_id}", response_model=ServiceResponse)
+def update_service(
+    service_id: UUID,
+    changes: ServiceUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    service = db.get(Service, service_id)
+
+    if not service:
+        raise HTTPException(
+            status_code=404,
+            detail="Service not found"
+        )
+
+    for field, value in changes.model_dump(exclude_unset=True).items():
+        setattr(service, field, value)
+
+    db.commit()
+    db.refresh(service)
+
+    return service
 
 
 def is_bookable(partner) -> bool:
@@ -103,6 +131,7 @@ def get_services_with_partners(
         .outerjoin(Partner, Partner.id == PartnerService.partner_id)
         .outerjoin(User, User.id == Partner.user_id)
         .filter(Service.is_active == True)
+        .order_by(Service.sort_order, Service.title)
         .all()
     )
 

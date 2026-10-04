@@ -20,6 +20,9 @@ export const toHelper = (service, partner) => ({
   serviceCategory:
     service.category,
 
+  serviceIcon:
+    service.icon,
+
   name:
     partner.name || 'KOODAM Partner',
 
