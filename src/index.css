@@ -54,3 +54,12 @@
 .date-scroll::-webkit-scrollbar-thumb:hover {
   background: #a14000;
 }
+/* Live map: pulsing ring under the partner's position */
+@keyframes koodam-pulse {
+  0% { transform: scale(0.5); opacity: 0.9; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.leaflet-control-attribution {
+  font-size: 9px;
+}

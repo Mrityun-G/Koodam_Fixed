@@ -10,6 +10,7 @@ import { BookingScreen } from './screens/BookingScreen';
 import { PaymentScreen } from './screens/PaymentScreen';
 import { AdminEscalationsScreen } from './screens/AdminEscalationsScreen';
 import { LiveTrackingScreen } from './screens/LiveTrackingScreen';
+import { NearbyMapScreen } from './screens/NearbyMapScreen';
 import { PartnerDashboard } from './screens/PartnerDashboard';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { EditProfileScreen } from './screens/EditProfileScreen';
@@ -45,6 +46,7 @@ const AppContent = () => {
       {currentScreen === 'booking' && <BookingScreen />}
       {currentScreen === 'payment' && <PaymentScreen />}
       {currentScreen === 'tracking' && <LiveTrackingScreen />}
+      {currentScreen === 'nearbyMap' && <NearbyMapScreen />}
       {currentScreen === 'partner' && <PartnerDashboard />}
       {currentScreen === 'profile' && <ProfileScreen />}
       {currentScreen === 'editProfile' && <EditProfileScreen />}

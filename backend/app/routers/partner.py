@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Respons
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 
 from app.auth import current_firebase_uid
@@ -312,6 +312,41 @@ def update_online_status(
     return {
         "partner_id": partner.id,
         "is_online": partner.is_online
+    }
+
+
+class LocationUpdate(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+
+# Sent by the partner's app while online, so the customers' nearby map
+# shows where partners are now rather than where they went online
+@router.patch("/{identifier}/location")
+def update_location(
+    identifier: UUID,
+    data: LocationUpdate,
+    firebase_uid: str = Depends(current_firebase_uid),
+    db: Session = Depends(get_db)
+):
+    partner = get_partner_or_404(db, identifier)
+    owner = db.get(User, partner.user_id)
+
+    if not owner or owner.firebase_uid != firebase_uid:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only update your own location"
+        )
+
+    # Offline partners aren't on the map; don't track them
+    if partner.is_online:
+        partner.latitude = data.latitude
+        partner.longitude = data.longitude
+        db.commit()
+
+    return {
+        "partner_id": partner.id,
+        "updated": bool(partner.is_online)
     }
 
 
