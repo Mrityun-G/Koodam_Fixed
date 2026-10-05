@@ -1,7 +1,9 @@
 import React from 'react';
 import { SubHeader } from '../components/SubHeader';
+import { useApp } from '../context/AppContext';
 
-const sections = [
+// Used until the Terms stored by KOODAM staff load
+const DEFAULT_SECTIONS = [
   {
     title: 'Terms of Service',
     points: [
@@ -31,6 +33,9 @@ const sections = [
 ];
 
 export const TermsScreen = () => {
+  const { appContent } = useApp();
+  const sections = appContent.terms?.length ? appContent.terms : DEFAULT_SECTIONS;
+
   return (
     <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
       <SubHeader title="Terms & Policy" />

@@ -3,8 +3,13 @@ import { authorizedFetch } from '../lib/authorizedFetch';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
 
+// Chrome and Edge have speech recognition built in; Firefox doesn't
+const SpeechRecognition =
+  typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+
 /**
- * Lets KOODAM staff walk through the phone booking menu (offline mode)
+ * Lets KOODAM staff walk through the phone booking menu (offline mode),
+ * by pressing keys or speaking,
  * as a caller would, before a real phone number is connected. Bookings
  * made here are real: they go to real partners.
  */
@@ -16,6 +21,11 @@ export const PhoneBookingSimulator = () => {
   const [keys, setKeys] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Language the menu is listening in, e.g. "ta-IN"
+  const [listenLang, setListenLang] = useState('en-IN');
+  const [listening, setListening] = useState(false);
+  // Read KOODAM's replies out loud, like a real call
+  const [speakReplies, setSpeakReplies] = useState(true);
   const transcriptRef = useRef(null);
 
   // Keep the newest line in view, like a call log
@@ -24,23 +34,40 @@ export const PhoneBookingSimulator = () => {
     if (box) box.scrollTop = box.scrollHeight;
   }, [lines]);
 
-  const send = async (id, digits) => {
+  const speak = (parts) => {
+    if (!speakReplies || !window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+    parts.forEach((part) => {
+      const utterance = new SpeechSynthesisUtterance(part.text);
+      utterance.lang = { ta: 'ta-IN', kn: 'kn-IN' }[part.lang] || 'en-IN';
+      window.speechSynthesis.speak(utterance);
+    });
+  };
+
+  const send = async (id, digits, speech = null) => {
     setBusy(true);
     setError('');
 
     try {
       const reply = await authorizedFetch('/ivr/simulate', {
         method: 'POST',
-        body: JSON.stringify({ call_id: id, phone, digits })
+        body: JSON.stringify({ call_id: id, phone, digits, speech })
       });
 
       setLines((current) => [
         ...current,
-        ...(digits != null ? [{ from: 'caller', text: digits || '(no key pressed)' }] : []),
+        ...(speech
+          ? [{ from: 'caller', text: `🎤 "${speech}"` }]
+          : digits != null
+          ? [{ from: 'caller', text: digits || '(no key pressed)' }]
+          : []),
         ...reply.parts.map((part) => ({ from: 'koodam', text: part.text })),
         ...(reply.note ? [{ from: 'note', text: `Why: ${reply.note}` }] : [])
       ]);
       setExpecting(reply.hangup ? 0 : reply.digits);
+      setListenLang(reply.listen || 'en-IN');
+      speak(reply.parts);
 
       if (reply.hangup) {
         setCallId(null);
@@ -58,6 +85,36 @@ export const PhoneBookingSimulator = () => {
     setCallId(id);
     setLines([]);
     send(id, null);
+  };
+
+  // Say the answer instead of pressing it ("three", "English", "Plumbing")
+  const listen = () => {
+    if (!SpeechRecognition) {
+      setError('Voice needs Chrome or Edge.');
+      return;
+    }
+
+    window.speechSynthesis?.cancel();
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = listenLang;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const heard = event.results[0]?.[0]?.transcript?.trim();
+      if (heard) send(callId, null, heard);
+    };
+    recognition.onerror = (event) => {
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        setError(`Couldn't hear you (${event.error}). Allow the microphone and try again.`);
+      }
+    };
+    recognition.onend = () => setListening(false);
+
+    setError('');
+    setListening(true);
+    recognition.start();
   };
 
   const pressKey = (key) => {
@@ -89,7 +146,7 @@ export const PhoneBookingSimulator = () => {
         {callId ? (
           <button
             type="button"
-            onClick={() => { setCallId(null); setExpecting(0); }}
+            onClick={() => { setCallId(null); setExpecting(0); window.speechSynthesis?.cancel(); }}
             className="shrink-0 font-bold text-white bg-red-500 rounded-lg px-3"
           >
             Hang up
@@ -128,11 +185,36 @@ export const PhoneBookingSimulator = () => {
 
       {error && <p className="text-red-500">{error}</p>}
 
+      {callId && (
+        <label className="flex items-center gap-1.5 text-slate-500">
+          <input
+            type="checkbox"
+            checked={speakReplies}
+            onChange={(event) => {
+              setSpeakReplies(event.target.checked);
+              if (!event.target.checked) window.speechSynthesis?.cancel();
+            }}
+          />
+          Read replies aloud
+        </label>
+      )}
+
       {callId && expecting > 0 && (
         <>
           <p className="text-slate-400 text-center">
-            {`Press ${expecting === 1 ? 'a key' : `${expecting} keys`}${keys ? ` • ${keys}` : ''}`}
+            {`Press ${expecting === 1 ? 'a key' : `${expecting} keys`} or say it${keys ? ` • ${keys}` : ''}`}
           </p>
+          <button
+            type="button"
+            disabled={busy || listening}
+            onClick={listen}
+            className={`w-full py-2 rounded-lg font-bold text-white flex items-center justify-center gap-1 disabled:opacity-70 ${
+              listening ? 'bg-red-500 animate-pulse' : 'bg-[#ff6a00]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">mic</span>
+            {listening ? `Listening (${listenLang})...` : 'Say your answer'}
+          </button>
           <div className="grid grid-cols-3 gap-1.5">
             {KEYS.map((key) => (
               <button

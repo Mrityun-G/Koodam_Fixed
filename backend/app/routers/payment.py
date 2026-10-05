@@ -9,10 +9,8 @@ from sqlalchemy.orm import Session
 from app.auth import current_firebase_uid
 
 from app.config import (
-    PLATFORM_COMMISSION_PERCENT,
     RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET,
-    TRUST_FEE,
 )
 from app.database import get_db
 from app.firebase_rtdb import FirebaseUnavailable, rtdb, to_db_key
@@ -22,7 +20,8 @@ from app.models.partner import Partner
 from app.models.payout import BookingPayout
 from app.models.user import User
 from app.razorpay_client import razorpay_request, to_paise
-from app.routers.payouts import CASH_COLLECTED, safely_transfer
+from app.routers.payouts import CASH_COLLECTED
+from app.app_config import setting
 
 
 # =========================================================
@@ -86,9 +85,10 @@ def calculate_split(total: float, extras: float) -> dict:
     The partner gets the rest of the service price plus every extra part,
     since parts are their own cost.
     """
-    trust_fee = min(TRUST_FEE, max(total - extras, 0.0))
+    commission_percent = setting("platform_commission_percent")
+    trust_fee = min(setting("trust_fee"), max(total - extras, 0.0))
     service_price = max(total - extras - trust_fee, 0.0)
-    commission = round(service_price * PLATFORM_COMMISSION_PERCENT / 100, 2)
+    commission = round(service_price * commission_percent / 100, 2)
     partner_payout = round(service_price - commission + extras, 2)
 
     return {
@@ -96,7 +96,7 @@ def calculate_split(total: float, extras: float) -> dict:
         "service_price": round(service_price, 2),
         "extras": round(extras, 2),
         "trust_fee": round(trust_fee, 2),
-        "commission_percent": PLATFORM_COMMISSION_PERCENT,
+        "commission_percent": commission_percent,
         "commission": commission,
         "koodam_share": round(trust_fee + commission, 2),
         "partner_payout": partner_payout
@@ -189,10 +189,6 @@ def verify_payment(
         detail.payment_status == "PAID"
         and detail.razorpay_payment_id == data.razorpay_payment_id
     ):
-        # The first check may have stopped before the partner's transfer
-        if not db.get(BookingPayout, detail.booking_id):
-            safely_transfer(db, booking, detail)
-
         return payment_result(detail)
 
     if data.razorpay_order_id != detail.razorpay_order_id:
@@ -257,11 +253,9 @@ def verify_payment(
 
     booking.status = "COMPLETED"
 
+    # The partner's share joins their balance; they withdraw it when
+    # they choose (sent through Razorpay Route, see payouts.py)
     db.commit()
-
-    # 4. Send the partner's share to their bank via Razorpay Route.
-    #    If their bank account isn't set up yet, it waits until it is.
-    safely_transfer(db, booking, detail)
 
     return payment_result(detail, split)
 

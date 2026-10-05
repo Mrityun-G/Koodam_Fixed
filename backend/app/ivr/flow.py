@@ -6,10 +6,11 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.config import TRUST_FEE
+from app.app_config import setting
 from app.firebase_rtdb import FirebaseUnavailable, rtdb, to_db_key
 from app.ivr import phone_bookings as pb
 from app.ivr.prompts import CHOOSE_LANGUAGE, LANGUAGES, rupees, say, spell_digits
+from app.ivr.speech import LANGUAGE_CHOICES, YES_NO_CHOICES, speech_to_digits
 from app.models.booking_detail import BookingDetail
 from app.models.service import Service
 
@@ -24,7 +25,7 @@ from app.models.service import Service
 
 logger = logging.getLogger(__name__)
 
-# Complaint reasons by key, matching REASONS in routers/escalations.py
+# Complaint reasons by key (values from the complaint_reasons app content)
 COMPLAINT_KEYS = {
     "1": "NO_SHOW",
     "2": "LATE",
@@ -48,6 +49,10 @@ class Reply:
     hangup: bool = False
     # For KOODAM staff in the simulator only; never spoken on a call
     note: str = ""
+    # Words the caller may say instead of pressing a key -> the key
+    choices: dict = field(default_factory=dict)
+    # Language to listen for ("en", "ta", "kn"); the caller's by default
+    listen: str = ""
 
 
 @dataclass
@@ -92,7 +97,17 @@ def _end(call_id: str):
 # Entry point
 # ---------------------------------------------------------
 
-def handle_call(db: Session, call_id: str, caller_raw: str, digits: Optional[str]) -> Reply:
+def handle_call(
+    db: Session,
+    call_id: str,
+    caller_raw: str,
+    digits: Optional[str],
+    speech: Optional[str] = None
+) -> Reply:
+    """
+    digits: keys pressed. speech: what the caller said instead, as text
+    from the speech service; it's turned into the keys it stands for.
+    """
     caller = pb.normalize_phone(caller_raw)
 
     if not caller:
@@ -101,11 +116,18 @@ def handle_call(db: Session, call_id: str, caller_raw: str, digits: Optional[str
 
     session = _session(call_id, caller)
     digits = (digits or "").strip().rstrip("#")
+    heard = (speech or "").strip()
+
+    if heard and not digits and session.last:
+        digits = speech_to_digits(heard, session.last.digits, session.last.choices) or ""
 
     try:
         if session.last is None:
-            reply = Reply(list(CHOOSE_LANGUAGE), digits=1)
+            reply = Reply(list(CHOOSE_LANGUAGE), digits=1, choices=LANGUAGE_CHOICES, listen="en")
             session.state = "LANG"
+        elif heard and not digits:
+            # Something was said, but not an answer we understood
+            reply = _invalid_then_repeat(session)
         elif not digits:
             session.misses += 1
             reply = (
@@ -123,6 +145,12 @@ def handle_call(db: Session, call_id: str, caller_raw: str, digits: Optional[str
         logger.exception("Phone menu failed for call %s", call_id)
         db.rollback()
         reply = _say(session, "unavailable", hangup=True)
+
+    if heard:
+        reply.note = " ".join(t for t in (f'Heard "{heard}" as {digits or "nothing"}.', reply.note) if t)
+
+    if not reply.listen:
+        reply.listen = session.lang
 
     if reply.hangup:
         _end(call_id)
@@ -144,7 +172,9 @@ def _invalid_then_repeat(session: Session_) -> Reply:
     repeat = session.last or Reply([], digits=1)
     return Reply(
         [(session.lang, say("invalid", session.lang)), *repeat.parts],
-        digits=repeat.digits
+        digits=repeat.digits,
+        choices=repeat.choices,
+        listen=repeat.listen
     )
 
 
@@ -284,7 +314,14 @@ def _service_menu(db: Session, session: Session_, lead: str = "") -> Reply:
         for index, service in enumerate(services, start=1)
     ]
 
-    return _join(session, lead, *options, digits=1)
+    reply = _join(session, lead, *options, digits=1)
+    # Callers can say the service's name
+    reply.choices = {
+        service.title.lower(): str(index)
+        for index, service in enumerate(services, start=1)
+        if index <= 9
+    }
+    return reply
 
 
 def _offer(db: Session, session: Session_) -> Reply:
@@ -299,15 +336,18 @@ def _offer(db: Session, session: Session_) -> Reply:
     session.state = "CONFIRM"
     price = float(service.price or 0)
 
-    return _say(
+    reply = _say(
         session, "offer", digits=1,
         partner=match["user"].name,
         km=match["km"],
         service=service.title,
         price=rupees(price),
-        fee=rupees(TRUST_FEE),
-        total=rupees(price + TRUST_FEE)
+        fee=rupees(setting("trust_fee")),
+        total=rupees(price + setting("trust_fee"))
     )
+    # "Yes" books, "no" cancels
+    reply.choices = YES_NO_CHOICES
+    return reply
 
 
 def _no_partner(db: Session, session: Session_, service: Service, lat: float, lng: float) -> Reply:

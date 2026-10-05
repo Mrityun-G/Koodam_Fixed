@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { SubHeader } from '../components/SubHeader';
 import { useApp } from '../context/AppContext';
 
-// Fees come from the backend settings, so the answers stay accurate
+// Used until the FAQ stored by KOODAM staff loads. Fees come from the
+// backend settings, so the answers stay accurate
 const buildFaqs = ({ trustFee, commissionPercent }) => [
   {
     q: 'How do I book a helper?',
@@ -39,13 +40,22 @@ const buildFaqs = ({ trustFee, commissionPercent }) => [
 ];
 
 export const FAQScreen = () => {
-  const { trustFee, platformCommissionPercent } = useApp();
+  const { trustFee, platformCommissionPercent, appContent } = useApp();
   const [openIndex, setOpenIndex] = useState(0);
 
-  const faqs = buildFaqs({
-    trustFee,
-    commissionPercent: platformCommissionPercent
-  });
+  // {trust_fee} and {commission_percent} in the stored answers are
+  // filled in with the current settings
+  const fillFees = (text) =>
+    String(text)
+      .replaceAll('{trust_fee}', trustFee)
+      .replaceAll('{commission_percent}', platformCommissionPercent);
+
+  const faqs = appContent.faq?.length
+    ? appContent.faq.map((item) => ({ q: fillFees(item.q), a: fillFees(item.a) }))
+    : buildFaqs({
+        trustFee,
+        commissionPercent: platformCommissionPercent
+      });
 
   return (
     <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">

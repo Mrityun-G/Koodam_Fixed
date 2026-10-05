@@ -17,7 +17,8 @@ def razorpay_request(
     path: str,
     payload: dict = None,
     version: str = "v1",
-    params: dict = None
+    params: dict = None,
+    headers: dict = None
 ) -> dict:
     if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
         raise HTTPException(
@@ -32,11 +33,13 @@ def razorpay_request(
             auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET),
             json=payload,
             params=params,
+            headers=headers,
             timeout=15
         )
     except requests.RequestException:
+        # 504: the request may or may not have reached Razorpay
         raise HTTPException(
-            status_code=502,
+            status_code=504,
             detail="Couldn't reach Razorpay. Please try again."
         )
 

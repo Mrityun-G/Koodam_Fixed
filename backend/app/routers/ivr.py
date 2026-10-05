@@ -11,13 +11,15 @@ from sqlalchemy.orm import Session
 from app.config import IVR_PUBLIC_URL, TWILIO_AUTH_TOKEN
 from app.database import get_db
 from app.ivr.flow import Reply, handle_call
+from app.ivr.speech import NUMBER_WORDS, SPEECH_LANGUAGES
 from app.models.user import User
 from app.routers.escalations import require_admin
 
 
 # =========================================================
 # PHONE BOOKING WEBHOOKS
-# The phone provider calls these as the customer presses keys. The menu
+# The phone provider calls these as the customer presses keys or speaks
+# (speech arrives as text and is turned into keys). The menu
 # itself is in app/ivr/flow.py; each provider just needs a small adapter
 # that turns its request into handle_call() and the Reply into its format.
 # =========================================================
@@ -35,6 +37,8 @@ class SimulatedKeys(BaseModel):
     call_id: str = Field(min_length=1, max_length=100)
     phone: str = Field(min_length=10, max_length=20)
     digits: Optional[str] = Field(default=None, max_length=10)
+    # What the caller said, from the browser's speech recognition
+    speech: Optional[str] = Field(default=None, max_length=300)
 
 
 @router.post("/simulate")
@@ -43,13 +47,15 @@ def simulate_call(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    reply = handle_call(db, f"sim-{data.call_id}", data.phone, data.digits)
+    reply = handle_call(db, f"sim-{data.call_id}", data.phone, data.digits, data.speech)
 
     return {
         "parts": [{"lang": lang, "text": text} for lang, text in reply.parts],
         "digits": reply.digits,
         "hangup": reply.hangup,
         "note": reply.note,
+        # Language for the browser to listen in (e.g. "ta-IN")
+        "listen": SPEECH_LANGUAGES.get(reply.listen, "en-IN"),
     }
 
 
@@ -84,11 +90,19 @@ def to_twiml(reply: Reply, action: str) -> str:
     if reply.hangup or not reply.digits:
         return f"<Response>{speech}<Hangup/></Response>"
 
-    # No key pressed: the Redirect comes back without Digits, which the
-    # menu treats as silence
+    # Keys or speech. Hints help the recogniser with the words this menu
+    # expects (choices, and number words in the caller's language).
+    # Nothing heard: the Redirect comes back without Digits or speech,
+    # which the menu treats as silence.
+    hints = ", ".join(
+        [*reply.choices, *(w for words in NUMBER_WORDS.values() for w in words if w.isascii())]
+    )[:1000]
+
     return (
         "<Response>"
-        f'<Gather input="dtmf" numDigits="{reply.digits}" timeout="8" '
+        f'<Gather input="dtmf speech" numDigits="{reply.digits}" timeout="8" '
+        f'speechTimeout="auto" language={quoteattr(SPEECH_LANGUAGES.get(reply.listen, "en-IN"))} '
+        f"hints={quoteattr(hints)} "
         f"action={quoteattr(action)} method=\"POST\">{speech}</Gather>"
         f"<Redirect method=\"POST\">{escape(action)}</Redirect>"
         "</Response>"
@@ -113,7 +127,8 @@ async def twilio_call(request: Request, db: Session = Depends(get_db)):
         db,
         params.get("CallSid", ""),
         params.get("From", ""),
-        params.get("Digits")
+        params.get("Digits"),
+        params.get("SpeechResult")
     )
 
     return Response(

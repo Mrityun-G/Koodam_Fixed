@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useState,
   useEffect,
@@ -569,7 +570,12 @@ const [notificationsEnabled, setNotificationsEnabled] =
   // The number customers without a smartphone call to book (offline mode)
   const [phoneBookingNumber, setPhoneBookingNumber] = useState('');
 
-  useEffect(() => {
+  // FAQ, Terms, offline-mode steps and complaint reasons, managed by
+  // KOODAM staff in the database; screens fall back to their built-in
+  // text until this loads
+  const [appContent, setAppContent] = useState({});
+
+  const loadAppSettings = useCallback(() => {
     fetch(`${BACKEND_URL}/config`)
       .then((response) => (response.ok ? response.json() : null))
       .then((config) => {
@@ -583,7 +589,20 @@ const [notificationsEnabled, setNotificationsEnabled] =
       .catch((error) => {
         console.error('Failed to load app settings:', error);
       });
+
+    fetch(`${BACKEND_URL}/content`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((content) => {
+        if (content) setAppContent(content);
+      })
+      .catch((error) => {
+        console.error('Failed to load app content:', error);
+      });
   }, []);
+
+  useEffect(() => {
+    loadAppSettings();
+  }, [loadAppSettings]);
 
 
 // =========================================================
@@ -1893,8 +1912,79 @@ const requestsRef = ref(db, requestPath);
   // Notifications
   // =========================================================
 
+  // Saved per user in the database (GET/POST /me/notifications), so the
+  // list survives a reload and follows the user to another device
   const [notifications, setNotifications] =
     useState([]);
+
+  const timeAgo = (iso) => {
+    const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (!iso || minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} h ago`;
+    return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
+
+  // Settings saved before they've been loaded would overwrite the
+  // user's stored choice with this browser's defaults
+  const userSettingsLoadedRef = useRef(false);
+
+  // Notifications and settings stored on the signed-in user
+  useEffect(() => {
+    userSettingsLoadedRef.current = false;
+
+    if (!authUser?.uid) {
+      setNotifications([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    authorizedFetch('/me/notifications')
+      .then((rows) => {
+        if (cancelled) return;
+        setNotifications(
+          rows.map((row) => ({
+            id: row.id,
+            target: row.target,
+            title: row.title,
+            desc: row.desc,
+            time: timeAgo(row.created_at),
+            unread: row.unread,
+            screen: row.screen,
+            tab: row.tab
+          }))
+        );
+      })
+      .catch((error) => console.warn('Failed to load notifications:', error));
+
+    authorizedFetch('/me/settings')
+      .then((settings) => {
+        if (cancelled) return;
+        setLanguage(settings.language || 'en');
+        setNotificationsEnabled(settings.notifications_enabled !== false);
+        userSettingsLoadedRef.current = true;
+      })
+      .catch((error) => console.warn('Failed to load settings:', error));
+
+    return () => {
+      cancelled = true;
+    };
+    // userProfile.id appears once the backend has the user's account
+  }, [authUser?.uid, userProfile?.id]);
+
+  // Save setting changes to the user's account
+  useEffect(() => {
+    if (!authUser?.uid || !userSettingsLoadedRef.current) return;
+
+    authorizedFetch('/me/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        language,
+        notifications_enabled: notificationsEnabled
+      })
+    }).catch((error) => console.warn('Failed to save settings:', error));
+  }, [language, notificationsEnabled]);
 
 
   const addNotification = (
@@ -1906,9 +1996,11 @@ const requestsRef = ref(db, requestPath);
       tab = null
     }
   ) => {
+    const localId = `local-${Date.now()}-${Math.random()}`;
+
     setNotifications((prev) => [
       {
-        id: Date.now() + Math.random(),
+        id: localId,
         target,
         title,
         desc,
@@ -1919,6 +2011,20 @@ const requestsRef = ref(db, requestPath);
       },
       ...prev
     ]);
+
+    if (!authUser?.uid) return;
+
+    authorizedFetch('/me/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ target, title, desc: desc || null, screen, tab })
+    })
+      .then((saved) => {
+        // Use the stored id so marking it read later matches
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === localId ? { ...n, id: saved.id } : n))
+        );
+      })
+      .catch((error) => console.warn('Failed to save notification:', error));
   };
 
 
@@ -1930,6 +2036,13 @@ const requestsRef = ref(db, requestPath);
           : n
       )
     );
+
+    if (!authUser?.uid) return;
+
+    authorizedFetch('/me/notifications/read', {
+      method: 'POST',
+      body: JSON.stringify({ target })
+    }).catch((error) => console.warn('Failed to mark notifications read:', error));
   };
 
 
@@ -4360,6 +4473,9 @@ return (
 
       trustFee,
       platformCommissionPercent,
+      appContent,
+      // Re-read fees and app text after staff change them
+      loadAppSettings,
 
       activeOrder,
       setActiveOrder,

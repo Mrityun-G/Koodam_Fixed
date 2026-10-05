@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { authorizedFetch } from '../lib/authorizedFetch';
 
+// Used until the reasons stored by KOODAM staff load
 export const COMPLAINT_REASONS = [
   { value: 'NO_SHOW', label: "Partner didn't turn up" },
   { value: 'LATE', label: 'Partner was very late' },
@@ -65,7 +66,10 @@ const formatDeadline = (iso) =>
 // - viewer="partner": reply before the deadline
 // onChanged reloads the bills after any change.
 export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
-  const { showToast } = useApp();
+  const { showToast, appContent } = useApp();
+  const reasons = appContent.complaint_reasons?.length
+    ? appContent.complaint_reasons
+    : COMPLAINT_REASONS;
   const complaint = bill.complaint;
   const isPartner = viewer === 'partner';
 
@@ -122,7 +126,7 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
           onChange={(event) => setReason(event.target.value)}
           className="w-full text-xs border border-slate-200 rounded-lg p-2 bg-white"
         >
-          {COMPLAINT_REASONS.map((option) => (
+          {reasons.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>

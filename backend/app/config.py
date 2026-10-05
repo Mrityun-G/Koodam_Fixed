@@ -26,6 +26,17 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
+# Test keys: no real money moves
+RAZORPAY_TEST_MODE = (RAZORPAY_KEY_ID or "").startswith("rzp_test_")
+
+# KOODAM's RazorpayX account number. When set, partner withdrawals are
+# paid out by RazorpayX straight away; otherwise staff pay them by hand
+RAZORPAYX_ACCOUNT_NUMBER = os.getenv("RAZORPAYX_ACCOUNT_NUMBER", "").strip()
+
+# It's all digits; anything else (e.g. a placeholder) counts as not set
+if not RAZORPAYX_ACCOUNT_NUMBER.isdigit():
+    RAZORPAYX_ACCOUNT_NUMBER = ""
+
 # Flat fee the customer pays KOODAM on every booking (rupees)
 TRUST_FEE = float(os.getenv("KOODAM_TRUST_FEE", "20"))
 

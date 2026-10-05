@@ -15,6 +15,7 @@ from app.config import (
     STRIKE_WINDOW_DAYS,
     SUSPENSION_DAYS,
 )
+from app.app_config import content
 from app.database import get_db
 from app.escalations import (
     is_deactivated,
@@ -39,14 +40,13 @@ from app.models.user import User
 
 router = APIRouter(tags=["Escalations"])
 
-REASONS = {
-    "NO_SHOW": "Partner didn't turn up",
-    "LATE": "Partner was very late",
-    "POOR_WORK": "Work was poor or unfinished",
-    "OVERCHARGED": "Charged more than agreed",
-    "BEHAVIOUR": "Rude or unsafe behaviour",
-    "OTHER": "Something else",
-}
+def reason_labels() -> dict:
+    """Complaint reasons staff manage in the app content (value: label)."""
+    return {item["value"]: item["label"] for item in content("complaint_reasons")}
+
+
+def reason_label(reason: str) -> str:
+    return reason_labels().get(reason, reason)
 
 SOURCE_LABELS = {
     "COMPLAINT_UNANSWERED": "Didn't reply to a complaint in time",
@@ -69,7 +69,7 @@ def complaint_response(complaint: Complaint) -> dict:
         "id": complaint.id,
         "booking_id": complaint.booking_id,
         "reason": complaint.reason,
-        "reason_label": REASONS.get(complaint.reason, complaint.reason),
+        "reason_label": reason_label(complaint.reason),
         "description": complaint.description,
         "status": complaint.status,
         "partner_response": complaint.partner_response,
@@ -150,7 +150,7 @@ def get_complaint(db: Session, complaint_id: UUID) -> Complaint:
 
 class ComplaintCreate(BaseModel):
     booking_id: UUID
-    reason: Literal[tuple(REASONS)]
+    reason: str = Field(min_length=1, max_length=30)
     description: str = Field(default="", max_length=1000)
 
 
@@ -162,6 +162,9 @@ def create_complaint(
 ):
     customer = signed_in_user(db, firebase_uid)
     booking = db.get(Booking, data.booking_id)
+
+    if data.reason not in reason_labels():
+        raise HTTPException(status_code=400, detail="Please choose a reason")
 
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -497,7 +500,7 @@ def decide_complaint(
             db,
             db.get(Partner, complaint.partner_id),
             "COMPLAINT_UPHELD",
-            f"Complaint upheld: {REASONS.get(complaint.reason, complaint.reason)}."
+            f"Complaint upheld: {reason_label(complaint.reason)}."
             + (f" {complaint.admin_note}" if complaint.admin_note else ""),
             booking_id=complaint.booking_id,
             complaint_id=complaint.id,

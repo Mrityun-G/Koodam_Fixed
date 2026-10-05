@@ -10,7 +10,8 @@ import requests
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.config import COMPLAINT_RESPONSE_HOURS, TRUST_FEE
+from app.app_config import setting
+from app.config import COMPLAINT_RESPONSE_HOURS
 from app.escalations import can_take_bookings
 from app.firebase_rtdb import rtdb, to_db_key
 from app.models.booking import Booking
@@ -288,7 +289,8 @@ def create_phone_booking(
     partner_id = str(partner.id)
 
     price = float(service.price or 0)
-    total = price + TRUST_FEE
+    trust_fee = setting("trust_fee")
+    total = price + trust_fee
     now_ms = int(time.time() * 1000)
     area = f"PIN {pincode} (phone booking: call the customer for the address)"
     customer_name = customer.name or "Phone customer"
@@ -346,7 +348,7 @@ def create_phone_booking(
         "totalAmount": total,
         "baseAmount": total,
         "servicePrice": price,
-        "trustFee": TRUST_FEE,
+        "trustFee": trust_fee,
         "totalPaid": 0,
         "paymentStatus": "PENDING",
         "bookingStatus": "PENDING",

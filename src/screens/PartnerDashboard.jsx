@@ -2463,7 +2463,7 @@ export const PartnerDashboard = () => {
                   </span>
 
                   <span className="text-[10px] text-[#dce1ff]/80">
-                    Paid to your bank automatically after each job
+                    Withdraw it from Payouts below
                   </span>
                 </div>
               </div>

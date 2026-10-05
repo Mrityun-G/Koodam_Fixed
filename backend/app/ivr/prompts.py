@@ -6,9 +6,9 @@ LANGUAGES = ("ta", "kn", "en")
 # Said before a language is chosen, so each part in its own voice.
 # The digit for each language is its position in LANGUAGES.
 CHOOSE_LANGUAGE = [
-    ("ta", "கூடம். தமிழுக்கு 1 அழுத்தவும்."),
-    ("kn", "ಕನ್ನಡಕ್ಕಾಗಿ 2 ಒತ್ತಿರಿ."),
-    ("en", "For English, press 3."),
+    ("ta", "கூடம். தமிழுக்கு 1 அழுத்தவும் அல்லது சொல்லவும்."),
+    ("kn", "ಕನ್ನಡಕ್ಕಾಗಿ 2 ಒತ್ತಿರಿ ಅಥವಾ ಹೇಳಿ."),
+    ("en", "For English, press or say 3."),
 ]
 
 PROMPTS = {

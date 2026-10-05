@@ -4,7 +4,8 @@ import {
   getDownloadURL
 } from 'firebase/storage';
 
-import { storage, isStorageConfigured } from './firebase';
+import { auth, storage, isStorageConfigured } from './firebase';
+import { BACKEND_URL } from './authorizedFetch';
 
 // Phone cameras produce 3-8 MB photos; the customer only needs to see
 // the part or the finished repair, so shrink before uploading.
@@ -53,6 +54,35 @@ const toBlob = (canvas, quality) =>
     );
   });
 
+const uploadToBackend = async (blob, orderKey, label) => {
+  const user = auth?.currentUser;
+
+  if (!user) {
+    throw new Error('Not signed in');
+  }
+
+  const form = new FormData();
+  form.append('file', blob, `${label}.jpg`);
+  form.append('order_id', orderKey);
+  // "part-<id>" style labels are stored as plain "part"
+  form.append('label', label.startsWith('part') ? 'part' : 'repair');
+
+  const response = await fetch(`${BACKEND_URL}/photos`, {
+    method: 'POST',
+    // No Content-Type: the browser sets the multipart boundary
+    headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+    body: form
+  });
+
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok || !body?.path) {
+    throw new Error(body?.detail || `Upload failed (${response.status})`);
+  }
+
+  return `${BACKEND_URL}${body.path}`;
+};
+
 /**
  * Uploads a repair photo for an order and returns a URL to show it.
  * `folder` is the order's database key; `label` names the file
@@ -64,10 +94,17 @@ export const uploadRepairPhoto = async (file, folder, label) => {
   }
 
   const image = await loadImage(file);
+  const blob = await toBlob(drawScaled(image, MAX_SIDE), QUALITY);
+
+  // KOODAM's backend keeps it in the database with the booking
+  try {
+    return await uploadToBackend(blob, folder, label);
+  } catch (error) {
+    console.warn('Saving the photo to KOODAM failed, trying Firebase Storage:', error);
+  }
 
   if (isStorageConfigured && storage) {
     try {
-      const blob = await toBlob(drawScaled(image, MAX_SIDE), QUALITY);
       const fileRef = storageRef(
         storage,
         `repairPhotos/${folder}/${label}-${Date.now()}.jpg`
