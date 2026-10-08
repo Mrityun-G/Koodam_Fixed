@@ -2,6 +2,8 @@ KOODAM is a Mobile application helps for the user and part-time service man such
 We have the GPS tracking system, Services for no smartphone system, Double OTP verification ( Arrival and Completion Code) and razor payment system.
 The admin can activate and reactivate the depends on the partner's behaviour and performance.
 Repair changes and Dynamic Pricing in the projects!
+Separate mobile application for the User and the partner.
+To control the performance, behaviors and the transactions we have the separate admin dashboard!
 The customer can also refer some other customer similarly The service man can also refer some other Service man.
 The customer can also book for their child, Parent and Relatives.
 For running frontend - npm install , npm run dev
