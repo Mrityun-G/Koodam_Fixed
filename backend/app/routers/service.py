@@ -75,7 +75,19 @@ def update_service(
     return service
 
 
-def is_bookable(partner) -> bool:
+def is_police_verified(partner) -> bool:
+    return partner.police_verification_status == "VERIFIED"
+
+
+def is_bookable(partner, service=None) -> bool:
+    # Services like Child Care are only offered by police-verified partners
+    if (
+        service is not None
+        and service.requires_police_verification
+        and not is_police_verified(partner)
+    ):
+        return False
+
     return bool(partner.is_online) and can_take_bookings(partner)
 
 
@@ -101,9 +113,7 @@ def partner_listing(partner, user, partner_service) -> dict:
         "vehicle_number": partner.vehicle_number,
         "is_online": partner.is_online,
         "is_verified": partner.is_verified,
-        "police_verified": (
-            partner.police_verification_status == "VERIFIED"
-        ),
+        "police_verified": is_police_verified(partner),
         "latitude": partner.latitude,
         "longitude": partner.longitude,
         "service_radius_km": partner.service_radius_km or 5
@@ -144,7 +154,7 @@ def get_services_with_partners(
         })
 
         # Offline or suspended partners aren't offered to customers
-        if partner and user and is_bookable(partner):
+        if partner and user and is_bookable(partner, service):
             entry["partners"].append(
                 partner_listing(partner, user, partner_service)
             )
@@ -209,7 +219,7 @@ def get_partners_for_service(
         .all()
     )
 
-    results = [row for row in results if is_bookable(row[0])]
+    results = [row for row in results if is_bookable(row[0], service)]
 
     partners = [
         partner_listing(partner, user, partner_service)

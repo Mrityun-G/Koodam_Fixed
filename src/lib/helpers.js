@@ -23,6 +23,17 @@ export const toHelper = (service, partner) => ({
   serviceIcon:
     service.icon,
 
+  serviceTag:
+    service.tag || '',
+
+  // How long the price covers; care services are booked by the hour
+  serviceDurationMinutes:
+    service.duration_minutes || null,
+
+  // Only police-verified partners are listed for these (Child Care)
+  requiresPoliceVerification:
+    Boolean(service.requires_police_verification),
+
   name:
     partner.name || 'KOODAM Partner',
 

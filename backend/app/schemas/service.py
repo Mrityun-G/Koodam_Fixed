@@ -15,6 +15,7 @@ class ServiceCreate(BaseModel):
     bg_color: Optional[str] = None
     icon_color: Optional[str] = None
     sort_order: int = 0
+    requires_police_verification: bool = False
 
 
 class ServiceUpdate(BaseModel):
@@ -28,6 +29,7 @@ class ServiceUpdate(BaseModel):
     bg_color: Optional[str] = None
     icon_color: Optional[str] = None
     sort_order: Optional[int] = None
+    requires_police_verification: Optional[bool] = None
     is_active: Optional[bool] = None
 
 
@@ -43,6 +45,7 @@ class ServiceResponse(BaseModel):
     bg_color: Optional[str] = None
     icon_color: Optional[str] = None
     sort_order: int = 0
+    requires_police_verification: bool = False
     is_active: bool
 
     class Config:

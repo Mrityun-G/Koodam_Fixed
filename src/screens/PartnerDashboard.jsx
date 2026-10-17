@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { relationLabel } from '../lib/bookFor';
 import {
   DEFAULT_JOB_MINUTES,
   findClash,
@@ -13,6 +14,19 @@ import { LiveMap } from '../components/LiveMap';
 
 // Marks a job the customer booked by phone call (offline mode): they have
 // no app and pay in cash
+// "Child, 7 yrs · 6 hrs" for a booking made for someone else
+const bookedForSummary = (bookedFor, durationMinutes) =>
+  [
+    bookedFor &&
+      `${relationLabel(bookedFor.relation)}${
+        bookedFor.age != null ? `, ${bookedFor.age} yrs` : ''
+      }`,
+    durationMinutes &&
+      `${Math.round(durationMinutes / 60)} hr${durationMinutes === 60 ? '' : 's'}`
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
 const PhoneBookingBadge = () => (
   <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#7b2f00] bg-[#ffdbcc] px-2 py-0.5 rounded-full">
     <span className="material-symbols-outlined text-[13px]">call</span>
@@ -251,7 +265,7 @@ export const PartnerDashboard = () => {
   const incomingClash = incomingJobDetails?.scheduledAt
     ? findClash(
         Number(incomingJobDetails.scheduledAt),
-        DEFAULT_JOB_MINUTES,
+        incomingJobDetails.durationMinutes || DEFAULT_JOB_MINUTES,
         jobsToTimeRanges(partnerUpcomingJobs)
       )
     : null;
@@ -1523,6 +1537,22 @@ export const PartnerDashboard = () => {
                   </p>
                 )}
 
+                {(incomingJobDetails.bookedFor || incomingJobDetails.durationMinutes) && (
+                  <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[15px] text-[#a14000]">
+                      {incomingJobDetails.bookedFor?.relation === 'CHILD' ? 'child_care' : 'person'}
+                    </span>
+                    <span className="font-bold text-[#0b1c30]">
+                      {incomingJobDetails.bookedFor
+                        ? `For the customer's ${bookedForSummary(
+                            incomingJobDetails.bookedFor,
+                            incomingJobDetails.durationMinutes
+                          ).toLowerCase()}`
+                        : bookedForSummary(null, incomingJobDetails.durationMinutes)}
+                    </span>
+                  </p>
+                )}
+
                 {incomingClash && (
                   <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-0.5">
                     <span className="material-symbols-outlined text-[15px]">
@@ -1624,6 +1654,69 @@ export const PartnerDashboard = () => {
             </div>
           </section>
         )}
+
+        {activeOrder.bookedFor?.name &&
+          activeOrder.currentStep >= 3 &&
+          activeOrder.currentStep <= 4 && (
+            <section className="bg-[#eff4ff] rounded-2xl p-4 border border-[#dce1ff] flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#dce1ff] text-[#4e5c92] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">
+                    {activeOrder.bookedFor.relation === 'CHILD' ? 'child_care' : 'person'}
+                  </span>
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#0b1c30]">
+                    <span>You'll be meeting</span>{' '}
+                    <span data-no-translate>{activeOrder.bookedFor.name}</span>
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    {bookedForSummary(activeOrder.bookedFor, activeOrder.durationMinutes)}
+                    {' · '}
+                    {`Booked by ${activeOrder.customerName || 'the customer'}`}
+                  </p>
+                  {activeOrder.area && (
+                    <p className="text-[11px] text-slate-600 mt-0.5" data-no-translate>
+                      {activeOrder.area}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {activeOrder.bookedFor.notes && (
+                <p className="text-[11px] text-[#0b1c30] bg-white rounded-xl p-2.5 whitespace-pre-line" data-no-translate>
+                  {activeOrder.bookedFor.notes}
+                </p>
+              )}
+
+              <p className="text-[11px] text-slate-600">
+                {activeOrder.currentStep === 3
+                  ? `When you arrive, call ${activeOrder.customerName || 'the customer'} for the arrival code. It is on their phone, not with the person at home.`
+                  : `When you finish, give ${activeOrder.customerName || 'the customer'} the completion code over the phone.`}
+              </p>
+
+              <div className="flex gap-2">
+                {activeOrder.customerPhone && (
+                  <a
+                    href={`tel:${activeOrder.customerPhone}`}
+                    className="flex-1 py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold text-center active:scale-95 transition-all"
+                  >
+                    {`Call ${(activeOrder.customerName || 'customer').split(' ')[0]}`}
+                  </a>
+                )}
+
+                {activeOrder.bookedFor.phone && (
+                  <a
+                    href={`tel:${activeOrder.bookedFor.phone}`}
+                    className="flex-1 py-2.5 rounded-xl bg-white border border-slate-200 text-[#0b1c30] text-xs font-bold text-center active:scale-95 transition-all"
+                  >
+                    {`Call ${activeOrder.bookedFor.name.split(' ')[0]}`}
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
 
         {isPhoneBooking &&
           activeOrder.currentStep >= 3 &&

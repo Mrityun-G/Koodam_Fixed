@@ -72,6 +72,19 @@ def assign_service_to_partner(
             detail="Service not found"
         )
 
+    if (
+        service.requires_police_verification
+        and partner.police_verification_status != "VERIFIED"
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"{service.title} is only for police-verified partners. "
+                "Upload your police clearance certificate and add this "
+                "service once it is approved."
+            )
+        )
+
     existing = db.query(PartnerService).filter(
         PartnerService.partner_id == partner.id,
         PartnerService.service_id == data.service_id

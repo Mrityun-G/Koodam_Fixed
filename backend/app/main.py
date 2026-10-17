@@ -13,7 +13,7 @@ from app.models.review import Review
 from app.models.emergency import EmergencyRequest
 from app.models.partner_service import PartnerService
 from app.models.partner_document import PartnerDocument
-from app.models.booking_detail import BookingDetail, BookingExtraCharge
+from app.models.booking_detail import BookingDetail, BookingExtraCharge, BookingRecipient
 from app.models.payout import PartnerPayoutAccount, BookingPayout, PartnerWithdrawal
 from app.models.escalation import Complaint, PartnerEscalation
 from app.models.photo import Photo
@@ -104,7 +104,8 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS partner_payout DOUBLE PRECISION, "
         "ADD COLUMN IF NOT EXISTS repair_photo_url VARCHAR, "
         "ADD COLUMN IF NOT EXISTS source VARCHAR, "
-        "ADD COLUMN IF NOT EXISTS payment_method VARCHAR; "
+        "ADD COLUMN IF NOT EXISTS payment_method VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS duration_minutes INTEGER; "
         "ALTER TABLE booking_extra_charges "
         "ADD COLUMN IF NOT EXISTS photo_url VARCHAR; "
         "ALTER TABLE booking_payouts "
@@ -122,7 +123,9 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS icon VARCHAR, "
         "ADD COLUMN IF NOT EXISTS bg_color VARCHAR, "
         "ADD COLUMN IF NOT EXISTS icon_color VARCHAR, "
-        "ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0"
+        "ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0, "
+        "ADD COLUMN IF NOT EXISTS requires_police_verification "
+        "BOOLEAN NOT NULL DEFAULT false"
     ))
 
 

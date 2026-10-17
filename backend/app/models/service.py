@@ -37,3 +37,12 @@ class Service(Base):
 
     # Tiles are listed lowest first
     sort_order = Column(Integer, nullable=False, default=0)
+
+    # Only partners whose police verification is approved are offered
+    # (e.g. Child Care, where the partner is alone with a child)
+    requires_police_verification = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false"
+    )

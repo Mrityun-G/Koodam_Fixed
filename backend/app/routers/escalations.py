@@ -28,6 +28,7 @@ from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail
 from app.models.escalation import Complaint, PartnerEscalation
 from app.models.partner import Partner
+from app.models.partner_document import PartnerDocument
 from app.models.service import Service
 from app.models.user import User
 
@@ -435,6 +436,19 @@ def admin_overview(
         .all()
     )
 
+    police_documents = (
+        db.query(Partner, PartnerUser.name, PartnerDocument)
+        .join(PartnerUser, PartnerUser.id == Partner.user_id)
+        .outerjoin(
+            PartnerDocument,
+            (PartnerDocument.partner_id == Partner.id)
+            & (PartnerDocument.document_type == "POLICE_CERTIFICATE")
+        )
+        .filter(Partner.police_verification_status == "UNDER_REVIEW")
+        .order_by(PartnerDocument.uploaded_at.asc())
+        .all()
+    )
+
     return {
         "complaints": [
             {
@@ -467,6 +481,61 @@ def admin_overview(
             }
             for partner, name in partners
         ],
+        "police_verifications": [
+            {
+                "id": partner.id,
+                "name": name,
+                "status": partner.police_verification_status,
+                "rejection_reason": partner.police_rejection_reason,
+                "file_name": document.file_name if document else None,
+                "uploaded_at": document.uploaded_at if document else None,
+                "has_certificate": document is not None,
+            }
+            for partner, name, document in police_documents
+        ],
+    }
+
+
+class PoliceVerificationDecision(BaseModel):
+    status: Literal["VERIFIED", "REJECTED"]
+    reason: Optional[str] = Field(default=None, max_length=1000)
+
+
+@router.post("/admin/partners/{partner_id}/police-verification")
+def decide_police_verification(
+    partner_id: UUID,
+    data: PoliceVerificationDecision,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    partner = db.get(Partner, partner_id)
+
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+
+    document = db.query(PartnerDocument).filter(
+        PartnerDocument.partner_id == partner.id,
+        PartnerDocument.document_type == "POLICE_CERTIFICATE"
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=409, detail="This partner has not uploaded a police certificate.")
+
+    rejection_reason = data.reason.strip() if data.reason else ""
+
+    if data.status == "REJECTED" and not rejection_reason:
+        raise HTTPException(status_code=422, detail="A rejection reason is required.")
+
+    partner.police_verification_status = data.status
+    partner.police_rejection_reason = (
+        rejection_reason if data.status == "REJECTED" else None
+    )
+    db.commit()
+
+    return {
+        "id": partner.id,
+        "status": partner.police_verification_status,
+        "rejection_reason": partner.police_rejection_reason,
     }
 
 

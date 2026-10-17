@@ -50,6 +50,15 @@ import { useRoute } from '../lib/route';
 import { uploadRepairPhoto, isHostedPhoto } from '../lib/repairPhoto';
 
 import {
+  EMPTY_BOOK_FOR,
+  bookForProblem,
+  isCareService,
+  priceForHours,
+  relationLabel,
+  toBookedFor
+} from '../lib/bookFor';
+
+import {
   haversineDistanceKm,
   estimateEtaMinutes
 } from '../lib/geo';
@@ -561,6 +570,11 @@ const [notificationsEnabled, setNotificationsEnabled] =
   const [selectedTime, setSelectedTime] =
     useState('');
 
+  // Who the booking is for (the member, or a guest, friend, relative or
+  // their child) and, for care services, how many hours
+  const [bookFor, setBookFor] = useState(EMPTY_BOOK_FOR);
+  const [careHours, setCareHours] = useState(null);
+
   // Fees come from the backend (GET /config) so the app always shows
   // what is actually charged; these are only used until it answers
   const [trustFee, setTrustFee] = useState(20);
@@ -762,6 +776,16 @@ useEffect(() => {
       amount_paid: Number(order.totalPaid || 0),
       razorpay_payment_id: order.paymentId || null,
       scheduled_at: order.scheduledAt || null,
+      duration_minutes: order.durationMinutes || null,
+      booked_for: order.bookedFor?.name
+        ? {
+            relation: order.bookedFor.relation,
+            name: order.bookedFor.name,
+            phone: order.bookedFor.phone || null,
+            age: order.bookedFor.age ?? null,
+            notes: order.bookedFor.notes || null
+          }
+        : null,
       created_at: order.createdAt || null,
       accepted_at: order.acceptedAt || null,
       completed_at: order.completedAt || null,
@@ -1783,7 +1807,12 @@ const requestsRef = ref(db, requestPath);
             isPhoneBooking:
               latestRequest.source === 'PHONE',
             customerPhone:
-              latestRequest.customerPhone || ''
+              latestRequest.customerPhone || '',
+            // Booked for a guest, friend, relative or child
+            bookedFor:
+              latestRequest.bookedFor || null,
+            durationMinutes:
+              Number(latestRequest.durationMinutes) || null
           });
 
           setHasIncomingJob(true);
@@ -3125,9 +3154,42 @@ const updatePartnerProfile = async (
 // =========================================================
 
 const handleConfirmBooking = async () => {
+  // Care services are booked by the hour and priced for those hours
+  const bookedHours = isCareService(selectedService) ? careHours : null;
+  const servicePrice = priceForHours(selectedService, bookedHours);
+  const durationMinutes = bookedHours ? bookedHours * 60 : null;
+
   const finalTotal =
-    Number(selectedService?.price || 0) +
+    servicePrice +
     Number(trustFee || 0);
+
+  const bookForError = bookForProblem(bookFor);
+
+  if (bookForError) {
+    showToast(bookForError);
+    return;
+  }
+
+  // Set when booking for a guest, friend, relative or child
+  const bookedFor = toBookedFor(bookFor);
+
+  // Nobody is left alone with a child unless their police check passed
+  if (
+    (selectedHelper?.requiresPoliceVerification ||
+      bookedFor?.relation === 'CHILD') &&
+    !selectedHelper?.policeVerified
+  ) {
+    showToast(
+      'For child care, please choose a police-verified helper.'
+    );
+    return;
+  }
+
+  // Where the helper goes: the address given for the other person, else
+  // the place picked in the header
+  const visitArea = bookedFor
+    ? bookFor.address.trim()
+    : location || 'Nearby';
 
   const targetPartnerId =
     selectedHelper?.partnerId ||
@@ -3234,6 +3296,9 @@ const handleConfirmBooking = async () => {
 
         customerRating: 5,
 
+        bookedFor,
+        durationMinutes,
+
         serviceId:
           selectedService?.id || null,
 
@@ -3254,7 +3319,7 @@ const handleConfirmBooking = async () => {
         etaMins: 7,
 
         area:
-          location || 'Nearby',
+          visitArea,
 
         // Lets the partner see the visit time and spot clashes
         scheduledAt: getScheduledTimestamp(
@@ -3301,6 +3366,11 @@ const handleConfirmBooking = async () => {
             userProfile?.avatar ||
             authUser?.photoURL ||
             '',
+          // The partner calls the member to get the arrival code when
+          // the person at home doesn't have the app (e.g. a child)
+          customerPhone: userProfile?.phone || '',
+          bookedFor,
+          durationMinutes,
           helperName: selectedHelper.name,
           ...helperDetails,
           serviceTitle: selectedService.title,
@@ -3311,7 +3381,7 @@ const handleConfirmBooking = async () => {
           totalAmount: finalTotal,
           // The bill as booked; approved extra parts are added on top
           baseAmount: finalTotal,
-          servicePrice: Number(selectedService?.price || 0),
+          servicePrice,
           trustFee: Number(trustFee || 0),
           totalPaid: 0,
           paymentStatus: 'PENDING',
@@ -3322,7 +3392,7 @@ const handleConfirmBooking = async () => {
           safetyPin,
           completionOtp: null,
           etaMinutes: 12,
-          area: location || 'Nearby',
+          area: visitArea,
           scheduledAt: getScheduledTimestamp(
             selectedDate,
             selectedTime
@@ -3461,8 +3531,11 @@ const handleConfirmBooking = async () => {
     totalPaid: 0,
     totalAmount: finalTotal,
     baseAmount: finalTotal,
-    servicePrice: Number(selectedService?.price || 0),
+    servicePrice,
     trustFee: Number(trustFee || 0),
+
+    bookedFor,
+    durationMinutes,
 
     etaMinutes: 12,
 
@@ -3470,14 +3543,19 @@ const handleConfirmBooking = async () => {
     feedback: ''
   });
 
+  // The next booking starts as one for the member themselves
+  setBookFor(EMPTY_BOOK_FOR);
+  setCareHours(null);
+
   // Member notification: request sent, awaiting partner response.
   addNotification(
     'member',
     {
       title: 'Request Sent',
 
-      desc:
-        `Your booking request has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`,
+      desc: bookedFor
+        ? `Your request for ${bookedFor.name} (${relationLabel(bookedFor.relation)}) has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`
+        : `Your booking request has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`,
 
       screen: 'tracking',
 
@@ -4134,7 +4212,7 @@ const acceptIncomingJob = async () => {
 
     const clash = findClash(
       requestedStart,
-      DEFAULT_JOB_MINUTES,
+      incomingJobDetails?.durationMinutes || DEFAULT_JOB_MINUTES,
       bookedRanges
     );
 
@@ -4470,6 +4548,11 @@ return (
 
       selectedTime,
       setSelectedTime,
+
+      bookFor,
+      setBookFor,
+      careHours,
+      setCareHours,
 
       trustFee,
       platformCommissionPercent,
