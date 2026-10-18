@@ -80,8 +80,18 @@ import {
 // storage because Google redirects away from the app and back
 const GOOGLE_ROLE_KEY = 'gigezee-google-login-role';
 
-// Which side of the app (member or partner) the user was last using
-const LAST_ROLE_KEY = 'gigezee-last-role';
+// Shareable links straight to one login page: ?login=member or ?login=partner
+const LOGIN_LINK_SCREENS = {
+  member: 'memberLogin',
+  partner: 'partnerLogin'
+};
+
+const startScreen = () =>
+  LOGIN_LINK_SCREENS[new URLSearchParams(window.location.search).get('login')] ||
+  'landing';
+
+const accountRoleOf = (backendUser) =>
+  backendUser.role === 'PARTNER' ? 'partner' : 'member';
 
 // The member's current booking, so a page reload brings back its
 // tracking screen and rating card ({ uid, orderId } only; the order
@@ -331,7 +341,7 @@ export const AppProvider = ({ children }) => {
 
   const [role, setRole] = useState('welcome');
 
-  const [currentScreen, setCurrentScreen] = useState('landing');
+  const [currentScreen, setCurrentScreen] = useState(startScreen);
 
   // Latest screen, readable inside long-lived listeners
   const currentScreenRef = useRef(currentScreen);
@@ -383,6 +393,10 @@ export const AppProvider = ({ children }) => {
   const [authLoading, setAuthLoading] =
     useState(false);
 
+  // While a login/sign-up is running it decides where to go, not the
+  // auth listener (which would race it)
+  const loginInProgressRef = useRef(false);
+
 
   // =========================================================
   // Partner KYC
@@ -426,6 +440,11 @@ useEffect(() => {
 
         const backendUser = await response.json();
 
+        // Logged out (e.g. wrong login page) while this was loading
+        if (auth.currentUser?.uid !== user.uid) {
+          return;
+        }
+
         // -------------------------------------------------
         // MEMBER
         // -------------------------------------------------
@@ -454,23 +473,10 @@ useEffect(() => {
 
         // -------------------------------------------------
         // Still logged in after a page reload: go back to the
-        // member home or Partner Hub instead of the landing page
+        // account's own dashboard instead of the landing page
         // -------------------------------------------------
 
-        let lastRole = null;
-
-        try {
-          lastRole = loginStorage().getItem(LAST_ROLE_KEY);
-        } catch {
-          lastRole = null;
-        }
-
-        const restoredRole =
-          lastRole === 'partner' || lastRole === 'member'
-            ? lastRole
-            : backendUser.role === 'PARTNER'
-              ? 'partner'
-              : 'member';
+        const restoredRole = accountRoleOf(backendUser);
 
         if (restoredRole === 'partner') {
           setPartnerProfile((previous) => ({ ...previous, ...backendUser }));
@@ -496,7 +502,10 @@ useEffect(() => {
           }
         }
 
-        if (SIGNED_OUT_SCREENS.includes(currentScreenRef.current)) {
+        if (
+          !loginInProgressRef.current &&
+          SIGNED_OUT_SCREENS.includes(currentScreenRef.current)
+        ) {
           setRole(restoredRole);
           setActiveTab('home');
           setCurrentScreen(restoredRole === 'partner' ? 'partner' : 'home');
@@ -2126,13 +2135,6 @@ const requestsRef = ref(db, requestPath);
   const enterRole = (targetRole) => {
     setRole(targetRole);
 
-    // Remembered so a page reload returns to the same side of the app
-    try {
-      loginStorage().setItem(LAST_ROLE_KEY, targetRole);
-    } catch {
-      // Without storage a reload falls back to the account's own role
-    }
-
     if (targetRole === 'partner') {
       setCurrentScreen('partner');
     } else {
@@ -2142,19 +2144,30 @@ const requestsRef = ref(db, requestPath);
   };
 
 
-  const handleSelectMember = () => {
-    enterRole('member');
-    showToast(
-      'Switched to Community Member View'
-    );
-  };
+  // Each account belongs to one side of the app. Logging in from the
+  // other side's page logs straight back out and opens the right page.
+  const rejectWrongLoginPage = async (backendUser, targetRole) => {
+    const accountRole = accountRoleOf(backendUser);
 
+    if (accountRole === targetRole) {
+      return false;
+    }
 
-  const handleSelectPartner = () => {
-    enterRole('partner');
+    await supabase.auth.signOut().catch(() => {});
+
+    if (auth) {
+      await signOut(auth).catch(() => {});
+    }
+
     showToast(
-      'Switched to Service Partner Dashboard'
+      accountRole === 'partner'
+        ? 'This is a Service Partner account. Please log in from Service Partner Login.'
+        : 'This is a Community Member account. Please log in from Community Member Login.'
     );
+
+    navigateTo(LOGIN_LINK_SCREENS[accountRole]);
+
+    return true;
   };
 
 
@@ -2233,6 +2246,7 @@ const signUp = async (
   }
 ) => {
   setAuthLoading(true);
+  loginInProgressRef.current = true;
 
   try {
     let cred = null;
@@ -2281,6 +2295,10 @@ const signUp = async (
           throw err;
         }
       }
+    }
+
+    if (backendUser && await rejectWrongLoginPage(backendUser, targetRole)) {
+      return false;
     }
 
     // -------------------------------------------------------
@@ -2395,6 +2413,7 @@ const signUp = async (
 
   } finally {
 
+    loginInProgressRef.current = false;
     setAuthLoading(false);
   }
 };
@@ -2488,6 +2507,7 @@ const signIn = async (
 ) => {
 
   setAuthLoading(true);
+  loginInProgressRef.current = true;
 
   try {
 
@@ -2541,10 +2561,9 @@ const signIn = async (
 
       if (backendUser) {
 
-  console.log(
-    '🔥 BACKEND USER AFTER LOGIN:',
-    backendUser
-  );
+  if (await rejectWrongLoginPage(backendUser, targetRole)) {
+    return false;
+  }
 
   if (targetRole === 'partner') {
     setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
@@ -2598,6 +2617,7 @@ const signIn = async (
 
   } finally {
 
+    loginInProgressRef.current = false;
     setAuthLoading(false);
   }
 };
@@ -2646,6 +2666,7 @@ const signIn = async (
     }
 
     setAuthLoading(true);
+    loginInProgressRef.current = true;
 
     try {
       if (!session.provider_token) {
@@ -2672,12 +2693,14 @@ const signIn = async (
         }
       );
 
-      if (backendUser) {
-        if (targetRole === 'partner') {
-          setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
-        } else {
-          setUserProfile((prev) => ({ ...prev, ...backendUser }));
-        }
+      if (await rejectWrongLoginPage(backendUser, targetRole)) {
+        return;
+      }
+
+      if (targetRole === 'partner') {
+        setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
+      } else {
+        setUserProfile((prev) => ({ ...prev, ...backendUser }));
       }
 
       enterRole(targetRole);
@@ -2716,8 +2739,9 @@ const signIn = async (
 
       showToast(message);
 
-      navigateTo(targetRole === 'partner' ? 'partnerLogin' : 'memberLogin');
+      navigateTo(LOGIN_LINK_SCREENS[targetRole]);
     } finally {
+      loginInProgressRef.current = false;
       setAuthLoading(false);
 
       // Remove the OAuth tokens/code from the address bar
@@ -2814,9 +2838,7 @@ const signIn = async (
     }
 
 
-    // A reload after logging out should stay on the welcome screen
     try {
-      loginStorage().removeItem(LAST_ROLE_KEY);
       loginStorage().removeItem(ACTIVE_ORDER_KEY);
     } catch {
       // Nothing to clear
@@ -4610,8 +4632,6 @@ return (
 
       navigateTo,
 
-      handleSelectMember,
-      handleSelectPartner,
 
       handleBookHelper,
 

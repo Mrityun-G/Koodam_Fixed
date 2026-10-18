@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export const WelcomeScreen = () => {
-  const { language, setLanguage, handleSelectMember, handleSelectPartner, navigateTo, showToast } = useApp();
+  const { language, setLanguage, navigateTo, showToast } = useApp();
 
   // Multi-lingual copy dictionary
   const strings = {
@@ -13,16 +13,13 @@ export const WelcomeScreen = () => {
       card1Role: 'Seek Help',
       card1Title: 'I Need Help / Book Services',
       card1Desc: 'Find trusted local helpers, handymen, electricians, and community volunteers.',
-      card1Btn: 'Continue as Community Member',
+      card1Btn: 'Community Member Login',
       card2Role: 'Provide Service',
       card2Title: 'I Want to Help / Provide Services',
       card2Desc: 'Offer your skills, grow your local client base, and earn with neighborhood trust.',
-      card2Btn: 'Join as Service Partner',
+      card2Btn: 'Service Partner Login',
       card1SignupLink: 'New here? Create an account',
-      card2SignupLink: 'New Service Partner? Create an account',
-      loginPrompt: 'Already have an account?',
-      loginMemberBtn: 'Member Log In',
-      loginPartnerBtn: 'Partner Log In'
+      card2SignupLink: 'New Service Partner? Create an account'
     },
     ta: {
       community: 'கிக்ஈஸி சமூக சேவை',
@@ -31,34 +28,28 @@ export const WelcomeScreen = () => {
       card1Role: 'உதவி பெற',
       card1Title: 'எனக்கு உதவி தேவை / சேவைகளை பதிவு செய்',
       card1Desc: 'நம்பகமான உள்ளூர் கைவினைஞர்கள், எலக்ட்ரீஷியன்கள் மற்றும் தன்னார்வலர்களைக் கண்டறியவும்.',
-      card1Btn: 'சமூக உறுப்பினராக தொடரவும்',
+      card1Btn: 'சமூக உறுப்பினர் உள்நுழைவு',
       card2Role: 'சேவை வழங்க',
       card2Title: 'நான் உதவ விரும்புகிறேன் / சேவை கூட்டாளர்',
       card2Desc: 'உங்கள் திறமைகளை வழங்கி, உள்ளூர் வாடிக்கையாளர்களைப் பெற்று, நம்பிக்கையுடன் சம்பாதிக்கவும்.',
-      card2Btn: 'சேவை கூட்டாளராக இணையுங்கள்',
+      card2Btn: 'சேவைக் கூட்டாளர் உள்நுழைவு',
       card1SignupLink: 'புதியவரா? கணக்கு உருவாக்கவும்',
-      card2SignupLink: 'புதிய சேவை கூட்டாளரா? கணக்கு உருவாக்கவும்',
-      loginPrompt: 'ஏற்கனவே கணக்கு உள்ளதா?',
-      loginMemberBtn: 'உறுப்பினர் உள்நுழைவு',
-      loginPartnerBtn: 'கூட்டாளர் உள்நுழைவு'
+      card2SignupLink: 'புதிய சேவை கூட்டாளரா? கணக்கு உருவாக்கவும்'
     },
     kn: {
-      community: 'ಕೂಡಂ ಸಮುದಾಯ ಸೇವೆ',
-      title: 'ಕೂಡಂ ಗೆ ಸುಸ್ವಾಗತ',
+      community: 'ಗಿಗ್‌ಈಸಿ ಸಮುದಾಯ ಸೇವೆ',
+      title: 'ಗಿಗ್‌ಈಸಿಗೆ ಸುಸ್ವಾಗತ',
       subtitle: 'ಇಂದು ನೀವು ಹೇಗೆ ಪ್ರಾರಂಭಿಸಲು ಬಯಸುತ್ತೀರಿ ಎಂಬುದನ್ನು ಆರಿಸಿ.',
       card1Role: 'ಸಹಾಯ ಪಡೆಯಿರಿ',
       card1Title: 'ನನಗೆ ಸಹಾಯ ಬೇಕು / ಸೇವೆಗಳನ್ನು ಬುಕ್ ಮಾಡಿ',
       card1Desc: 'ವಿಶ್ವಾಸಾರ್ಹ ಸ್ಥಳೀಯ ಸಹಾಯಕರು ಮತ್ತು ಎಲೆಕ್ಟ್ರಿಷಿಯನ್ ಗಳನ್ನು ಹುಡುಕಿ.',
-      card1Btn: 'ಸಮುದಾಯ ಸದಸ್ಯರಾಗಿ ಮುಂದುವರಿಯಿರಿ',
+      card1Btn: 'ಸಮುದಾಯ ಸದಸ್ಯ ಲಾಗಿನ್',
       card2Role: 'ಸೇವೆ ಒದಗಿಸಿ',
       card2Title: 'ನಾನು ಸೇವೆಗಳನ್ನು ಒದಗಿಸಲು ಬಯಸುತ್ತೇನೆ',
       card2Desc: 'ನಿಮ್ಮ ಕೌಶಲ್ಯಗಳನ್ನು ನೀಡಿ ಮತ್ತು ನೆರೆಹೊರೆಯ ನಂಬಿಕೆಯೊಂದಿಗೆ ಗಳಿಸಿ.',
-      card2Btn: 'ಸೇವಾ ಪಾಲುದಾರರಾಗಿ ಸೇರಿ',
+      card2Btn: 'ಸೇವಾ ಪಾಲುದಾರ ಲಾಗಿನ್',
       card1SignupLink: 'ಹೊಸಬರೇ? ಖಾತೆ ರಚಿಸಿ',
-      card2SignupLink: 'ಹೊಸ ಸೇವಾ ಪಾಲುದಾರರೇ? ಖಾತೆ ರಚಿಸಿ',
-      loginPrompt: 'ಈಗಾಗಲೇ ಖಾತೆ ಹೊಂದಿದ್ದೀರಾ?',
-      loginMemberBtn: 'ಸದಸ್ಯ ಲಾಗಿನ್',
-      loginPartnerBtn: 'ಪಾಲುದಾರ ಲಾಗಿನ್'
+      card2SignupLink: 'ಹೊಸ ಸೇವಾ ಪಾಲುದಾರರೇ? ಖಾತೆ ರಚಿಸಿ'
     }
   };
 
@@ -136,7 +127,7 @@ export const WelcomeScreen = () => {
               </p>
 
               <button
-                onClick={handleSelectMember}
+                onClick={() => navigateTo('memberLogin')}
                 className="w-full py-3.5 px-4 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all"
                 type="button"
               >
@@ -178,7 +169,7 @@ export const WelcomeScreen = () => {
               </p>
 
               <button
-                onClick={handleSelectPartner}
+                onClick={() => navigateTo('partnerLogin')}
                 className="w-full py-3.5 px-4 rounded-full bg-white hover:bg-slate-100 text-[#05164b] text-sm font-bold flex items-center justify-center gap-2 shadow-xs active:scale-98 transition-all"
                 type="button"
               >
@@ -197,28 +188,7 @@ export const WelcomeScreen = () => {
           </div>
         </div>
 
-        {/* Footer Info & Language Selector */}
         <div className="px-4 mt-6 flex flex-col items-center gap-4 text-center">
-          <div className="w-full flex flex-col items-center gap-2">
-            <span className="text-xs text-[#4e5c92]">{t.loginPrompt}</span>
-            <div className="w-full flex gap-3">
-              <button
-                onClick={() => navigateTo('memberLogin')}
-                className="flex-1 py-2.5 rounded-full border border-[#ff6a00]/40 text-[#a14000] text-xs font-bold hover:bg-[#fff1e8] active:scale-98 transition-all"
-                type="button"
-              >
-                {t.loginMemberBtn}
-              </button>
-              <button
-                onClick={() => navigateTo('partnerLogin')}
-                className="flex-1 py-2.5 rounded-full border border-[#1b2a5e]/30 text-[#1b2a5e] text-xs font-bold hover:bg-[#eff4ff] active:scale-98 transition-all"
-                type="button"
-              >
-                {t.loginPartnerBtn}
-              </button>
-            </div>
-          </div>
-
           {/* Language Selector Pill Tray */}
           <div className="inline-flex items-center p-1 rounded-full bg-[#eff4ff] shadow-xs border border-slate-200">
             <button

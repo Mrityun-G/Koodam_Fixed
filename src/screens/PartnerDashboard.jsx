@@ -47,7 +47,6 @@ export const PartnerDashboard = () => {
     declineIncomingJob,
     reviews,
     showToast,
-    handleSelectMember,
     navigateTo,
     isSharingLocation,
     startSharingLocation,
@@ -2937,30 +2936,6 @@ export const PartnerDashboard = () => {
               </span>
             </button>
 
-            <button
-              onClick={handleSelectMember}
-              className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[18px]">
-                  swap_horiz
-                </span>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
-                  Switch to Resident View
-                </p>
-
-                <p className="text-[11px] text-slate-500 truncate">
-                  Book services as a community member
-                </p>
-              </div>
-
-              <span className="material-symbols-outlined text-[18px] text-slate-300 shrink-0">
-                chevron_right
-              </span>
-            </button>
           </div>
         </section>
 
