@@ -30,13 +30,13 @@ from app.routers.escalations import require_admin
 
 # =========================================================
 # PARTNER PAYOUTS
-# The partner's share of each paid job joins their balance (KOODAM keeps
+# The partner's share of each paid job joins their balance (GigEzee keeps
 # the trust fee and commission) and they withdraw it when they choose:
 # - With an active Route "linked account" (their verified bank account),
 #   each job's share is transferred from its payment to that account and
 #   Razorpay pays it into their bank on its settlement schedule.
 # - Otherwise to a UPI ID or bank account, paid by RazorpayX when it's set
-#   up, or by KOODAM staff by hand.
+#   up, or by GigEzee staff by hand.
 # Each job is linked to the withdrawal that covers it, so it's paid once.
 # =========================================================
 
@@ -53,7 +53,7 @@ SENT = "SENT"
 SETTLED = "SETTLED"
 FAILED = "FAILED"
 # Phone bookings: the customer paid the partner in cash, so nothing is
-# transferred; the partner owes KOODAM its trust fee and commission
+# transferred; the partner owes GigEzee its trust fee and commission
 CASH_COLLECTED = "CASH_COLLECTED"
 
 # How many in-transit transfers one payouts request re-checks with Razorpay
@@ -512,9 +512,9 @@ def save_payout_account(
 
 def withdrawable_jobs(db: Session, partner_id: UUID, lock: bool = False):
     """
-    Paid jobs whose money is still with KOODAM and not yet withdrawn, and
+    Paid jobs whose money is still with GigEzee and not yet withdrawn, and
     the balance they add up to: the partner's share of each online job,
-    minus KOODAM's share of each job the partner was paid for in cash.
+    minus GigEzee's share of each job the partner was paid for in cash.
     lock holds the jobs' payment rows so a Route transfer can't run at
     the same time.
     """
@@ -610,7 +610,7 @@ def apply_payout(db: Session, withdrawal: PartnerWithdrawal, payout: dict):
 def razorpay_name(name: Optional[str]) -> str:
     """Razorpay rejects names with symbols such as "[25.] Nithin.L"."""
     cleaned = " ".join(re.sub(r"[^A-Za-z0-9 ]", " ", name or "").split())
-    return cleaned if len(cleaned) >= 3 else "KOODAM partner"
+    return cleaned if len(cleaned) >= 3 else "GigEzee partner"
 
 
 def send_payout(db: Session, withdrawal: PartnerWithdrawal, user: User):
@@ -658,10 +658,10 @@ def send_payout(db: Session, withdrawal: PartnerWithdrawal, user: User):
                 "currency": "INR",
                 "mode": "UPI" if withdrawal.method == "UPI" else "IMPS",
                 "purpose": "payout",
-                # Waits for KOODAM to top up instead of failing
+                # Waits for GigEzee to top up instead of failing
                 "queue_if_low_balance": True,
                 "reference_id": str(withdrawal.id),
-                "narration": "KOODAM earnings",
+                "narration": "GigEzee earnings",
                 "notes": {"withdrawal_id": str(withdrawal.id)},
             },
             headers={"X-Payout-Idempotency": str(withdrawal.id)},
@@ -702,7 +702,7 @@ def send_route_withdrawal(
 ):
     """
     Pay a PROCESSING withdrawal into the partner's linked account: each
-    online job's share is transferred from its own payment, less KOODAM's
+    online job's share is transferred from its own payment, less GigEzee's
     share of the cash jobs in the withdrawal. Safe to run again after a
     crash: jobs already transferred are skipped, and the amounts come out
     the same because the jobs are taken in the same order.
@@ -732,7 +732,7 @@ def send_route_withdrawal(
         amount = round(share - covers, 2)
 
         if amount <= 0:
-            # The whole share goes to KOODAM's share of the cash jobs
+            # The whole share goes to GigEzee's share of the cash jobs
             cash_due -= covers
             continue
 
@@ -756,14 +756,14 @@ def send_route_withdrawal(
         return
 
     # Jobs that couldn't be transferred go back to the balance. Any of
-    # KOODAM's cash share they were meant to cover is waived, not charged
+    # GigEzee's cash share they were meant to cover is waived, not charged
     # twice.
     for payout in failed:
         payout.withdrawal_id = None
 
     if cash_due > 0:
         logger.warning(
-            "Withdrawal %s left Rs %.2f of KOODAM's cash share uncovered",
+            "Withdrawal %s left Rs %.2f of GigEzee's cash share uncovered",
             withdrawal.id,
             cash_due
         )
@@ -869,7 +869,7 @@ def get_partner_payouts(
 
     payouts = []
     totals = {SETTLED: 0.0, SENT: 0.0, WAITING_FOR_ACCOUNT: 0.0, FAILED: 0.0, CASH_COLLECTED: 0.0}
-    koodam_share_due = 0.0
+    gigezee_share_due = 0.0
 
     for booking, detail, payout, withdrawal, service, customer in rows:
         payout = payout or BookingPayout()
@@ -886,10 +886,10 @@ def get_partner_payouts(
             totals[CASH_COLLECTED] += amount
             # Already deducted from a withdrawal otherwise
             if not withdrawal:
-                koodam_share_due += cash_due
+                gigezee_share_due += cash_due
         elif withdrawal and not payout.razorpay_transfer_id:
             # Withdrawn to a UPI ID or bank account (or it settled
-            # KOODAM's share of cash jobs)
+            # GigEzee's share of cash jobs)
             status = "WITHDRAWN" if withdrawal.status == PAID else "WITHDRAWAL_REQUESTED"
         else:
             # Route transfers show how far the money has got
@@ -907,7 +907,7 @@ def get_partner_payouts(
             "utr": payout.utr,
             "transfer_id": payout.razorpay_transfer_id,
             "error": payout.error,
-            "koodam_share_due": cash_due,
+            "gigezee_share_due": cash_due,
             "withdrawal_status": withdrawal.status if withdrawal else None,
         })
 
@@ -921,7 +921,7 @@ def get_partner_payouts(
             "waiting": round(totals[WAITING_FOR_ACCOUNT], 2),
             "failed": round(totals[FAILED], 2),
             "cash_collected": round(totals[CASH_COLLECTED], 2),
-            "koodam_share_due": round(koodam_share_due, 2),
+            "gigezee_share_due": round(gigezee_share_due, 2),
         },
         "withdrawal": {
             "available": available,
@@ -930,7 +930,7 @@ def get_partner_payouts(
             # Paid to their verified bank account through Route
             "route": route_ready(account),
             "pending": any(w.status in OPEN_WITHDRAWAL for w in withdrawals),
-            # RazorpayX pays straight away; otherwise KOODAM staff do
+            # RazorpayX pays straight away; otherwise GigEzee staff do
             "instant": bool(RAZORPAYX_ACCOUNT_NUMBER),
         },
         "withdrawals": [withdrawal_response(w) for w in withdrawals],
@@ -1105,7 +1105,7 @@ def request_withdrawal(
 
 
 # ---------------------------------------------------------
-# Withdrawals: KOODAM staff
+# Withdrawals: GigEzee staff
 # ---------------------------------------------------------
 
 class PaidRequest(BaseModel):

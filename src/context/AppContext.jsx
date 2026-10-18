@@ -78,15 +78,15 @@ import {
 
 // Which login page (member or partner) started a Google sign-in; kept in
 // storage because Google redirects away from the app and back
-const GOOGLE_ROLE_KEY = 'koodam-google-login-role';
+const GOOGLE_ROLE_KEY = 'gigezee-google-login-role';
 
 // Which side of the app (member or partner) the user was last using
-const LAST_ROLE_KEY = 'koodam-last-role';
+const LAST_ROLE_KEY = 'gigezee-last-role';
 
 // The member's current booking, so a page reload brings back its
 // tracking screen and rating card ({ uid, orderId } only; the order
 // itself is read from Firebase)
-const ACTIVE_ORDER_KEY = 'koodam-active-order';
+const ACTIVE_ORDER_KEY = 'gigezee-active-order';
 
 // Where the two keys above are kept: per tab during local development,
 // to match the per-tab sign-in in lib/firebase.js
@@ -295,7 +295,7 @@ const authErrorMessage = (err) => {
   // fetch() couldn't reach the backend (offline, or the server is
   // restarting / waking up)
   if (err instanceof TypeError && /fetch/i.test(err.message)) {
-    return "Couldn't reach the KOODAM server. Check your internet and try again in a minute.";
+    return "Couldn't reach the GigEzee server. Check your internet and try again in a minute.";
   }
 
   return err?.message || 'Something went wrong. Please try again.';
@@ -345,7 +345,7 @@ export const AppProvider = ({ children }) => {
   // Remembered across reloads; the app is translated from this in App.jsx
   const [language, setLanguage] = useState(() => {
     try {
-      const saved = localStorage.getItem('koodam-language');
+      const saved = localStorage.getItem('gigezee-language');
       return ['en', 'ta', 'kn'].includes(saved) ? saved : 'en';
     } catch {
       return 'en';
@@ -354,7 +354,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('koodam-language', language);
+      localStorage.setItem('gigezee-language', language);
     } catch {
       // Storage can be unavailable (e.g. private mode); the choice then lasts this session
     }
@@ -585,7 +585,7 @@ const [notificationsEnabled, setNotificationsEnabled] =
   const [phoneBookingNumber, setPhoneBookingNumber] = useState('');
 
   // FAQ, Terms, offline-mode steps and complaint reasons, managed by
-  // KOODAM staff in the database; screens fall back to their built-in
+  // GigEzee staff in the database; screens fall back to their built-in
   // text until this loads
   const [appContent, setAppContent] = useState({});
 
@@ -1794,7 +1794,7 @@ const requestsRef = ref(db, requestPath);
             payout:
               Number(latestRequest.payout || 0),
             customerName:
-              latestRequest.customerName || 'KOODAM Customer',
+              latestRequest.customerName || 'GigEzee Customer',
             customerAvatar:
               latestRequest.customerAvatar || '',
             customerRating:
@@ -1803,7 +1803,7 @@ const requestsRef = ref(db, requestPath);
               latestRequest.scheduledAt || null,
             customerId:
               latestRequest.customerId || null,
-            // Booked by calling KOODAM: no app, pays in cash
+            // Booked by calling GigEzee: no app, pays in cash
             isPhoneBooking:
               latestRequest.source === 'PHONE',
             customerPhone:
@@ -1864,7 +1864,7 @@ const requestsRef = ref(db, requestPath);
     useState(false);
 
   const [chatPartner, setChatPartner] =
-    useState('KOODAM Customer');
+    useState('GigEzee Customer');
 
 
   const [messages, setMessages] =
@@ -2186,7 +2186,7 @@ const requestsRef = ref(db, requestPath);
         name:
           firebaseUser.displayName ||
           extraData.name ||
-          'KOODAM User',
+          'GigEzee User',
         email: firebaseUser.email,
         phone: extraData.phone || null,
         avatar:
@@ -2264,7 +2264,7 @@ const signUp = async (
           );
         }
 
-        // Sync Firebase user with KOODAM backend
+        // Sync Firebase user with GigEzee backend
         backendUser =
           await syncUserWithBackend(
             cred.user,
@@ -2367,7 +2367,7 @@ const signUp = async (
     }
 
     // -------------------------------------------------------
-    // Existing KOODAM navigation
+    // Existing GigEzee navigation
     // -------------------------------------------------------
 
     enterRole(targetRole);
@@ -2375,7 +2375,7 @@ const signUp = async (
     showToast(
       policeUploadFailed
         ? 'Account created, but the police certificate upload failed — you can upload it from your Profile.'
-        : `Welcome to KOODAM, ${name || 'there'}!`
+        : `Welcome to GigEzee, ${name || 'there'}!`
     );
 
     return true;
@@ -2525,7 +2525,7 @@ const signIn = async (
 
 
     // -------------------------------------------------------
-    // Sync Firebase User with KOODAM Backend
+    // Sync Firebase User with GigEzee Backend
     // -------------------------------------------------------
 
     if (
@@ -2572,7 +2572,7 @@ const signIn = async (
 
 
     // -------------------------------------------------------
-    // Existing KOODAM navigation
+    // Existing GigEzee navigation
     // -------------------------------------------------------
 
     enterRole(targetRole);
@@ -2683,7 +2683,7 @@ const signIn = async (
       enterRole(targetRole);
 
       showToast(
-        `Welcome to KOODAM, ${backendUser?.name || googleUser.full_name || 'there'}!`
+        `Welcome to GigEzee, ${backendUser?.name || googleUser.full_name || 'there'}!`
       );
     } catch (err) {
       console.error('Google sign-in could not be completed:', err);
@@ -2705,13 +2705,13 @@ const signIn = async (
       if (err?.code === 'auth/operation-not-allowed') {
         message = 'Google sign-in is not enabled in Firebase. Enable Google under Firebase Authentication > Sign-in method.';
       } else if (err?.code === 'auth/account-exists-with-different-credential') {
-        message = 'This email already has a KOODAM password. Please log in with your email and password.';
+        message = 'This email already has a GigEzee password. Please log in with your email and password.';
       } else if (err?.code === 'auth/invalid-credential') {
         message = 'Google sign-in is not set up correctly. Please log in with your email and password.';
       } else if (isServerUnreachable) {
-        message = "Can't reach the KOODAM server. Make sure the backend is running, then try again.";
+        message = "Can't reach the GigEzee server. Make sure the backend is running, then try again.";
       } else if (/Backend sync failed/.test(err?.message || '')) {
-        message = "Signed in with Google, but your KOODAM account couldn't be loaded. Please try again.";
+        message = "Signed in with Google, but your GigEzee account couldn't be loaded. Please try again.";
       }
 
       showToast(message);
@@ -2829,7 +2829,7 @@ const signIn = async (
     setActiveOrder(EMPTY_ORDER);
     setMessages([]);
     setIsChatOpen(false);
-    setChatPartner('KOODAM Customer');
+    setChatPartner('GigEzee Customer');
     setHasIncomingJob(false);
     setPartnerUpcomingJobs([]);
     setReviews([]);
@@ -3278,7 +3278,7 @@ const handleConfirmBooking = async () => {
         customerName:
           userProfile?.name ||
           authUser?.displayName ||
-          'KOODAM Customer',
+          'GigEzee Customer',
 
         customerEmail:
           userProfile?.email ||
@@ -3361,7 +3361,7 @@ const handleConfirmBooking = async () => {
           customerName:
             userProfile?.name ||
             authUser?.displayName ||
-            'KOODAM Customer',
+            'GigEzee Customer',
           customerAvatar:
             userProfile?.avatar ||
             authUser?.photoURL ||
@@ -3718,7 +3718,7 @@ const verifyArrivalOtp = async (rawCode) => {
     });
 
     setChatPartner({
-      name: matchedOrder.customerName || 'KOODAM Customer',
+      name: matchedOrder.customerName || 'GigEzee Customer',
       avatar: matchedOrder.customerAvatar || '',
       customerId: matchedOrder.customerId
     });
@@ -4009,7 +4009,7 @@ const confirmCashPayment = async () => {
 
   addNotification('partner', {
     title: 'Cash Payment Recorded',
-    desc: `₹${activeOrder.totalAmount} cash for ${activeOrder.serviceTitle}. KOODAM's share is settled from your earnings.`,
+    desc: `₹${activeOrder.totalAmount} cash for ${activeOrder.serviceTitle}. GigEzee's share is settled from your earnings.`,
     screen: 'partner',
     tab: 'jobs'
   });
@@ -4190,7 +4190,7 @@ const acceptIncomingJob = async () => {
   const acceptedPartnerName =
     partnerProfile?.name?.trim() ||
     authUser?.displayName?.trim() ||
-    'KOODAM Partner';
+    'GigEzee Partner';
 
   // Never accept a job that overlaps one the partner already has
   const requestedStart = Number(incomingJobDetails?.scheduledAt);
@@ -4294,7 +4294,7 @@ etaMinutes: 12,
     }));
 
     setChatPartner({
-      name: incomingJobDetails.customerName || 'KOODAM Customer',
+      name: incomingJobDetails.customerName || 'GigEzee Customer',
       avatar: incomingJobDetails.customerAvatar || '',
       customerId: incomingJobDetails.customerId
     });

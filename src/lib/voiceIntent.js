@@ -1,5 +1,5 @@
 // Turns a spoken request ("I need a plumber, the water is leaking") into
-// one of KOODAM's services, and picks the best partner for it.
+// one of GigEzee's services, and picks the best partner for it.
 // Runs entirely in the browser: no extra API calls or cost per request.
 
 // Keys are service titles in the backend's services table (a renamed

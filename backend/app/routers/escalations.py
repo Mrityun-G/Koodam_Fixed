@@ -35,8 +35,8 @@ from app.models.user import User
 
 # =========================================================
 # COMPLAINTS AND ESCALATIONS
-# Customers raise complaints, partners reply, and KOODAM staff
-# (KOODAM_ADMIN_EMAILS) review escalations and can overturn them.
+# Customers raise complaints, partners reply, and GigEzee staff
+# (GIGEZEE_ADMIN_EMAILS) review escalations and can overturn them.
 # =========================================================
 
 router = APIRouter(tags=["Escalations"])
@@ -51,10 +51,10 @@ def reason_label(reason: str) -> str:
 
 SOURCE_LABELS = {
     "COMPLAINT_UNANSWERED": "Didn't reply to a complaint in time",
-    "COMPLAINT_UPHELD": "Customer complaint upheld by KOODAM",
+    "COMPLAINT_UPHELD": "Customer complaint upheld by GigEzee",
     "JOB_NOT_STARTED": "Accepted job not started on time",
     "JOB_NOT_FINISHED": "Started job not finished on time",
-    "ADMIN": "Escalated by KOODAM",
+    "ADMIN": "Escalated by GigEzee",
 }
 
 # Bookings a customer can complain about: a partner had taken the job
@@ -131,7 +131,7 @@ def require_admin(
     user = signed_in_user(db, firebase_uid)
 
     if not is_admin(user):
-        raise HTTPException(status_code=403, detail="KOODAM staff only")
+        raise HTTPException(status_code=403, detail="GigEzee staff only")
 
     return user
 
@@ -245,7 +245,7 @@ def escalate_complaint(
     firebase_uid: str = Depends(current_firebase_uid),
     db: Session = Depends(get_db)
 ):
-    """The customer isn't satisfied with the reply; KOODAM staff decide."""
+    """The customer isn't satisfied with the reply; GigEzee staff decide."""
     complaint = own_customer_complaint(db, complaint_id, firebase_uid)
 
     if complaint.status != "RESPONDED":
@@ -316,7 +316,7 @@ def respond_to_complaint(
     complaint.responded_at = datetime.utcnow()
 
     # A phone customer has no app to read the reply and accept or
-    # escalate it, so KOODAM decides straight away
+    # escalate it, so GigEzee decides straight away
     detail = db.get(BookingDetail, complaint.booking_id)
     complaint.status = (
         "NEEDS_REVIEW"
@@ -387,7 +387,7 @@ def get_partner_reliability(
 
 
 # ---------------------------------------------------------
-# KOODAM staff
+# GigEzee staff
 # ---------------------------------------------------------
 
 @router.get("/admin/me")
@@ -617,7 +617,7 @@ def create_manual_escalation(
     if not escalation:
         raise HTTPException(
             status_code=409,
-            detail="This job has already been escalated by KOODAM."
+            detail="This job has already been escalated by GigEzee."
         )
 
     db.commit()
@@ -657,7 +657,7 @@ def overturn_escalation(
 
 # ---------------------------------------------------------
 # Removing a partner. Unlike a suspension this has no end date and
-# leaves no strike on their record; it lasts until KOODAM reactivates
+# leaves no strike on their record; it lasts until GigEzee reactivates
 # them. Jobs they already accepted can still be finished.
 # ---------------------------------------------------------
 

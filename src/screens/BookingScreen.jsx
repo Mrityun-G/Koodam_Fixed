@@ -626,7 +626,7 @@ export const BookingScreen = () => {
               type="button"
             >
               <img
-                alt="KOODAM Community Logo"
+                alt="GigEzee Community Logo"
                 className="h-7 w-auto object-contain"
                 src="/logo.svg"
               />
@@ -710,7 +710,7 @@ export const BookingScreen = () => {
 
                   <span className="text-[10px] font-bold">
                     {isVerified
-                      ? 'KOODAM Verified'
+                      ? 'GigEzee Verified'
                       : 'Service Partner'}
                   </span>
                 </div>
@@ -1131,7 +1131,7 @@ export const BookingScreen = () => {
                 </span>
                 <p className="text-[11px] leading-relaxed font-medium">
                   {isPoliceVerified
-                    ? `${helperName}'s police verification has been checked by KOODAM.`
+                    ? `${helperName}'s police verification has been checked by GigEzee.`
                     : `${helperName} is not police verified yet. For child care, please go back and choose a police-verified helper.`}
                 </p>
               </div>

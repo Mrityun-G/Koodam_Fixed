@@ -19,9 +19,9 @@ from app.models.app_config import AppConfig
 
 # Fees and limits, with the range staff may set
 SETTINGS = {
-    # Flat fee the customer pays KOODAM on every booking (rupees)
+    # Flat fee the customer pays GigEzee on every booking (rupees)
     "trust_fee": {"default": TRUST_FEE, "min": 0, "max": 1000},
-    # KOODAM's share of the service price (not of extra parts)
+    # GigEzee's share of the service price (not of extra parts)
     "platform_commission_percent": {
         "default": PLATFORM_COMMISSION_PERCENT, "min": 0, "max": 50
     },
@@ -51,7 +51,7 @@ CONTENT = {
         },
         {
             "q": "As a partner, how much do I earn from a job?",
-            "a": "You set your own price. KOODAM keeps a {commission_percent}% commission on the job price, and every extra part you add is passed to you in full. The ₹{trust_fee} trust fee is paid by the customer, not you. Your share of each paid job joins your balance in Earnings → Payouts, and you withdraw it whenever you like."
+            "a": "You set your own price. GigEzee keeps a {commission_percent}% commission on the job price, and every extra part you add is passed to you in full. The ₹{trust_fee} trust fee is paid by the customer, not you. Your share of each paid job joins your balance in Earnings → Payouts, and you withdraw it whenever you like."
         },
         {
             "q": "How do I rate a helper after service?",
@@ -70,7 +70,7 @@ CONTENT = {
         {
             "title": "Terms of Service",
             "points": [
-                "KOODAM connects residents with verified local service partners for household help. We are a booking platform, not the employer of any service partner.",
+                "GigEzee connects residents with verified local service partners for household help. We are a booking platform, not the employer of any service partner.",
                 "Bookings, once confirmed, form a direct agreement between the member and the service partner. Pricing shown at booking time is final unless additional work is agreed upon on-site.",
                 "The Safety PIN system exists to confirm identity at arrival. Do not share it before the helper physically arrives at your location.",
                 "Ratings and reviews must reflect genuine experiences. Misuse of the rating system may result in account restrictions.",

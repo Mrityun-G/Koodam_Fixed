@@ -2,12 +2,12 @@ import React from 'react';
 import { SubHeader } from '../components/SubHeader';
 import { useApp } from '../context/AppContext';
 
-// Used until the Terms stored by KOODAM staff load
+// Used until the Terms stored by GigEzee staff load
 const DEFAULT_SECTIONS = [
   {
     title: 'Terms of Service',
     points: [
-      'KOODAM connects residents with verified local service partners for household help. We are a booking platform, not the employer of any service partner.',
+      'GigEzee connects residents with verified local service partners for household help. We are a booking platform, not the employer of any service partner.',
       'Bookings, once confirmed, form a direct agreement between the member and the service partner. Pricing shown at booking time is final unless additional work is agreed upon on-site.',
       'The Safety PIN system exists to confirm identity at arrival. Do not share it before the helper physically arrives at your location.',
       'Ratings and reviews must reflect genuine experiences. Misuse of the rating system may result in account restrictions.'

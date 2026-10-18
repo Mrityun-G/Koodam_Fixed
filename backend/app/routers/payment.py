@@ -81,7 +81,7 @@ def approved_extras_total(db: Session, booking_id) -> float:
 def calculate_split(total: float, extras: float) -> dict:
     """
     total  = service price + trust fee + approved extra parts
-    KOODAM keeps the trust fee and a commission on the service price.
+    GigEzee keeps the trust fee and a commission on the service price.
     The partner gets the rest of the service price plus every extra part,
     since parts are their own cost.
     """
@@ -98,7 +98,7 @@ def calculate_split(total: float, extras: float) -> dict:
         "trust_fee": round(trust_fee, 2),
         "commission_percent": commission_percent,
         "commission": commission,
-        "koodam_share": round(trust_fee + commission, 2),
+        "gigezee_share": round(trust_fee + commission, 2),
         "partner_payout": partner_payout
     }
 
@@ -314,7 +314,7 @@ def record_cash_payment(
         ):
             raise CashRejected(
                 "The customer must approve or decline the extra parts cost first. "
-                "Ask them to call KOODAM's number."
+                "Ask them to call GigEzee's number."
             )
 
         if not order.get("repairPhotoUrl"):

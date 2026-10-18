@@ -38,7 +38,7 @@ class BookingDetail(Base):
 
     payment_status = Column(String, nullable=False, default="PENDING")
 
-    # APP or PHONE (booked by calling KOODAM, see app/ivr)
+    # APP or PHONE (booked by calling GigEzee, see app/ivr)
     source = Column(String, nullable=True)
 
     # ONLINE (Razorpay) or CASH (paid to the partner; phone bookings)
@@ -55,7 +55,7 @@ class BookingDetail(Base):
     # The Razorpay order the backend created for this bill
     razorpay_order_id = Column(String, nullable=True)
 
-    # How a verified payment is split (rupees). KOODAM keeps the trust
+    # How a verified payment is split (rupees). GigEzee keeps the trust
     # fee and the commission; the partner gets the rest.
     trust_fee = Column(Float, nullable=True)
 

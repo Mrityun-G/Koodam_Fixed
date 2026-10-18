@@ -8,7 +8,7 @@ from app.database import Base
 
 class AppConfig(Base):
     """
-    Settings and content KOODAM staff can change without a release:
+    Settings and content GigEzee staff can change without a release:
     fees and limits (numbers) and the FAQ, Terms, offline-mode steps and
     complaint reasons (lists). See app/app_config.py for the keys.
     """

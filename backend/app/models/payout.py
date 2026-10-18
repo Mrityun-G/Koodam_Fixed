@@ -86,7 +86,7 @@ class BookingPayout(Base):
 class PartnerWithdrawal(Base):
     """
     A partner asking for their available balance, paid to their UPI ID or
-    bank account by RazorpayX, or by KOODAM staff by hand when RazorpayX
+    bank account by RazorpayX, or by GigEzee staff by hand when RazorpayX
     isn't set up. Covers every job linked to it through
     booking_payouts.withdrawal_id.
     RazorpayX: PROCESSING -> PAID, or FAILED (the jobs go back to the balance)

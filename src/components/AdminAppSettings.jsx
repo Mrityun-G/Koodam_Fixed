@@ -183,7 +183,7 @@ const ContentEditor = ({ contentKey, items, onSaved }) => {
   );
 };
 
-// KOODAM staff: fees, limits and the app's text, all stored in the database
+// GigEzee staff: fees, limits and the app's text, all stored in the database
 export const AdminAppSettings = () => {
   const { showToast, appContent, loadAppSettings } = useApp();
 

@@ -99,7 +99,7 @@ const EMPTY_FORM = {
 
 // Earnings tab: where the partner's money goes after each paid job.
 // With an active bank account Razorpay Route pays each job automatically;
-// until then the partner withdraws their balance and KOODAM staff pay it.
+// until then the partner withdraws their balance and GigEzee staff pay it.
 // setupOpen / onSetupOpenChange control the bank form.
 export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 }) => {
   const { partnerProfile, showToast } = useApp();
@@ -264,7 +264,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
           ? `${formatRupees(withdrawal.amount)} sent — Razorpay pays it into your bank.`
           : withdrawal.status === 'PROCESSING'
             ? `Razorpay is sending ${formatRupees(withdrawal.amount)} to your account.`
-            : `Withdrawal of ${formatRupees(withdrawal.amount)} requested — KOODAM will pay it soon.`
+            : `Withdrawal of ${formatRupees(withdrawal.amount)} requested — GigEzee will pay it soon.`
       );
       load();
     } catch (withdrawFailure) {
@@ -359,12 +359,12 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
                 {withdrawal.pending
                   ? 'Your last withdrawal is on its way'
                   : withdrawal.available < 0
-                    ? "You owe KOODAM its share of cash jobs; it's taken from your next earnings"
+                    ? "You owe GigEzee its share of cash jobs; it's taken from your next earnings"
                     : withdrawal.available < withdrawal.minimum
                       ? `You can withdraw from ${formatRupees(withdrawal.minimum)}`
                       : withdrawal.route || withdrawal.instant
                         ? 'Sent to your UPI ID or bank account by Razorpay'
-                        : 'Paid to your UPI ID or bank account by KOODAM'}
+                        : 'Paid to your UPI ID or bank account by GigEzee'}
               </p>
             </div>
 
@@ -435,7 +435,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
               {`Phone bookings: you kept ${formatRupees(totals.cash_collected)} as your share in cash`}
             </p>
             <p className="mt-0.5">
-              {`KOODAM's trust fee and commission on them: ${formatRupees(totals.koodam_share_due)}, settled from your earnings.`}
+              {`GigEzee's trust fee and commission on them: ${formatRupees(totals.gigezee_share_due)}, settled from your earnings.`}
             </p>
           </div>
         )}
@@ -516,7 +516,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
 
                     {payout.status === 'CASH_COLLECTED' && (
                       <p className="text-[10px] text-slate-400 mt-1">
-                        {`Customer paid you in cash • KOODAM's share ${formatRupees(payout.koodam_share_due)}${payout.withdrawal_status ? ', taken from a withdrawal' : ''}`}
+                        {`Customer paid you in cash • GigEzee's share ${formatRupees(payout.gigezee_share_due)}${payout.withdrawal_status ? ', taken from a withdrawal' : ''}`}
                       </p>
                     )}
 
@@ -565,7 +565,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
 
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-3">
             <p className="text-xs text-slate-500 mb-3">
-              Razorpay verifies these details (KYC), then your withdrawals are paid into this account. KOODAM never stores your full account number.
+              Razorpay verifies these details (KYC), then your withdrawals are paid into this account. GigEzee never stores your full account number.
             </p>
 
             <div className="space-y-2">
@@ -645,7 +645,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
                 <p className="text-2xl font-extrabold text-[#0b1c30]">{formatRupees(withdrawal?.available)}</p>
                 <p className="text-[10px] text-slate-500">{withdrawal?.route || withdrawal?.instant
                     ? 'Your full balance, sent by Razorpay straight away.'
-                    : 'Your full balance, paid by KOODAM after a quick check.'}</p>
+                    : 'Your full balance, paid by GigEzee after a quick check.'}</p>
               </div>
 
               {withdrawal?.route ? (

@@ -8,7 +8,7 @@ const SpeechRecognition =
   typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
 /**
- * Lets KOODAM staff walk through the phone booking menu (offline mode),
+ * Lets GigEzee staff walk through the phone booking menu (offline mode),
  * by pressing keys or speaking,
  * as a caller would, before a real phone number is connected. Bookings
  * made here are real: they go to real partners.
@@ -24,7 +24,7 @@ export const PhoneBookingSimulator = () => {
   // Language the menu is listening in, e.g. "ta-IN"
   const [listenLang, setListenLang] = useState('en-IN');
   const [listening, setListening] = useState(false);
-  // Read KOODAM's replies out loud, like a real call
+  // Read GigEzee's replies out loud, like a real call
   const [speakReplies, setSpeakReplies] = useState(true);
   const transcriptRef = useRef(null);
 
@@ -62,7 +62,7 @@ export const PhoneBookingSimulator = () => {
           : digits != null
           ? [{ from: 'caller', text: digits || '(no key pressed)' }]
           : []),
-        ...reply.parts.map((part) => ({ from: 'koodam', text: part.text })),
+        ...reply.parts.map((part) => ({ from: 'gigezee', text: part.text })),
         ...(reply.note ? [{ from: 'note', text: `Why: ${reply.note}` }] : [])
       ]);
       setExpecting(reply.hangup ? 0 : reply.digits);

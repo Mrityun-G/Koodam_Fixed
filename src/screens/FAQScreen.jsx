@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { SubHeader } from '../components/SubHeader';
 import { useApp } from '../context/AppContext';
 
-// Used until the FAQ stored by KOODAM staff loads. Fees come from the
+// Used until the FAQ stored by GigEzee staff loads. Fees come from the
 // backend settings, so the answers stay accurate
 const buildFaqs = ({ trustFee, commissionPercent }) => [
   {
@@ -23,7 +23,7 @@ const buildFaqs = ({ trustFee, commissionPercent }) => [
   },
   {
     q: 'As a partner, how much do I earn from a job?',
-    a: `You set your own price. KOODAM keeps a ${commissionPercent}% commission on the job price, and every extra part you add is passed to you in full. The ₹${trustFee} trust fee is paid by the customer, not you. Tap the receipt icon in your chat with a customer to see exactly what you earned from each job.`
+    a: `You set your own price. GigEzee keeps a ${commissionPercent}% commission on the job price, and every extra part you add is passed to you in full. The ₹${trustFee} trust fee is paid by the customer, not you. Tap the receipt icon in your chat with a customer to see exactly what you earned from each job.`
   },
   {
     q: 'How do I rate a helper after service?',

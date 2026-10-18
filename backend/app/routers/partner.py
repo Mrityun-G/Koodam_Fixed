@@ -304,7 +304,7 @@ def update_online_status(
     if data.is_online and is_deactivated(partner):
         raise HTTPException(
             status_code=403,
-            detail="Your account has been deactivated by KOODAM, so you can't go online"
+            detail="Your account has been deactivated by GigEzee, so you can't go online"
         )
 
     if data.is_online and is_suspended(partner):
@@ -402,7 +402,7 @@ def get_partner_overview(
 
     for booking, detail in rows:
         if detail and detail.payment_status == "PAID":
-            # The partner's share after KOODAM's trust fee and commission,
+            # The partner's share after GigEzee's trust fee and commission,
             # not the full amount the customer paid
             paid = (
                 detail.partner_payout

@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 
-# Adding or changing services is for KOODAM staff only
+# Adding or changing services is for GigEzee staff only
 @router.post("/", response_model=ServiceResponse)
 def create_service(
     service_data: ServiceCreate,

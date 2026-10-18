@@ -42,7 +42,7 @@ from app.escalations import start_sweeper
 from app.service_catalog import sync_service_catalog
 
 
-app = FastAPI(title="KOODAM Backend")
+app = FastAPI(title="GigEzee Backend")
 
 
 app.add_middleware(
@@ -145,7 +145,7 @@ def run_escalation_checks():
 @app.get("/")
 def root():
     return {
-        "message": "KOODAM Backend is running!"
+        "message": "GigEzee Backend is running!"
     }
 
 

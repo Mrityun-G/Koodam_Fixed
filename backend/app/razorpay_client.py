@@ -50,12 +50,12 @@ def razorpay_request(
             message = response.text
 
         # Razorpay hasn't switched on Route (partner payouts) for the
-        # KOODAM account yet; this is on KOODAM's side, not the partner's
+        # GigEzee account yet; this is on GigEzee's side, not the partner's
         if "route feature not enabled" in str(message).lower():
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Bank payouts aren't switched on for KOODAM yet. Your "
+                    "Bank payouts aren't switched on for GigEzee yet. Your "
                     "earnings are recorded and will be paid once they are. "
                     "Please try adding your bank account again later."
                 )

@@ -14,7 +14,7 @@ from app.routers.escalations import require_admin
 # =========================================================
 # APP SETTINGS AND CONTENT
 # Anyone can read them (the app shows them before sign-in too);
-# only KOODAM staff can change them.
+# only GigEzee staff can change them.
 # =========================================================
 
 router = APIRouter(tags=["App settings"])
@@ -38,7 +38,7 @@ def app_content():
 
 
 # ---------------------------------------------------------
-# KOODAM staff
+# GigEzee staff
 # ---------------------------------------------------------
 
 class SettingsUpdate(BaseModel):

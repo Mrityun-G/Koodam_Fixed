@@ -35,7 +35,7 @@ export const toHelper = (service, partner) => ({
     Boolean(service.requires_police_verification),
 
   name:
-    partner.name || 'KOODAM Partner',
+    partner.name || 'GigEzee Partner',
 
   title:
     service.title,
@@ -105,7 +105,7 @@ export const toHelper = (service, partner) => ({
   badge:
     partner.is_verified
       ? 'Verified Partner'
-      : 'KOODAM Partner',
+      : 'GigEzee Partner',
 
   badgeColor:
     partner.is_verified

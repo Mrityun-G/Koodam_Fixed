@@ -94,7 +94,7 @@ export const PartnerDashboard = () => {
   };
 
   // What the partner actually takes home from a request: the customer's
-  // total minus KOODAM's trust fee and commission (same split the backend
+  // total minus GigEzee's trust fee and commission (same split the backend
   // makes when the customer pays; extra parts added later go to the
   // partner in full)
   const partnerShareOf = (customerTotal) => {
@@ -239,7 +239,7 @@ export const PartnerDashboard = () => {
       icon: style.icon,
       tone: style.tone,
       status: job.status === 'IN_PROGRESS' ? 'In progress' : 'Confirmed',
-      customer: job.customer_name || 'KOODAM Customer',
+      customer: job.customer_name || 'GigEzee Customer',
       address: job.address || 'Nearby',
       date: when,
       startMs: when ? when.getTime() : null,
@@ -931,7 +931,7 @@ export const PartnerDashboard = () => {
           >
             <img
               src="/logo.svg"
-              alt="KOODAM Community Logo"
+              alt="GigEzee Community Logo"
               className="h-8 w-auto object-contain shrink-0"
             />
 
@@ -1855,7 +1855,7 @@ export const PartnerDashboard = () => {
 
                 <p className="text-[11px] text-slate-500">
                   {isPhoneBooking
-                    ? `Show the customer the part, then ask them to call ${phoneBookingNumber || "KOODAM's phone booking number"} to approve it.`
+                    ? `Show the customer the part, then ask them to call ${phoneBookingNumber || "GigEzee's phone booking number"} to approve it.`
                     : 'Need a costly component? Send the estimate for the customer to approve.'}
                 </p>
               </div>
@@ -1976,7 +1976,7 @@ export const PartnerDashboard = () => {
 
                 <p className="text-[11px] text-slate-500">
                   {isPhoneBooking
-                    ? 'Show this photo to the customer before collecting cash. KOODAM keeps it as proof of the work.'
+                    ? 'Show this photo to the customer before collecting cash. GigEzee keeps it as proof of the work.'
                     : activeOrder.repairPhotoUrl
                     ? 'The customer can see this with the final bill.'
                     : 'Take a photo of the finished work. The customer sees it with the bill before paying.'}
@@ -2065,7 +2065,7 @@ export const PartnerDashboard = () => {
         <button
           onClick={() => {
             setChatPartner({
-              name: activeOrder?.customerName || 'KOODAM Customer',
+              name: activeOrder?.customerName || 'GigEzee Customer',
               avatar: activeOrder?.customerAvatar || '',
               customerId: activeOrder?.customerId
             });

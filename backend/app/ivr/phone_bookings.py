@@ -84,7 +84,7 @@ def get_or_create_phone_customer(db: Session, phone: str) -> User:
         firebase_uid=f"phone:{phone}",
         name=f"Phone customer {last10[-4:]}",
         # Placeholder: the .invalid domain can never receive mail
-        email=f"{last10}@phone.koodam.invalid",
+        email=f"{last10}@phone.gigezee.invalid",
         phone=phone,
         role="MEMBER"
     )
@@ -131,7 +131,7 @@ def locate_pincode(pincode: str) -> Optional[tuple]:
                 "format": "json",
                 "limit": 1
             },
-            headers={"User-Agent": "KOODAM phone booking"},
+            headers={"User-Agent": "GigEzee phone booking"},
             timeout=8
         )
         response.raise_for_status()
@@ -216,7 +216,7 @@ def pincode_near(lat: float, lng: float) -> Optional[str]:
         response = requests.get(
             "https://nominatim.openstreetmap.org/reverse",
             params={"lat": lat, "lon": lng, "format": "json", "zoom": 18},
-            headers={"User-Agent": "KOODAM phone booking"},
+            headers={"User-Agent": "GigEzee phone booking"},
             timeout=8
         )
         response.raise_for_status()
@@ -230,7 +230,7 @@ def pincode_near(lat: float, lng: float) -> Optional[str]:
 
 def explain_no_partner(db: Session, service: Service, lat: float, lng: float) -> str:
     """
-    Why nobody matched, for KOODAM staff testing in the simulator.
+    Why nobody matched, for GigEzee staff testing in the simulator.
     Never read out on a real call.
     """
     rows = (

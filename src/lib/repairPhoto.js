@@ -96,11 +96,11 @@ export const uploadRepairPhoto = async (file, folder, label) => {
   const image = await loadImage(file);
   const blob = await toBlob(drawScaled(image, MAX_SIDE), QUALITY);
 
-  // KOODAM's backend keeps it in the database with the booking
+  // GigEzee's backend keeps it in the database with the booking
   try {
     return await uploadToBackend(blob, folder, label);
   } catch (error) {
-    console.warn('Saving the photo to KOODAM failed, trying Firebase Storage:', error);
+    console.warn('Saving the photo to GigEzee failed, trying Firebase Storage:', error);
   }
 
   if (isStorageConfigured && storage) {

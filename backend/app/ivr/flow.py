@@ -47,7 +47,7 @@ class Reply:
     # How many keys to collect next; 0 means nothing is expected
     digits: int = 0
     hangup: bool = False
-    # For KOODAM staff in the simulator only; never spoken on a call
+    # For GigEzee staff in the simulator only; never spoken on a call
     note: str = ""
     # Words the caller may say instead of pressing a key -> the key
     choices: dict = field(default_factory=dict)

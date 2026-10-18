@@ -15,7 +15,7 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv(
 )
 
 # Deployed frontend URLs allowed to call the API, comma-separated
-# (e.g. https://koodam.vercel.app); localhost is always allowed
+# (e.g. https://gigezee.vercel.app); localhost is always allowed
 ALLOWED_ORIGINS = [
     origin.strip().rstrip("/")
     for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
@@ -29,7 +29,7 @@ RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 # Test keys: no real money moves
 RAZORPAY_TEST_MODE = (RAZORPAY_KEY_ID or "").startswith("rzp_test_")
 
-# KOODAM's RazorpayX account number. When set, partner withdrawals are
+# GigEzee's RazorpayX account number. When set, partner withdrawals are
 # paid out by RazorpayX straight away; otherwise staff pay them by hand
 RAZORPAYX_ACCOUNT_NUMBER = os.getenv("RAZORPAYX_ACCOUNT_NUMBER", "").strip()
 
@@ -37,12 +37,12 @@ RAZORPAYX_ACCOUNT_NUMBER = os.getenv("RAZORPAYX_ACCOUNT_NUMBER", "").strip()
 if not RAZORPAYX_ACCOUNT_NUMBER.isdigit():
     RAZORPAYX_ACCOUNT_NUMBER = ""
 
-# Flat fee the customer pays KOODAM on every booking (rupees)
-TRUST_FEE = float(os.getenv("KOODAM_TRUST_FEE", "20"))
+# Flat fee the customer pays GigEzee on every booking (rupees)
+TRUST_FEE = float(os.getenv("GIGEZEE_TRUST_FEE", "20"))
 
-# KOODAM's share of the service price; extra parts are never commissioned
+# GigEzee's share of the service price; extra parts are never commissioned
 PLATFORM_COMMISSION_PERCENT = float(
-    os.getenv("KOODAM_PLATFORM_COMMISSION_PERCENT", "10")
+    os.getenv("GIGEZEE_PLATFORM_COMMISSION_PERCENT", "10")
 )
 
 # backend/.env and the frontend's .env in the project root
@@ -100,27 +100,27 @@ def env_setting(*names: str) -> Optional[str]:
 
 # =========================================================
 # PHONE BOOKING (offline mode)
-# Customers without a smartphone book by calling KOODAM's number. The
+# Customers without a smartphone book by calling GigEzee's number. The
 # backend creates the same Firebase booking the app does, so partners
 # get it in their usual portal. Phone bookings are paid in cash.
 # =========================================================
 
 # The number customers call, as shown on the landing page
-IVR_PHONE_NUMBER = os.getenv("KOODAM_IVR_NUMBER", "")
+IVR_PHONE_NUMBER = os.getenv("GIGEZEE_IVR_NUMBER", "")
 
 # The public https address of this backend, used to check that a call
-# webhook really came from the phone provider (e.g. https://api.koodam.in)
-IVR_PUBLIC_URL = os.getenv("KOODAM_IVR_PUBLIC_URL", "").rstrip("/")
+# webhook really came from the phone provider (e.g. https://api.gigezee.in)
+IVR_PUBLIC_URL = os.getenv("GIGEZEE_IVR_PUBLIC_URL", "").rstrip("/")
 
 # Twilio signs every webhook with the account's auth token
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 
 # Business category Razorpay files each partner's Route linked account
 # under (values from Razorpay's business category list)
-ROUTE_BUSINESS_CATEGORY = os.getenv("KOODAM_ROUTE_CATEGORY", "services")
+ROUTE_BUSINESS_CATEGORY = os.getenv("GIGEZEE_ROUTE_CATEGORY", "services")
 
 ROUTE_BUSINESS_SUBCATEGORY = os.getenv(
-    "KOODAM_ROUTE_SUBCATEGORY", "repair_and_cleaning"
+    "GIGEZEE_ROUTE_SUBCATEGORY", "repair_and_cleaning"
 )
 
 
@@ -135,37 +135,37 @@ def _env_number(name: str, default: float) -> float:
         return float(default)
 
 
-# KOODAM staff, by sign-in email (comma-separated). Users can't make
+# GigEzee staff, by sign-in email (comma-separated). Users can't make
 # themselves admins: the users.role column is set by the app itself.
 ADMIN_EMAILS = {
     email.strip().lower()
-    for email in os.getenv("KOODAM_ADMIN_EMAILS", "").split(",")
+    for email in os.getenv("GIGEZEE_ADMIN_EMAILS", "").split(",")
     if email.strip()
 }
 
 # Hours a partner has to reply to a customer's complaint
-COMPLAINT_RESPONSE_HOURS = _env_number("KOODAM_COMPLAINT_RESPONSE_HOURS", 24)
+COMPLAINT_RESPONSE_HOURS = _env_number("GIGEZEE_COMPLAINT_RESPONSE_HOURS", 24)
 
 # Hours after the booked time before an accepted job that hasn't
 # started, or a started job that hasn't finished, is escalated
-JOB_START_GRACE_HOURS = _env_number("KOODAM_JOB_START_GRACE_HOURS", 2)
-JOB_FINISH_GRACE_HOURS = _env_number("KOODAM_JOB_FINISH_GRACE_HOURS", 12)
+JOB_START_GRACE_HOURS = _env_number("GIGEZEE_JOB_START_GRACE_HOURS", 2)
+JOB_FINISH_GRACE_HOURS = _env_number("GIGEZEE_JOB_FINISH_GRACE_HOURS", 12)
 
 # Jobs booked before this date are never escalated automatically, so
 # turning the feature on doesn't punish partners for old test bookings
-ESCALATIONS_FROM = os.getenv("KOODAM_ESCALATIONS_FROM", "2026-10-03")
+ESCALATIONS_FROM = os.getenv("GIGEZEE_ESCALATIONS_FROM", "2026-10-03")
 
 # A partner's first escalation in this window is a warning, the rest are
 # strikes; this many strikes in the window suspends them
-STRIKE_WINDOW_DAYS = _env_number("KOODAM_STRIKE_WINDOW_DAYS", 30)
-STRIKES_TO_SUSPEND = int(_env_number("KOODAM_STRIKES_TO_SUSPEND", 3))
-SUSPENSION_DAYS = _env_number("KOODAM_SUSPENSION_DAYS", 7)
+STRIKE_WINDOW_DAYS = _env_number("GIGEZEE_STRIKE_WINDOW_DAYS", 30)
+STRIKES_TO_SUSPEND = int(_env_number("GIGEZEE_STRIKES_TO_SUSPEND", 3))
+SUSPENSION_DAYS = _env_number("GIGEZEE_SUSPENSION_DAYS", 7)
 
 # Reliability score: 100 minus these points per warning / strike from
 # the last RELIABILITY_DAYS days. It lowers the partner's place in search.
-RELIABILITY_DAYS = _env_number("KOODAM_RELIABILITY_DAYS", 90)
-WARNING_POINTS = _env_number("KOODAM_WARNING_POINTS", 5)
-STRIKE_POINTS = _env_number("KOODAM_STRIKE_POINTS", 20)
+RELIABILITY_DAYS = _env_number("GIGEZEE_RELIABILITY_DAYS", 90)
+WARNING_POINTS = _env_number("GIGEZEE_WARNING_POINTS", 5)
+STRIKE_POINTS = _env_number("GIGEZEE_STRIKE_POINTS", 20)
 
 # How often the server looks for overdue jobs and unanswered complaints
-ESCALATION_SWEEP_MINUTES = _env_number("KOODAM_ESCALATION_SWEEP_MINUTES", 10)
+ESCALATION_SWEEP_MINUTES = _env_number("GIGEZEE_ESCALATION_SWEEP_MINUTES", 10)

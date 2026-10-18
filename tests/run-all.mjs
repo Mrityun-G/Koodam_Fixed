@@ -21,7 +21,7 @@ const steps = [
   // Built into a temporary folder so the real dist/ is left alone
   ['1. Building the app', 'npx', [
     'vite', 'build', '--logLevel', 'error', '--emptyOutDir',
-    '--outDir', `"${join(tmpdir(), 'koodam-test-build')}"`
+    '--outDir', `"${join(tmpdir(), 'gigezee-test-build')}"`
   ], root],
   ['2. Booking screen tests', process.execPath, ['tests/bookFor.test.mjs'], root],
   ['3. Server tests', python, ['-W', 'ignore', 'tests/test_booking_for.py'], join(root, 'backend')]

@@ -28,7 +28,7 @@ router = APIRouter(prefix="/ivr", tags=["Phone booking"])
 
 
 # ---------------------------------------------------------
-# Simulator: KOODAM staff can walk through the menu from the admin
+# Simulator: GigEzee staff can walk through the menu from the admin
 # screen before a phone number is connected. Admin only, because the
 # caller's number decides whose bookings the menu acts on.
 # ---------------------------------------------------------
@@ -61,7 +61,7 @@ def simulate_call(
 
 # ---------------------------------------------------------
 # Twilio (TwiML). Point the number's "A call comes in" webhook at
-# POST {KOODAM_IVR_PUBLIC_URL}/ivr/twilio
+# POST {GIGEZEE_IVR_PUBLIC_URL}/ivr/twilio
 # ---------------------------------------------------------
 
 TWILIO_VOICES = {
