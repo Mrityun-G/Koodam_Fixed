@@ -71,7 +71,7 @@ class PartnerEscalation(Base):
       COMPLAINT_UPHELD      an admin upheld a customer's complaint
       JOB_NOT_STARTED       accepted job not started after the grace period
       JOB_NOT_FINISHED      started job not finished after the grace period
-      ADMIN                 escalated by KOODAM staff
+      ADMIN                 escalated by GigEzee staff
 
     An admin can overturn one; overturned escalations don't count.
     """

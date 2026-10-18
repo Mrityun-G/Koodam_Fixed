@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SubHeader } from '../components/SubHeader';
 import { useApp } from '../context/AppContext';
-import { authorizedFetch } from '../lib/authorizedFetch';
+import { authorizedFetch, BACKEND_URL } from '../lib/authorizedFetch';
+import { auth } from '../lib/firebase';
 import { PhoneBookingSimulator } from '../components/PhoneBookingSimulator';
+import { AdminAppSettings } from '../components/AdminAppSettings';
 
 const formatDate = (iso) =>
   iso
@@ -93,6 +95,124 @@ const ReviewItem = ({ complaint, onDecide, busy }) => {
   );
 };
 
+const formatRupees = (value) =>
+  `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+// Partner withdrawal requests: pay them by UPI or bank, then record the
+// bank reference (UTR), or reject so the amount returns to their balance
+const WithdrawalsSection = () => {
+  const { showToast } = useApp();
+
+  const [withdrawals, setWithdrawals] = useState(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      setWithdrawals(await authorizedFetch('/payouts/admin/withdrawals'));
+      setError('');
+    } catch (loadError) {
+      setError(loadError.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const decide = async (withdrawal, action) => {
+    const value = window.prompt(
+      action === 'paid'
+        ? `Paid ${formatRupees(withdrawal.amount)} to ${withdrawal.partner_name}? Enter the UTR / UPI reference:`
+        : `Why reject ${withdrawal.partner_name}'s withdrawal? They'll see this reason.`
+    );
+
+    if (!value || value.trim().length < 3) return;
+
+    setBusy(true);
+
+    try {
+      await authorizedFetch(`/payouts/admin/withdrawals/${withdrawal.id}/${action}`, {
+        method: 'POST',
+        body: JSON.stringify(action === 'paid' ? { utr: value } : { reason: value })
+      });
+      showToast(action === 'paid' ? 'Marked as paid.' : 'Rejected. The amount is back in their balance.');
+      await load();
+    } catch (actError) {
+      showToast(actError.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const isOpen = (item) => ['REQUESTED', 'PROCESSING'].includes(item.status);
+  const waiting = withdrawals?.filter(isOpen) || [];
+  const decided = withdrawals?.filter((item) => !isOpen(item)) || [];
+
+  return (
+    <>
+      <SectionTitle>{`Partner withdrawals (${waiting.length})`}</SectionTitle>
+      {error ? (
+        <p className="text-[11px] text-red-500">{error}</p>
+      ) : !withdrawals ? (
+        <p className="text-[11px] text-slate-400">Loading...</p>
+      ) : withdrawals.length === 0 ? (
+        <p className="text-[11px] text-slate-400">No withdrawal requests yet.</p>
+      ) : (
+        [...waiting, ...decided.slice(0, 10)].map((item) => (
+          <Card key={item.id} className={isOpen(item) ? '' : 'opacity-70'}>
+            <div className="flex justify-between gap-2">
+              <p className="font-bold text-[#0b1c30]">
+                {`${item.partner_name}${item.partner_phone ? ` • ${item.partner_phone}` : ''}`}
+              </p>
+              <p className="font-extrabold text-[#0b1c30] shrink-0">{formatRupees(item.amount)}</p>
+            </div>
+
+            {item.method === 'UPI' ? (
+              <p className="text-[#5a4136] select-all">{`UPI: ${item.upi_id}`}</p>
+            ) : (
+              <p className="text-[#5a4136] select-all">
+                {`Bank: ${item.account_holder} • A/c ${item.account_number || `••••${item.account_last4}`} • IFSC ${item.ifsc}`}
+              </p>
+            )}
+
+            <p className="text-slate-500">
+              {item.status === 'REQUESTED'
+                ? `Requested ${formatDate(item.requested_at)} • pay by hand`
+                : item.status === 'PROCESSING'
+                  ? `Requested ${formatDate(item.requested_at)} • RazorpayX is paying it`
+                  : item.status === 'PAID'
+                    ? `Paid ${formatDate(item.decided_at)}${item.utr ? ` • UTR ${item.utr}` : ''}`
+                    : `${item.status === 'FAILED' ? 'Razorpay failed' : 'Rejected'} ${formatDate(item.decided_at)}: ${item.rejection_reason}`}
+            </p>
+
+            {item.status === 'REQUESTED' && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => decide(item, 'paid')}
+                  className="flex-1 font-bold text-white bg-[#006c49] rounded-lg py-2 disabled:opacity-60"
+                >
+                  Mark paid
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => decide(item, 'reject')}
+                  className="flex-1 font-bold text-red-500 border border-red-200 rounded-lg py-2 disabled:opacity-60"
+                >
+                  Reject
+                </button>
+              </div>
+            )}
+          </Card>
+        ))
+      )}
+    </>
+  );
+};
+
 export const AdminEscalationsScreen = () => {
   const { showToast } = useApp();
 
@@ -169,6 +289,46 @@ export const AdminEscalationsScreen = () => {
     }
   };
 
+  const openPoliceCertificate = async (verification) => {
+    try {
+      const user = auth?.currentUser;
+      if (!user) throw new Error('Please sign in again.');
+
+      const token = await user.getIdToken();
+      const response = await fetch(
+        `${BACKEND_URL}/partners/${verification.id}/police-certificate`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.detail || 'Unable to open certificate.');
+      }
+
+      const blobUrl = URL.createObjectURL(await response.blob());
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (openError) {
+      showToast(openError.message);
+    }
+  };
+
+  const decidePoliceVerification = (verification, status) => {
+    const reason = status === 'REJECTED'
+      ? window.prompt(`Why reject ${verification.name}'s police certificate?`)
+      : '';
+
+    if (status === 'REJECTED' && (!reason || reason.trim().length < 3)) return;
+
+    act(
+      `/admin/partners/${verification.id}/police-verification`,
+      { status, reason: reason || null },
+      status === 'VERIFIED'
+        ? `${verification.name} is police verified.`
+        : 'Certificate rejected. The partner can re-upload it.'
+    );
+  };
+
   const submitManual = async () => {
     const done = await act(
       '/admin/escalations',
@@ -204,6 +364,55 @@ export const AdminEscalationsScreen = () => {
           <p className="text-xs text-slate-400 py-6 text-center">Loading...</p>
         ) : (
           <>
+            <SectionTitle>{`Police verification (${data.police_verifications?.length || 0})`}</SectionTitle>
+            <p className="text-[11px] text-slate-400">
+              Open the uploaded certificate, verify it against the partner's details, then approve or reject it.
+            </p>
+            {!data.police_verifications?.length ? (
+              <p className="text-[11px] text-slate-400">No certificates are waiting for review.</p>
+            ) : (
+              data.police_verifications.map((verification) => (
+                <Card key={verification.id}>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold text-[#0b1c30] truncate">{verification.name}</p>
+                      <p className={verification.status === 'REJECTED' ? 'text-red-500 font-bold' : 'text-amber-600 font-bold'}>
+                        {verification.status === 'REJECTED' ? 'Rejected — awaiting re-upload' : 'Certificate under review'}
+                      </p>
+                      <p className="text-slate-500">{verification.file_name || 'Certificate file unavailable'}</p>
+                    </div>
+                    {verification.has_certificate && (
+                      <button
+                        type="button"
+                        onClick={() => openPoliceCertificate(verification)}
+                        className="shrink-0 font-bold text-[#a14000] border border-[#dce9ff] rounded-lg px-3 py-2"
+                      >
+                        Open
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={busy || !verification.has_certificate}
+                      onClick={() => decidePoliceVerification(verification, 'VERIFIED')}
+                      className="flex-1 font-bold text-white bg-[#006c49] rounded-lg py-2 disabled:opacity-60"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !verification.has_certificate}
+                      onClick={() => decidePoliceVerification(verification, 'REJECTED')}
+                      className="flex-1 font-bold text-red-500 border border-red-200 rounded-lg py-2 disabled:opacity-60"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </Card>
+              ))
+            )}
+
             <SectionTitle>{`Needs your decision (${review.length})`}</SectionTitle>
             {review.length === 0 ? (
               <p className="text-[11px] text-slate-400">Nothing to review.</p>
@@ -327,6 +536,10 @@ export const AdminEscalationsScreen = () => {
                 </Card>
               ))
             )}
+
+            <WithdrawalsSection />
+
+            <AdminAppSettings />
 
             <SectionTitle>Phone booking simulator</SectionTitle>
             <PhoneBookingSimulator />

@@ -7,6 +7,16 @@ import {
   getSlotStart,
   toTimeRanges
 } from '../lib/schedule';
+import {
+  CARE_TIME_SLOTS,
+  MAX_CARE_HOURS,
+  RELATIONS,
+  baseMinutesOf,
+  bookForProblem,
+  careEndLabel,
+  isCareService,
+  priceForHours
+} from '../lib/bookFor';
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
@@ -22,7 +32,12 @@ export const BookingScreen = () => {
     setSelectedTime,
     trustFee,
     handleConfirmBooking,
-    navigateTo
+    navigateTo,
+    location,
+    bookFor,
+    setBookFor,
+    careHours,
+    setCareHours
   } = useApp();
 
   // Use the selected helper's actual profile data.
@@ -190,7 +205,9 @@ export const BookingScreen = () => {
             helper.price ??
             helper.base_price ??
             0,
-          duration: helper.duration || ''
+          duration: helper.duration || '',
+          duration_minutes: helper.serviceDurationMinutes,
+          tag: helper.serviceTag || ''
         }
       ];
     }
@@ -210,7 +227,9 @@ export const BookingScreen = () => {
     helper.base_price,
     helper.serviceDescription,
     helper.service_description,
-    helper.duration
+    helper.duration,
+    helper.serviceDurationMinutes,
+    helper.serviceTag
   ]);
 
   // Normalize service data and filter it by the helper's profession.
@@ -334,6 +353,7 @@ export const BookingScreen = () => {
           price,
           duration,
           tag: service.tag || service.badge || '',
+          durationMinutes: Number(service.duration_minutes) || null,
           categoryText,
           searchableText: normalize(`${title} ${desc}`)
         };
@@ -397,6 +417,42 @@ export const BookingScreen = () => {
       service =>
         String(service.id) === String(selectedService?.id)
     ) || null;
+
+  // Care services (Child Care, Elder & Pets) are booked by the hour
+  const isCare = isCareService(activeService);
+  const baseHours = Math.max(1, Math.ceil(baseMinutesOf(activeService) / 60));
+  const bookedHours = isCare ? careHours || baseHours : null;
+
+  useEffect(() => {
+    if (isCare && !careHours) {
+      setCareHours(baseHours);
+    } else if (!isCare && careHours) {
+      setCareHours(null);
+    }
+  }, [isCare, careHours, baseHours, setCareHours]);
+
+  // The person the helper will meet, when booking for someone else
+  const isForSomeoneElse = bookFor.relation !== 'SELF';
+  const isForChild = bookFor.relation === 'CHILD';
+
+  const updateBookFor = changes =>
+    setBookFor(previous => ({ ...previous, ...changes }));
+
+  const chooseRelation = relation =>
+    updateBookFor({
+      relation,
+      // Start from the area picked in the header; usually edited to the
+      // home address when the member is booking from work
+      address: bookFor.address || (relation === 'SELF' ? '' : location || '')
+    });
+
+  const bookForError = bookForProblem(bookFor);
+
+  // Nobody is left alone with a child unless their police check passed
+  const needsPoliceCheck =
+    Boolean(helper.requiresPoliceVerification) || isForChild;
+  const isPoliceVerified = Boolean(helper.policeVerified);
+  const blockedByPoliceCheck = needsPoliceCheck && !isPoliceVerified;
 
   // Generate the next four calendar dates dynamically.
   const dates = useMemo(() => {
@@ -466,8 +522,17 @@ export const BookingScreen = () => {
         .filter(Boolean)
     : [];
 
-  // Partners without their own slot list get standard hourly slots
-  const times = listedTimes.length > 0 ? listedTimes : DEFAULT_TIME_SLOTS;
+  // Partners without their own slot list get standard hourly slots; care
+  // can also start early morning or in the evening (e.g. 6 PM to midnight)
+  const times =
+    listedTimes.length > 0
+      ? listedTimes
+      : isCare
+        ? CARE_TIME_SLOTS
+        : DEFAULT_TIME_SLOTS;
+
+  // How long the partner will be busy with this booking
+  const jobMinutes = bookedHours ? bookedHours * 60 : 60;
 
   // Times this partner already has a job, so they can't be double booked
   const partnerId = helper.partnerId || helper.partner_id;
@@ -499,10 +564,12 @@ export const BookingScreen = () => {
   const slotOptions = times.map(time => {
     const start = getSlotStart(selectedDateEntry?.isoDate, time);
     const isPast = start !== null && start <= Date.now();
-    const isBooked = start !== null && Boolean(findClash(start, 60, busyRanges));
+    const isBooked =
+      start !== null && Boolean(findClash(start, jobMinutes, busyRanges));
 
     return {
       time,
+      start,
       isPast,
       isBooked,
       isAvailable: !isPast && !isBooked
@@ -526,8 +593,11 @@ export const BookingScreen = () => {
   }, [selectedTime, isSelectedTimeAvailable, setSelectedTime]);
 
   const numericTrustFee = Number(trustFee) || 0;
-  const servicePrice = Number(activeService?.price) || 0;
+  const servicePrice = priceForHours(activeService, bookedHours);
   const totalAmount = servicePrice + numericTrustFee;
+
+  const selectedStart =
+    slotOptions.find(slot => slot.time === selectedTime)?.start ?? null;
 
   const hasServices = services.length > 0;
   const hasSelectedService = Boolean(activeService);
@@ -556,7 +626,7 @@ export const BookingScreen = () => {
               type="button"
             >
               <img
-                alt="KOODAM Community Logo"
+                alt="GigEzee Community Logo"
                 className="h-7 w-auto object-contain"
                 src="/logo.svg"
               />
@@ -640,7 +710,7 @@ export const BookingScreen = () => {
 
                   <span className="text-[10px] font-bold">
                     {isVerified
-                      ? 'KOODAM Verified'
+                      ? 'GigEzee Verified'
                       : 'Service Partner'}
                   </span>
                 </div>
@@ -929,6 +999,190 @@ export const BookingScreen = () => {
             )}
           </div>
 
+          {/* Who the booking is for */}
+          <div className="bg-white rounded-2xl p-4 shadow-xs flex flex-col gap-3 border border-slate-100">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[#4e5c92] text-[18px]">
+                  diversity_3
+                </span>
+                Who is this for?
+              </h3>
+
+              {isForSomeoneElse && (
+                <span className="text-[11px] text-[#4e5c92] bg-[#eff4ff] px-2 py-0.5 rounded-full font-medium">
+                  You manage & pay
+                </span>
+              )}
+            </div>
+
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {RELATIONS.map(relation => {
+                const isSelected = bookFor.relation === relation.value;
+
+                return (
+                  <button
+                    key={relation.value}
+                    type="button"
+                    onClick={() => chooseRelation(relation.value)}
+                    aria-pressed={isSelected}
+                    className={`shrink-0 flex items-center gap-1 px-3 py-2 rounded-full text-xs font-bold border transition-all ${
+                      isSelected
+                        ? 'bg-[#ff6a00] text-white border-[#ff6a00] shadow-sm'
+                        : 'bg-[#eff4ff] text-[#0b1c30] border-transparent hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[15px]">
+                      {relation.icon}
+                    </span>
+                    {relation.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {isForSomeoneElse && (
+              <div className="flex flex-col gap-2">
+                <div className={isForChild ? 'grid grid-cols-[1fr_88px] gap-2' : 'flex flex-col'}>
+                  <input
+                    value={bookFor.name}
+                    onChange={event => updateBookFor({ name: event.target.value.slice(0, 100) })}
+                    placeholder={isForChild ? "Child's name" : 'Their name'}
+                    aria-label={isForChild ? "Child's name" : 'Name of the person'}
+                    autoComplete="off"
+                    className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                  />
+
+                  {isForChild && (
+                    <input
+                      value={bookFor.age}
+                      onChange={event => updateBookFor({ age: event.target.value.replace(/\D/g, '').slice(0, 2) })}
+                      placeholder="Age"
+                      aria-label="Child's age"
+                      inputMode="numeric"
+                      className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                    />
+                  )}
+                </div>
+
+                <input
+                  value={bookFor.phone}
+                  onChange={event => updateBookFor({ phone: event.target.value.replace(/[^\d+ ]/g, '').slice(0, 16) })}
+                  placeholder={isForChild ? 'Phone at home (optional)' : 'Their phone number'}
+                  aria-label="Phone number"
+                  inputMode="tel"
+                  autoComplete="off"
+                  className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                />
+
+                <input
+                  value={bookFor.address}
+                  onChange={event => updateBookFor({ address: event.target.value.slice(0, 300) })}
+                  placeholder="Address the helper should go to"
+                  aria-label="Visit address"
+                  className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                />
+
+                <textarea
+                  value={bookFor.notes}
+                  onChange={event => updateBookFor({ notes: event.target.value.slice(0, 1000) })}
+                  placeholder={
+                    isForChild
+                      ? 'Notes for the helper: school pickup time, meals, allergies, homework, bedtime…'
+                      : 'Notes for the helper (optional)'
+                  }
+                  aria-label="Notes for the helper"
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40 resize-none"
+                />
+
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#dce9ff] text-[#0b1c30]">
+                  <span className="material-symbols-outlined text-[#a14000] text-[18px] shrink-0">
+                    lock
+                  </span>
+                  <p className="text-[11px] leading-relaxed">
+                    {isForChild
+                      ? 'The arrival and completion codes stay on your phone. When the helper reaches, they will call you; read out the arrival code only once you have confirmed they are at your door. Track them live from the Requests tab.'
+                      : 'The arrival and completion codes stay on your phone. When the helper reaches, share the arrival code only once the person at home confirms they are there. Track them live from the Requests tab.'}
+                  </p>
+                </div>
+
+                {bookForError && (
+                  <p className="text-[11px] text-[#a14000] font-semibold">
+                    {bookForError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {needsPoliceCheck && (
+              <div
+                className={`flex items-start gap-2 p-2.5 rounded-xl ${
+                  isPoliceVerified
+                    ? 'bg-[#6ffbbe]/30 text-[#002113]'
+                    : 'bg-red-50 text-red-700'
+                }`}
+              >
+                <span
+                  className="material-symbols-outlined text-[18px] shrink-0"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  {isPoliceVerified ? 'verified_user' : 'gpp_bad'}
+                </span>
+                <p className="text-[11px] leading-relaxed font-medium">
+                  {isPoliceVerified
+                    ? `${helperName}'s police verification has been checked by GigEzee.`
+                    : `${helperName} is not police verified yet. For child care, please go back and choose a police-verified helper.`}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Care is booked by the hour */}
+          {isCare && (
+            <div className="bg-white rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3 border border-slate-100">
+              <div className="flex flex-col min-w-0">
+                <h3 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[#4e5c92] text-[18px]">
+                    hourglass_top
+                  </span>
+                  How many hours?
+                </h3>
+                <span className="text-[11px] text-[#5a4136]">
+                  {selectedStart != null
+                    ? careEndLabel(selectedStart, bookedHours)
+                    : 'Pick a start time below; evening slots run up to midnight'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  aria-label="Fewer hours"
+                  onClick={() => setCareHours(Math.max(1, bookedHours - 1))}
+                  disabled={bookedHours <= 1}
+                  className="w-8 h-8 rounded-full bg-[#eff4ff] text-[#0b1c30] disabled:opacity-40 flex items-center justify-center active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">remove</span>
+                </button>
+
+                <span className="text-sm font-extrabold text-[#0b1c30] min-w-[44px] text-center">
+                  {bookedHours} hr{bookedHours === 1 ? '' : 's'}
+                </span>
+
+                <button
+                  type="button"
+                  aria-label="More hours"
+                  onClick={() => setCareHours(Math.min(MAX_CARE_HOURS, bookedHours + 1))}
+                  disabled={bookedHours >= MAX_CARE_HOURS}
+                  className="w-8 h-8 rounded-full bg-[#eff4ff] text-[#0b1c30] disabled:opacity-40 flex items-center justify-center active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Date and Time Selection */}
           <div className="bg-white rounded-2xl p-4 shadow-xs flex flex-col gap-3 border border-slate-100">
             <div className="flex items-center justify-between gap-2">
@@ -1116,6 +1370,8 @@ export const BookingScreen = () => {
               <div className="flex justify-between gap-3">
                 <span className="text-[#5a4136]">
                   {activeService?.title || 'No service selected'}
+                  {bookedHours ? ` · ${bookedHours} hr${bookedHours === 1 ? '' : 's'}` : ''}
+                  {isForSomeoneElse && bookFor.name.trim() ? ` · for ${bookFor.name.trim()}` : ''}
                 </span>
 
                 <span className="font-bold shrink-0">
@@ -1181,12 +1437,18 @@ export const BookingScreen = () => {
     !hasSelectedService ||
     !selectedDateEntry ||
     !isSelectedTimeAvailable ||
-    helper.is_available === false
+    helper.is_available === false ||
+    Boolean(bookForError) ||
+    blockedByPoliceCheck
   }
   className="flex-1 py-3.5 px-4 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold shadow-lg shadow-[#ff6a00]/30 active:scale-98 transition-all flex items-center justify-center gap-1.5"
   type="button"
 >
-  <span>Send Service Request</span>
+  <span>
+    {isForSomeoneElse && bookFor.name.trim()
+      ? `Book for ${bookFor.name.trim().split(' ')[0]}`
+      : 'Send Service Request'}
+  </span>
 
   <span className="material-symbols-outlined text-[18px]">
     send

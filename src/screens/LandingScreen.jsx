@@ -6,21 +6,21 @@ export const LandingScreen = () => {
 
   const strings = {
     en: {
-      name: 'KOODAM',
+      name: 'GigEzee',
       tagline: 'Neighborhood Mutual Aid & Services',
       quote: 'People Helping People, Stronger Together',
       cta: 'Get Started',
       offline: 'No smartphone? Book by phone call'
     },
     ta: {
-      name: 'KOODAM',
+      name: 'GigEzee',
       tagline: 'சமூக பரஸ்பர உதவி & சேவைகள்',
       quote: 'மக்கள் மக்களுக்கு உதவுகிறோம், ஒன்றாக வலிமையாக',
       cta: 'தொடங்குங்கள்',
       offline: 'ஸ்மார்ட்போன் இல்லையா? தொலைபேசி அழைப்பில் முன்பதிவு செய்யுங்கள்'
     },
     kn: {
-      name: 'KOODAM',
+      name: 'GigEzee',
       tagline: 'ನೆರೆಹೊರೆ ಪರಸ್ಪರ ನೆರವು & ಸೇವೆಗಳು',
       quote: 'ಜನರು ಜನರಿಗೆ ಸಹಾಯ, ಒಟ್ಟಿಗೆ ಬಲಿಷ್ಠ',
       cta: 'ಪ್ರಾರಂಭಿಸಿ',
@@ -35,7 +35,7 @@ export const LandingScreen = () => {
       {/* Top Brand Section */}
       <div className="flex flex-col items-center text-center px-6 pt-8 pb-5 shrink-0">
         <div className="p-1.5 rounded-2xl bg-white shadow-md mb-3">
-          <img src="/logo.svg" alt="KOODAM" className="w-16 h-16 rounded-xl" />
+          <img src="/logo.svg" alt="GigEzee" className="w-16 h-16 rounded-xl" />
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-[#0b1c30]">{t.name}</h1>
         <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-1.5 max-w-[220px]">
@@ -52,7 +52,7 @@ export const LandingScreen = () => {
         <img
           className="w-full h-full object-cover object-top"
           alt="Neighbors helping each other"
-          src="/hero-koodam.jpeg"
+          src="/hero-gigezee.jpeg"
         />
       </div>
 

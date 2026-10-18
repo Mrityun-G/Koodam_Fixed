@@ -10,7 +10,8 @@ import requests
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.config import COMPLAINT_RESPONSE_HOURS, TRUST_FEE
+from app.app_config import setting
+from app.config import COMPLAINT_RESPONSE_HOURS
 from app.escalations import can_take_bookings
 from app.firebase_rtdb import rtdb, to_db_key
 from app.models.booking import Booking
@@ -83,7 +84,7 @@ def get_or_create_phone_customer(db: Session, phone: str) -> User:
         firebase_uid=f"phone:{phone}",
         name=f"Phone customer {last10[-4:]}",
         # Placeholder: the .invalid domain can never receive mail
-        email=f"{last10}@phone.koodam.invalid",
+        email=f"{last10}@phone.gigezee.invalid",
         phone=phone,
         role="MEMBER"
     )
@@ -130,7 +131,7 @@ def locate_pincode(pincode: str) -> Optional[tuple]:
                 "format": "json",
                 "limit": 1
             },
-            headers={"User-Agent": "KOODAM phone booking"},
+            headers={"User-Agent": "GigEzee phone booking"},
             timeout=8
         )
         response.raise_for_status()
@@ -215,7 +216,7 @@ def pincode_near(lat: float, lng: float) -> Optional[str]:
         response = requests.get(
             "https://nominatim.openstreetmap.org/reverse",
             params={"lat": lat, "lon": lng, "format": "json", "zoom": 18},
-            headers={"User-Agent": "KOODAM phone booking"},
+            headers={"User-Agent": "GigEzee phone booking"},
             timeout=8
         )
         response.raise_for_status()
@@ -229,7 +230,7 @@ def pincode_near(lat: float, lng: float) -> Optional[str]:
 
 def explain_no_partner(db: Session, service: Service, lat: float, lng: float) -> str:
     """
-    Why nobody matched, for KOODAM staff testing in the simulator.
+    Why nobody matched, for GigEzee staff testing in the simulator.
     Never read out on a real call.
     """
     rows = (
@@ -288,7 +289,8 @@ def create_phone_booking(
     partner_id = str(partner.id)
 
     price = float(service.price or 0)
-    total = price + TRUST_FEE
+    trust_fee = setting("trust_fee")
+    total = price + trust_fee
     now_ms = int(time.time() * 1000)
     area = f"PIN {pincode} (phone booking: call the customer for the address)"
     customer_name = customer.name or "Phone customer"
@@ -346,7 +348,7 @@ def create_phone_booking(
         "totalAmount": total,
         "baseAmount": total,
         "servicePrice": price,
-        "trustFee": TRUST_FEE,
+        "trustFee": trust_fee,
         "totalPaid": 0,
         "paymentStatus": "PENDING",
         "bookingStatus": "PENDING",

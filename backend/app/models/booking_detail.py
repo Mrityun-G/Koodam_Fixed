@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
@@ -38,11 +38,15 @@ class BookingDetail(Base):
 
     payment_status = Column(String, nullable=False, default="PENDING")
 
-    # APP or PHONE (booked by calling KOODAM, see app/ivr)
+    # APP or PHONE (booked by calling GigEzee, see app/ivr)
     source = Column(String, nullable=True)
 
     # ONLINE (Razorpay) or CASH (paid to the partner; phone bookings)
     payment_method = Column(String, nullable=True)
+
+    # How long the customer booked the partner for (care bookings are
+    # booked by the hour); empty means the service's usual duration
+    duration_minutes = Column(Integer, nullable=True)
 
     amount_paid = Column(Float, nullable=False, default=0.0)
 
@@ -51,7 +55,7 @@ class BookingDetail(Base):
     # The Razorpay order the backend created for this bill
     razorpay_order_id = Column(String, nullable=True)
 
-    # How a verified payment is split (rupees). KOODAM keeps the trust
+    # How a verified payment is split (rupees). GigEzee keeps the trust
     # fee and the commission; the partner gets the rest.
     trust_fee = Column(Float, nullable=True)
 
@@ -72,6 +76,37 @@ class BookingDetail(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
+
+
+class BookingRecipient(Base):
+    """
+    The person the service is for, when a customer books for someone
+    else: a guest, friend, relative or their child (e.g. a parent at the
+    office booking child care at home). One row per booking; bookings
+    the customer made for themselves have none.
+    """
+    __tablename__ = "booking_recipients"
+
+    booking_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("bookings.id"),
+        primary_key=True
+    )
+
+    # GUEST / FRIEND / RELATIVE / CHILD
+    relation = Column(String, nullable=False)
+
+    name = Column(String, nullable=False)
+
+    phone = Column(String, nullable=True)
+
+    # Asked for children only
+    age = Column(Integer, nullable=True)
+
+    # Instructions for the partner (school pickup time, allergies...)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class BookingExtraCharge(Base):

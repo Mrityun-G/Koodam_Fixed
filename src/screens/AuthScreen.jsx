@@ -330,8 +330,8 @@ export const AuthScreen = () => {
               isPartner ? 'bg-white/15 text-[#dce1ff]' : 'bg-[#ffdbcc] text-[#7b2f00]'
             }`}
           >
-            <img src="/logo.svg" alt="KOODAM" className="w-4 h-4 object-contain" />
-            <span>KOODAM Community</span>
+            <img src="/logo.svg" alt="GigEzee" className="w-4 h-4 object-contain" />
+            <span>GigEzee Community</span>
           </div>
 
           <div
@@ -587,7 +587,7 @@ export const AuthScreen = () => {
         )}
 
         <div className={`text-center text-xs ${isPartner ? 'text-[#dce1ff]' : 'text-[#4e5c92]'}`}>
-          {isSignup ? 'Already have an account?' : 'New to KOODAM?'}{' '}
+          {isSignup ? 'Already have an account?' : 'New to GigEzee?'}{' '}
           <button
             type="button"
             onClick={() => navigateTo(isSignup ? `${role}Login` : `${role}Signup`)}

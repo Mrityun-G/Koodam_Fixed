@@ -15,6 +15,7 @@ from app.config import (
     STRIKE_WINDOW_DAYS,
     SUSPENSION_DAYS,
 )
+from app.app_config import content
 from app.database import get_db
 from app.escalations import (
     is_deactivated,
@@ -27,33 +28,33 @@ from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail
 from app.models.escalation import Complaint, PartnerEscalation
 from app.models.partner import Partner
+from app.models.partner_document import PartnerDocument
 from app.models.service import Service
 from app.models.user import User
 
 
 # =========================================================
 # COMPLAINTS AND ESCALATIONS
-# Customers raise complaints, partners reply, and KOODAM staff
-# (KOODAM_ADMIN_EMAILS) review escalations and can overturn them.
+# Customers raise complaints, partners reply, and GigEzee staff
+# (GIGEZEE_ADMIN_EMAILS) review escalations and can overturn them.
 # =========================================================
 
 router = APIRouter(tags=["Escalations"])
 
-REASONS = {
-    "NO_SHOW": "Partner didn't turn up",
-    "LATE": "Partner was very late",
-    "POOR_WORK": "Work was poor or unfinished",
-    "OVERCHARGED": "Charged more than agreed",
-    "BEHAVIOUR": "Rude or unsafe behaviour",
-    "OTHER": "Something else",
-}
+def reason_labels() -> dict:
+    """Complaint reasons staff manage in the app content (value: label)."""
+    return {item["value"]: item["label"] for item in content("complaint_reasons")}
+
+
+def reason_label(reason: str) -> str:
+    return reason_labels().get(reason, reason)
 
 SOURCE_LABELS = {
     "COMPLAINT_UNANSWERED": "Didn't reply to a complaint in time",
-    "COMPLAINT_UPHELD": "Customer complaint upheld by KOODAM",
+    "COMPLAINT_UPHELD": "Customer complaint upheld by GigEzee",
     "JOB_NOT_STARTED": "Accepted job not started on time",
     "JOB_NOT_FINISHED": "Started job not finished on time",
-    "ADMIN": "Escalated by KOODAM",
+    "ADMIN": "Escalated by GigEzee",
 }
 
 # Bookings a customer can complain about: a partner had taken the job
@@ -69,7 +70,7 @@ def complaint_response(complaint: Complaint) -> dict:
         "id": complaint.id,
         "booking_id": complaint.booking_id,
         "reason": complaint.reason,
-        "reason_label": REASONS.get(complaint.reason, complaint.reason),
+        "reason_label": reason_label(complaint.reason),
         "description": complaint.description,
         "status": complaint.status,
         "partner_response": complaint.partner_response,
@@ -130,7 +131,7 @@ def require_admin(
     user = signed_in_user(db, firebase_uid)
 
     if not is_admin(user):
-        raise HTTPException(status_code=403, detail="KOODAM staff only")
+        raise HTTPException(status_code=403, detail="GigEzee staff only")
 
     return user
 
@@ -150,7 +151,7 @@ def get_complaint(db: Session, complaint_id: UUID) -> Complaint:
 
 class ComplaintCreate(BaseModel):
     booking_id: UUID
-    reason: Literal[tuple(REASONS)]
+    reason: str = Field(min_length=1, max_length=30)
     description: str = Field(default="", max_length=1000)
 
 
@@ -162,6 +163,9 @@ def create_complaint(
 ):
     customer = signed_in_user(db, firebase_uid)
     booking = db.get(Booking, data.booking_id)
+
+    if data.reason not in reason_labels():
+        raise HTTPException(status_code=400, detail="Please choose a reason")
 
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -241,7 +245,7 @@ def escalate_complaint(
     firebase_uid: str = Depends(current_firebase_uid),
     db: Session = Depends(get_db)
 ):
-    """The customer isn't satisfied with the reply; KOODAM staff decide."""
+    """The customer isn't satisfied with the reply; GigEzee staff decide."""
     complaint = own_customer_complaint(db, complaint_id, firebase_uid)
 
     if complaint.status != "RESPONDED":
@@ -312,7 +316,7 @@ def respond_to_complaint(
     complaint.responded_at = datetime.utcnow()
 
     # A phone customer has no app to read the reply and accept or
-    # escalate it, so KOODAM decides straight away
+    # escalate it, so GigEzee decides straight away
     detail = db.get(BookingDetail, complaint.booking_id)
     complaint.status = (
         "NEEDS_REVIEW"
@@ -383,7 +387,7 @@ def get_partner_reliability(
 
 
 # ---------------------------------------------------------
-# KOODAM staff
+# GigEzee staff
 # ---------------------------------------------------------
 
 @router.get("/admin/me")
@@ -432,6 +436,19 @@ def admin_overview(
         .all()
     )
 
+    police_documents = (
+        db.query(Partner, PartnerUser.name, PartnerDocument)
+        .join(PartnerUser, PartnerUser.id == Partner.user_id)
+        .outerjoin(
+            PartnerDocument,
+            (PartnerDocument.partner_id == Partner.id)
+            & (PartnerDocument.document_type == "POLICE_CERTIFICATE")
+        )
+        .filter(Partner.police_verification_status == "UNDER_REVIEW")
+        .order_by(PartnerDocument.uploaded_at.asc())
+        .all()
+    )
+
     return {
         "complaints": [
             {
@@ -464,6 +481,61 @@ def admin_overview(
             }
             for partner, name in partners
         ],
+        "police_verifications": [
+            {
+                "id": partner.id,
+                "name": name,
+                "status": partner.police_verification_status,
+                "rejection_reason": partner.police_rejection_reason,
+                "file_name": document.file_name if document else None,
+                "uploaded_at": document.uploaded_at if document else None,
+                "has_certificate": document is not None,
+            }
+            for partner, name, document in police_documents
+        ],
+    }
+
+
+class PoliceVerificationDecision(BaseModel):
+    status: Literal["VERIFIED", "REJECTED"]
+    reason: Optional[str] = Field(default=None, max_length=1000)
+
+
+@router.post("/admin/partners/{partner_id}/police-verification")
+def decide_police_verification(
+    partner_id: UUID,
+    data: PoliceVerificationDecision,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    partner = db.get(Partner, partner_id)
+
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+
+    document = db.query(PartnerDocument).filter(
+        PartnerDocument.partner_id == partner.id,
+        PartnerDocument.document_type == "POLICE_CERTIFICATE"
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=409, detail="This partner has not uploaded a police certificate.")
+
+    rejection_reason = data.reason.strip() if data.reason else ""
+
+    if data.status == "REJECTED" and not rejection_reason:
+        raise HTTPException(status_code=422, detail="A rejection reason is required.")
+
+    partner.police_verification_status = data.status
+    partner.police_rejection_reason = (
+        rejection_reason if data.status == "REJECTED" else None
+    )
+    db.commit()
+
+    return {
+        "id": partner.id,
+        "status": partner.police_verification_status,
+        "rejection_reason": partner.police_rejection_reason,
     }
 
 
@@ -497,7 +569,7 @@ def decide_complaint(
             db,
             db.get(Partner, complaint.partner_id),
             "COMPLAINT_UPHELD",
-            f"Complaint upheld: {REASONS.get(complaint.reason, complaint.reason)}."
+            f"Complaint upheld: {reason_label(complaint.reason)}."
             + (f" {complaint.admin_note}" if complaint.admin_note else ""),
             booking_id=complaint.booking_id,
             complaint_id=complaint.id,
@@ -545,7 +617,7 @@ def create_manual_escalation(
     if not escalation:
         raise HTTPException(
             status_code=409,
-            detail="This job has already been escalated by KOODAM."
+            detail="This job has already been escalated by GigEzee."
         )
 
     db.commit()
@@ -585,7 +657,7 @@ def overturn_escalation(
 
 # ---------------------------------------------------------
 # Removing a partner. Unlike a suspension this has no end date and
-# leaves no strike on their record; it lasts until KOODAM reactivates
+# leaves no strike on their record; it lasts until GigEzee reactivates
 # them. Jobs they already accepted can still be finished.
 # ---------------------------------------------------------
 

@@ -36,7 +36,7 @@
 .symbol-outline {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
-/* KOODAM horizontal date selector scrollbar */
+/* GigEzee horizontal date selector scrollbar */
 .date-scroll::-webkit-scrollbar {
   height: 6px;
 }
@@ -55,7 +55,7 @@
   background: #a14000;
 }
 /* Live map: pulsing ring under the partner's position */
-@keyframes koodam-pulse {
+@keyframes gigezee-pulse {
   0% { transform: scale(0.5); opacity: 0.9; }
   100% { transform: scale(1.6); opacity: 0; }
 }

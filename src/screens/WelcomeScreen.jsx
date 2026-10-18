@@ -7,8 +7,8 @@ export const WelcomeScreen = () => {
   // Multi-lingual copy dictionary
   const strings = {
     en: {
-      community: 'KOODAM Community',
-      title: 'Welcome to KOODAM',
+      community: 'GigEzee Community',
+      title: 'Welcome to GigEzee',
       subtitle: 'Choose how you would like to get started today.',
       card1Role: 'Seek Help',
       card1Title: 'I Need Help / Book Services',
@@ -25,8 +25,8 @@ export const WelcomeScreen = () => {
       loginPartnerBtn: 'Partner Log In'
     },
     ta: {
-      community: 'கூடம் சமூக சேவை',
-      title: 'கூடத்திற்கு வரவேற்கிறோம்',
+      community: 'கிக்ஈஸி சமூக சேவை',
+      title: 'கிக்ஈஸிக்கு வரவேற்கிறோம்',
       subtitle: 'இன்று நீங்கள் எவ்வாறு தொடங்க விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்.',
       card1Role: 'உதவி பெற',
       card1Title: 'எனக்கு உதவி தேவை / சேவைகளை பதிவு செய்',
@@ -73,7 +73,7 @@ export const WelcomeScreen = () => {
           
           {/* Logo Pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ffdbcc] text-[#7b2f00] text-[11px] font-bold uppercase tracking-wider mb-3 shadow-xs">
-            <img src="/logo.svg" alt="KOODAM" className="w-4 h-4 object-contain" />
+            <img src="/logo.svg" alt="GigEzee" className="w-4 h-4 object-contain" />
             <span>{t.community}</span>
           </div>
 

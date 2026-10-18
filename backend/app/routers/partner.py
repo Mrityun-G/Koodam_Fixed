@@ -16,6 +16,7 @@ from app.models.booking_detail import BookingDetail
 from app.models.service import Service
 from app.routers.partner_service import resolve_partner
 from app.routers.payment import calculate_split
+from app.routers.escalations import require_admin
 from app.schemas.partner import PartnerCreate, PartnerResponse
 
 
@@ -199,6 +200,7 @@ async def upload_police_certificate(
 @router.get("/{identifier}/police-certificate")
 def download_police_certificate(
     identifier: UUID,
+    admin: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     # For admins reviewing the certificate before approving it
@@ -234,6 +236,16 @@ UPCOMING_STATUSES = ("ACCEPTED", "IN_PROGRESS")
 
 # Used when a service has no duration set
 DEFAULT_JOB_MINUTES = 60
+
+
+def job_minutes(service: Service, detail: Optional[BookingDetail]) -> int:
+    # Hours the customer booked (care bookings), else the usual length
+    return (
+        (detail.duration_minutes if detail else None)
+        or service.duration_minutes
+        or DEFAULT_JOB_MINUTES
+    )
+
 
 ALLOWED_SERVICE_RADII_KM = (3, 5, 10, 15)
 
@@ -292,7 +304,7 @@ def update_online_status(
     if data.is_online and is_deactivated(partner):
         raise HTTPException(
             status_code=403,
-            detail="Your account has been deactivated by KOODAM, so you can't go online"
+            detail="Your account has been deactivated by GigEzee, so you can't go online"
         )
 
     if data.is_online and is_suspended(partner):
@@ -390,7 +402,7 @@ def get_partner_overview(
 
     for booking, detail in rows:
         if detail and detail.payment_status == "PAID":
-            # The partner's share after KOODAM's trust fee and commission,
+            # The partner's share after GigEzee's trust fee and commission,
             # not the full amount the customer paid
             paid = (
                 detail.partner_payout
@@ -418,9 +430,10 @@ def get_partner_overview(
 
     # Enough to fill the partner's calendar, not just the dashboard list
     upcoming = (
-        db.query(Booking, Service, User)
+        db.query(Booking, Service, User, BookingDetail)
         .join(Service, Service.id == Booking.service_id)
         .join(User, User.id == Booking.user_id)
+        .outerjoin(BookingDetail, BookingDetail.booking_id == Booking.id)
         .filter(
             Booking.partner_id == partner.id,
             Booking.status.in_(UPCOMING_STATUSES)
@@ -451,11 +464,9 @@ def get_partner_overview(
                 "amount": booking.total_amount,
                 "status": booking.status,
                 "booking_time": to_iso_utc(booking.booking_time),
-                "duration_minutes": (
-                    service.duration_minutes or DEFAULT_JOB_MINUTES
-                )
+                "duration_minutes": job_minutes(service, detail)
             }
-            for booking, service, user in upcoming
+            for booking, service, user, detail in upcoming
         ]
     }
 
@@ -474,8 +485,9 @@ def get_partner_busy_slots(
     partner = get_partner_or_404(db, identifier)
 
     rows = (
-        db.query(Booking, Service)
+        db.query(Booking, Service, BookingDetail)
         .join(Service, Service.id == Booking.service_id)
+        .outerjoin(BookingDetail, BookingDetail.booking_id == Booking.id)
         .filter(
             Booking.partner_id == partner.id,
             Booking.status.in_(UPCOMING_STATUSES),
@@ -490,9 +502,9 @@ def get_partner_busy_slots(
             "start": to_iso_utc(booking.booking_time),
             "end": to_iso_utc(
                 booking.booking_time + timedelta(
-                    minutes=service.duration_minutes or DEFAULT_JOB_MINUTES
+                    minutes=job_minutes(service, detail)
                 )
             )
         }
-        for booking, service in rows
+        for booking, service, detail in rows
     ]

@@ -9,7 +9,7 @@ export const ProfileScreen = () => {
   const { userProfile, partnerProfile, role, navigateTo, logout } = useApp();
   const profile = role === 'partner' ? partnerProfile : userProfile;
 
-  // KOODAM staff get the escalations screen (the backend decides who)
+  // GigEzee staff get the escalations screen (the backend decides who)
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export const ProfileScreen = () => {
     { id: 'faq', icon: 'help', label: 'FAQ', desc: 'Answers to common questions', screen: 'faq' },
     { id: 'terms', icon: 'policy', label: 'Terms & Policy', desc: 'Terms of service & privacy policy', screen: 'terms' },
     ...(isAdmin
-      ? [{ id: 'admin', icon: 'gavel', label: 'Partner Escalations', desc: 'KOODAM staff: complaints & penalties', screen: 'admin' }]
+      ? [{ id: 'admin', icon: 'gavel', label: 'Partner Escalations', desc: 'GigEzee staff: complaints, withdrawals, settings & app text', screen: 'admin' }]
       : [])
   ];
 

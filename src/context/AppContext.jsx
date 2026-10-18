@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useState,
   useEffect,
@@ -49,6 +50,15 @@ import { useRoute } from '../lib/route';
 import { uploadRepairPhoto, isHostedPhoto } from '../lib/repairPhoto';
 
 import {
+  EMPTY_BOOK_FOR,
+  bookForProblem,
+  isCareService,
+  priceForHours,
+  relationLabel,
+  toBookedFor
+} from '../lib/bookFor';
+
+import {
   haversineDistanceKm,
   estimateEtaMinutes
 } from '../lib/geo';
@@ -68,15 +78,15 @@ import {
 
 // Which login page (member or partner) started a Google sign-in; kept in
 // storage because Google redirects away from the app and back
-const GOOGLE_ROLE_KEY = 'koodam-google-login-role';
+const GOOGLE_ROLE_KEY = 'gigezee-google-login-role';
 
 // Which side of the app (member or partner) the user was last using
-const LAST_ROLE_KEY = 'koodam-last-role';
+const LAST_ROLE_KEY = 'gigezee-last-role';
 
 // The member's current booking, so a page reload brings back its
 // tracking screen and rating card ({ uid, orderId } only; the order
 // itself is read from Firebase)
-const ACTIVE_ORDER_KEY = 'koodam-active-order';
+const ACTIVE_ORDER_KEY = 'gigezee-active-order';
 
 // Where the two keys above are kept: per tab during local development,
 // to match the per-tab sign-in in lib/firebase.js
@@ -285,7 +295,7 @@ const authErrorMessage = (err) => {
   // fetch() couldn't reach the backend (offline, or the server is
   // restarting / waking up)
   if (err instanceof TypeError && /fetch/i.test(err.message)) {
-    return "Couldn't reach the KOODAM server. Check your internet and try again in a minute.";
+    return "Couldn't reach the GigEzee server. Check your internet and try again in a minute.";
   }
 
   return err?.message || 'Something went wrong. Please try again.';
@@ -335,7 +345,7 @@ export const AppProvider = ({ children }) => {
   // Remembered across reloads; the app is translated from this in App.jsx
   const [language, setLanguage] = useState(() => {
     try {
-      const saved = localStorage.getItem('koodam-language');
+      const saved = localStorage.getItem('gigezee-language');
       return ['en', 'ta', 'kn'].includes(saved) ? saved : 'en';
     } catch {
       return 'en';
@@ -344,7 +354,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('koodam-language', language);
+      localStorage.setItem('gigezee-language', language);
     } catch {
       // Storage can be unavailable (e.g. private mode); the choice then lasts this session
     }
@@ -560,6 +570,11 @@ const [notificationsEnabled, setNotificationsEnabled] =
   const [selectedTime, setSelectedTime] =
     useState('');
 
+  // Who the booking is for (the member, or a guest, friend, relative or
+  // their child) and, for care services, how many hours
+  const [bookFor, setBookFor] = useState(EMPTY_BOOK_FOR);
+  const [careHours, setCareHours] = useState(null);
+
   // Fees come from the backend (GET /config) so the app always shows
   // what is actually charged; these are only used until it answers
   const [trustFee, setTrustFee] = useState(20);
@@ -569,7 +584,12 @@ const [notificationsEnabled, setNotificationsEnabled] =
   // The number customers without a smartphone call to book (offline mode)
   const [phoneBookingNumber, setPhoneBookingNumber] = useState('');
 
-  useEffect(() => {
+  // FAQ, Terms, offline-mode steps and complaint reasons, managed by
+  // GigEzee staff in the database; screens fall back to their built-in
+  // text until this loads
+  const [appContent, setAppContent] = useState({});
+
+  const loadAppSettings = useCallback(() => {
     fetch(`${BACKEND_URL}/config`)
       .then((response) => (response.ok ? response.json() : null))
       .then((config) => {
@@ -583,7 +603,20 @@ const [notificationsEnabled, setNotificationsEnabled] =
       .catch((error) => {
         console.error('Failed to load app settings:', error);
       });
+
+    fetch(`${BACKEND_URL}/content`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((content) => {
+        if (content) setAppContent(content);
+      })
+      .catch((error) => {
+        console.error('Failed to load app content:', error);
+      });
   }, []);
+
+  useEffect(() => {
+    loadAppSettings();
+  }, [loadAppSettings]);
 
 
 // =========================================================
@@ -743,6 +776,16 @@ useEffect(() => {
       amount_paid: Number(order.totalPaid || 0),
       razorpay_payment_id: order.paymentId || null,
       scheduled_at: order.scheduledAt || null,
+      duration_minutes: order.durationMinutes || null,
+      booked_for: order.bookedFor?.name
+        ? {
+            relation: order.bookedFor.relation,
+            name: order.bookedFor.name,
+            phone: order.bookedFor.phone || null,
+            age: order.bookedFor.age ?? null,
+            notes: order.bookedFor.notes || null
+          }
+        : null,
       created_at: order.createdAt || null,
       accepted_at: order.acceptedAt || null,
       completed_at: order.completedAt || null,
@@ -1751,7 +1794,7 @@ const requestsRef = ref(db, requestPath);
             payout:
               Number(latestRequest.payout || 0),
             customerName:
-              latestRequest.customerName || 'KOODAM Customer',
+              latestRequest.customerName || 'GigEzee Customer',
             customerAvatar:
               latestRequest.customerAvatar || '',
             customerRating:
@@ -1760,11 +1803,16 @@ const requestsRef = ref(db, requestPath);
               latestRequest.scheduledAt || null,
             customerId:
               latestRequest.customerId || null,
-            // Booked by calling KOODAM: no app, pays in cash
+            // Booked by calling GigEzee: no app, pays in cash
             isPhoneBooking:
               latestRequest.source === 'PHONE',
             customerPhone:
-              latestRequest.customerPhone || ''
+              latestRequest.customerPhone || '',
+            // Booked for a guest, friend, relative or child
+            bookedFor:
+              latestRequest.bookedFor || null,
+            durationMinutes:
+              Number(latestRequest.durationMinutes) || null
           });
 
           setHasIncomingJob(true);
@@ -1816,7 +1864,7 @@ const requestsRef = ref(db, requestPath);
     useState(false);
 
   const [chatPartner, setChatPartner] =
-    useState('KOODAM Customer');
+    useState('GigEzee Customer');
 
 
   const [messages, setMessages] =
@@ -1893,8 +1941,79 @@ const requestsRef = ref(db, requestPath);
   // Notifications
   // =========================================================
 
+  // Saved per user in the database (GET/POST /me/notifications), so the
+  // list survives a reload and follows the user to another device
   const [notifications, setNotifications] =
     useState([]);
+
+  const timeAgo = (iso) => {
+    const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (!iso || minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} h ago`;
+    return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
+
+  // Settings saved before they've been loaded would overwrite the
+  // user's stored choice with this browser's defaults
+  const userSettingsLoadedRef = useRef(false);
+
+  // Notifications and settings stored on the signed-in user
+  useEffect(() => {
+    userSettingsLoadedRef.current = false;
+
+    if (!authUser?.uid) {
+      setNotifications([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    authorizedFetch('/me/notifications')
+      .then((rows) => {
+        if (cancelled) return;
+        setNotifications(
+          rows.map((row) => ({
+            id: row.id,
+            target: row.target,
+            title: row.title,
+            desc: row.desc,
+            time: timeAgo(row.created_at),
+            unread: row.unread,
+            screen: row.screen,
+            tab: row.tab
+          }))
+        );
+      })
+      .catch((error) => console.warn('Failed to load notifications:', error));
+
+    authorizedFetch('/me/settings')
+      .then((settings) => {
+        if (cancelled) return;
+        setLanguage(settings.language || 'en');
+        setNotificationsEnabled(settings.notifications_enabled !== false);
+        userSettingsLoadedRef.current = true;
+      })
+      .catch((error) => console.warn('Failed to load settings:', error));
+
+    return () => {
+      cancelled = true;
+    };
+    // userProfile.id appears once the backend has the user's account
+  }, [authUser?.uid, userProfile?.id]);
+
+  // Save setting changes to the user's account
+  useEffect(() => {
+    if (!authUser?.uid || !userSettingsLoadedRef.current) return;
+
+    authorizedFetch('/me/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        language,
+        notifications_enabled: notificationsEnabled
+      })
+    }).catch((error) => console.warn('Failed to save settings:', error));
+  }, [language, notificationsEnabled]);
 
 
   const addNotification = (
@@ -1906,9 +2025,11 @@ const requestsRef = ref(db, requestPath);
       tab = null
     }
   ) => {
+    const localId = `local-${Date.now()}-${Math.random()}`;
+
     setNotifications((prev) => [
       {
-        id: Date.now() + Math.random(),
+        id: localId,
         target,
         title,
         desc,
@@ -1919,6 +2040,20 @@ const requestsRef = ref(db, requestPath);
       },
       ...prev
     ]);
+
+    if (!authUser?.uid) return;
+
+    authorizedFetch('/me/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ target, title, desc: desc || null, screen, tab })
+    })
+      .then((saved) => {
+        // Use the stored id so marking it read later matches
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === localId ? { ...n, id: saved.id } : n))
+        );
+      })
+      .catch((error) => console.warn('Failed to save notification:', error));
   };
 
 
@@ -1930,6 +2065,13 @@ const requestsRef = ref(db, requestPath);
           : n
       )
     );
+
+    if (!authUser?.uid) return;
+
+    authorizedFetch('/me/notifications/read', {
+      method: 'POST',
+      body: JSON.stringify({ target })
+    }).catch((error) => console.warn('Failed to mark notifications read:', error));
   };
 
 
@@ -2044,7 +2186,7 @@ const requestsRef = ref(db, requestPath);
         name:
           firebaseUser.displayName ||
           extraData.name ||
-          'KOODAM User',
+          'GigEzee User',
         email: firebaseUser.email,
         phone: extraData.phone || null,
         avatar:
@@ -2122,7 +2264,7 @@ const signUp = async (
           );
         }
 
-        // Sync Firebase user with KOODAM backend
+        // Sync Firebase user with GigEzee backend
         backendUser =
           await syncUserWithBackend(
             cred.user,
@@ -2225,7 +2367,7 @@ const signUp = async (
     }
 
     // -------------------------------------------------------
-    // Existing KOODAM navigation
+    // Existing GigEzee navigation
     // -------------------------------------------------------
 
     enterRole(targetRole);
@@ -2233,7 +2375,7 @@ const signUp = async (
     showToast(
       policeUploadFailed
         ? 'Account created, but the police certificate upload failed — you can upload it from your Profile.'
-        : `Welcome to KOODAM, ${name || 'there'}!`
+        : `Welcome to GigEzee, ${name || 'there'}!`
     );
 
     return true;
@@ -2383,7 +2525,7 @@ const signIn = async (
 
 
     // -------------------------------------------------------
-    // Sync Firebase User with KOODAM Backend
+    // Sync Firebase User with GigEzee Backend
     // -------------------------------------------------------
 
     if (
@@ -2430,7 +2572,7 @@ const signIn = async (
 
 
     // -------------------------------------------------------
-    // Existing KOODAM navigation
+    // Existing GigEzee navigation
     // -------------------------------------------------------
 
     enterRole(targetRole);
@@ -2541,7 +2683,7 @@ const signIn = async (
       enterRole(targetRole);
 
       showToast(
-        `Welcome to KOODAM, ${backendUser?.name || googleUser.full_name || 'there'}!`
+        `Welcome to GigEzee, ${backendUser?.name || googleUser.full_name || 'there'}!`
       );
     } catch (err) {
       console.error('Google sign-in could not be completed:', err);
@@ -2563,13 +2705,13 @@ const signIn = async (
       if (err?.code === 'auth/operation-not-allowed') {
         message = 'Google sign-in is not enabled in Firebase. Enable Google under Firebase Authentication > Sign-in method.';
       } else if (err?.code === 'auth/account-exists-with-different-credential') {
-        message = 'This email already has a KOODAM password. Please log in with your email and password.';
+        message = 'This email already has a GigEzee password. Please log in with your email and password.';
       } else if (err?.code === 'auth/invalid-credential') {
         message = 'Google sign-in is not set up correctly. Please log in with your email and password.';
       } else if (isServerUnreachable) {
-        message = "Can't reach the KOODAM server. Make sure the backend is running, then try again.";
+        message = "Can't reach the GigEzee server. Make sure the backend is running, then try again.";
       } else if (/Backend sync failed/.test(err?.message || '')) {
-        message = "Signed in with Google, but your KOODAM account couldn't be loaded. Please try again.";
+        message = "Signed in with Google, but your GigEzee account couldn't be loaded. Please try again.";
       }
 
       showToast(message);
@@ -2687,7 +2829,7 @@ const signIn = async (
     setActiveOrder(EMPTY_ORDER);
     setMessages([]);
     setIsChatOpen(false);
-    setChatPartner('KOODAM Customer');
+    setChatPartner('GigEzee Customer');
     setHasIncomingJob(false);
     setPartnerUpcomingJobs([]);
     setReviews([]);
@@ -3012,9 +3154,42 @@ const updatePartnerProfile = async (
 // =========================================================
 
 const handleConfirmBooking = async () => {
+  // Care services are booked by the hour and priced for those hours
+  const bookedHours = isCareService(selectedService) ? careHours : null;
+  const servicePrice = priceForHours(selectedService, bookedHours);
+  const durationMinutes = bookedHours ? bookedHours * 60 : null;
+
   const finalTotal =
-    Number(selectedService?.price || 0) +
+    servicePrice +
     Number(trustFee || 0);
+
+  const bookForError = bookForProblem(bookFor);
+
+  if (bookForError) {
+    showToast(bookForError);
+    return;
+  }
+
+  // Set when booking for a guest, friend, relative or child
+  const bookedFor = toBookedFor(bookFor);
+
+  // Nobody is left alone with a child unless their police check passed
+  if (
+    (selectedHelper?.requiresPoliceVerification ||
+      bookedFor?.relation === 'CHILD') &&
+    !selectedHelper?.policeVerified
+  ) {
+    showToast(
+      'For child care, please choose a police-verified helper.'
+    );
+    return;
+  }
+
+  // Where the helper goes: the address given for the other person, else
+  // the place picked in the header
+  const visitArea = bookedFor
+    ? bookFor.address.trim()
+    : location || 'Nearby';
 
   const targetPartnerId =
     selectedHelper?.partnerId ||
@@ -3103,7 +3278,7 @@ const handleConfirmBooking = async () => {
         customerName:
           userProfile?.name ||
           authUser?.displayName ||
-          'KOODAM Customer',
+          'GigEzee Customer',
 
         customerEmail:
           userProfile?.email ||
@@ -3120,6 +3295,9 @@ const handleConfirmBooking = async () => {
           '',
 
         customerRating: 5,
+
+        bookedFor,
+        durationMinutes,
 
         serviceId:
           selectedService?.id || null,
@@ -3141,7 +3319,7 @@ const handleConfirmBooking = async () => {
         etaMins: 7,
 
         area:
-          location || 'Nearby',
+          visitArea,
 
         // Lets the partner see the visit time and spot clashes
         scheduledAt: getScheduledTimestamp(
@@ -3183,11 +3361,16 @@ const handleConfirmBooking = async () => {
           customerName:
             userProfile?.name ||
             authUser?.displayName ||
-            'KOODAM Customer',
+            'GigEzee Customer',
           customerAvatar:
             userProfile?.avatar ||
             authUser?.photoURL ||
             '',
+          // The partner calls the member to get the arrival code when
+          // the person at home doesn't have the app (e.g. a child)
+          customerPhone: userProfile?.phone || '',
+          bookedFor,
+          durationMinutes,
           helperName: selectedHelper.name,
           ...helperDetails,
           serviceTitle: selectedService.title,
@@ -3198,7 +3381,7 @@ const handleConfirmBooking = async () => {
           totalAmount: finalTotal,
           // The bill as booked; approved extra parts are added on top
           baseAmount: finalTotal,
-          servicePrice: Number(selectedService?.price || 0),
+          servicePrice,
           trustFee: Number(trustFee || 0),
           totalPaid: 0,
           paymentStatus: 'PENDING',
@@ -3209,7 +3392,7 @@ const handleConfirmBooking = async () => {
           safetyPin,
           completionOtp: null,
           etaMinutes: 12,
-          area: location || 'Nearby',
+          area: visitArea,
           scheduledAt: getScheduledTimestamp(
             selectedDate,
             selectedTime
@@ -3348,8 +3531,11 @@ const handleConfirmBooking = async () => {
     totalPaid: 0,
     totalAmount: finalTotal,
     baseAmount: finalTotal,
-    servicePrice: Number(selectedService?.price || 0),
+    servicePrice,
     trustFee: Number(trustFee || 0),
+
+    bookedFor,
+    durationMinutes,
 
     etaMinutes: 12,
 
@@ -3357,14 +3543,19 @@ const handleConfirmBooking = async () => {
     feedback: ''
   });
 
+  // The next booking starts as one for the member themselves
+  setBookFor(EMPTY_BOOK_FOR);
+  setCareHours(null);
+
   // Member notification: request sent, awaiting partner response.
   addNotification(
     'member',
     {
       title: 'Request Sent',
 
-      desc:
-        `Your booking request has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`,
+      desc: bookedFor
+        ? `Your request for ${bookedFor.name} (${relationLabel(bookedFor.relation)}) has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`
+        : `Your booking request has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`,
 
       screen: 'tracking',
 
@@ -3527,7 +3718,7 @@ const verifyArrivalOtp = async (rawCode) => {
     });
 
     setChatPartner({
-      name: matchedOrder.customerName || 'KOODAM Customer',
+      name: matchedOrder.customerName || 'GigEzee Customer',
       avatar: matchedOrder.customerAvatar || '',
       customerId: matchedOrder.customerId
     });
@@ -3818,7 +4009,7 @@ const confirmCashPayment = async () => {
 
   addNotification('partner', {
     title: 'Cash Payment Recorded',
-    desc: `₹${activeOrder.totalAmount} cash for ${activeOrder.serviceTitle}. KOODAM's share is settled from your earnings.`,
+    desc: `₹${activeOrder.totalAmount} cash for ${activeOrder.serviceTitle}. GigEzee's share is settled from your earnings.`,
     screen: 'partner',
     tab: 'jobs'
   });
@@ -3999,7 +4190,7 @@ const acceptIncomingJob = async () => {
   const acceptedPartnerName =
     partnerProfile?.name?.trim() ||
     authUser?.displayName?.trim() ||
-    'KOODAM Partner';
+    'GigEzee Partner';
 
   // Never accept a job that overlaps one the partner already has
   const requestedStart = Number(incomingJobDetails?.scheduledAt);
@@ -4021,7 +4212,7 @@ const acceptIncomingJob = async () => {
 
     const clash = findClash(
       requestedStart,
-      DEFAULT_JOB_MINUTES,
+      incomingJobDetails?.durationMinutes || DEFAULT_JOB_MINUTES,
       bookedRanges
     );
 
@@ -4103,7 +4294,7 @@ etaMinutes: 12,
     }));
 
     setChatPartner({
-      name: incomingJobDetails.customerName || 'KOODAM Customer',
+      name: incomingJobDetails.customerName || 'GigEzee Customer',
       avatar: incomingJobDetails.customerAvatar || '',
       customerId: incomingJobDetails.customerId
     });
@@ -4358,8 +4549,16 @@ return (
       selectedTime,
       setSelectedTime,
 
+      bookFor,
+      setBookFor,
+      careHours,
+      setCareHours,
+
       trustFee,
       platformCommissionPercent,
+      appContent,
+      // Re-read fees and app text after staff change them
+      loadAppSettings,
 
       activeOrder,
       setActiveOrder,

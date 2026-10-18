@@ -23,8 +23,19 @@ export const toHelper = (service, partner) => ({
   serviceIcon:
     service.icon,
 
+  serviceTag:
+    service.tag || '',
+
+  // How long the price covers; care services are booked by the hour
+  serviceDurationMinutes:
+    service.duration_minutes || null,
+
+  // Only police-verified partners are listed for these (Child Care)
+  requiresPoliceVerification:
+    Boolean(service.requires_police_verification),
+
   name:
-    partner.name || 'KOODAM Partner',
+    partner.name || 'GigEzee Partner',
 
   title:
     service.title,
@@ -94,7 +105,7 @@ export const toHelper = (service, partner) => ({
   badge:
     partner.is_verified
       ? 'Verified Partner'
-      : 'KOODAM Partner',
+      : 'GigEzee Partner',
 
   badgeColor:
     partner.is_verified

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { authorizedFetch } from '../lib/authorizedFetch';
 
+// Used until the reasons stored by GigEzee staff load
 export const COMPLAINT_REASONS = [
   { value: 'NO_SHOW', label: "Partner didn't turn up" },
   { value: 'LATE', label: 'Partner was very late' },
@@ -20,7 +21,7 @@ const STATUS_TEXT = {
   },
   RESPONDED: {
     customer: 'The partner replied. Are you satisfied?',
-    partner: "You replied. The customer can accept your reply or ask KOODAM to review it.",
+    partner: "You replied. The customer can accept your reply or ask GigEzee to review it.",
     tone: 'bg-[#dce1ff] text-[#4e5c92]'
   },
   RESOLVED: {
@@ -29,8 +30,8 @@ const STATUS_TEXT = {
     tone: 'bg-[#c8f7e1]/60 text-[#006c49]'
   },
   NEEDS_REVIEW: {
-    customer: 'KOODAM is reviewing this.',
-    partner: 'The customer asked KOODAM to review this. Staff will decide.',
+    customer: 'GigEzee is reviewing this.',
+    partner: 'The customer asked GigEzee to review this. Staff will decide.',
     tone: 'bg-[#dce1ff] text-[#4e5c92]'
   },
   ESCALATED: {
@@ -39,13 +40,13 @@ const STATUS_TEXT = {
     tone: 'bg-red-50 text-red-600'
   },
   UPHELD: {
-    customer: 'KOODAM agreed with you. It has been escalated on the partner\'s record.',
-    partner: 'KOODAM upheld this complaint. It was added to your record.',
+    customer: 'GigEzee agreed with you. It has been escalated on the partner\'s record.',
+    partner: 'GigEzee upheld this complaint. It was added to your record.',
     tone: 'bg-red-50 text-red-600'
   },
   DISMISSED: {
-    customer: 'KOODAM reviewed this and closed it.',
-    partner: 'KOODAM reviewed this and closed it. No penalty.',
+    customer: 'GigEzee reviewed this and closed it.',
+    partner: 'GigEzee reviewed this and closed it. No penalty.',
     tone: 'bg-slate-50 text-slate-600'
   }
 };
@@ -65,7 +66,10 @@ const formatDeadline = (iso) =>
 // - viewer="partner": reply before the deadline
 // onChanged reloads the bills after any change.
 export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
-  const { showToast } = useApp();
+  const { showToast, appContent } = useApp();
+  const reasons = appContent.complaint_reasons?.length
+    ? appContent.complaint_reasons
+    : COMPLAINT_REASONS;
   const complaint = bill.complaint;
   const isPartner = viewer === 'partner';
 
@@ -122,7 +126,7 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
           onChange={(event) => setReason(event.target.value)}
           className="w-full text-xs border border-slate-200 rounded-lg p-2 bg-white"
         >
-          {COMPLAINT_REASONS.map((option) => (
+          {reasons.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -200,7 +204,7 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
       </p>
 
       {complaint.admin_note && (
-        <p className="text-[10px] text-slate-500">{`KOODAM note: ${complaint.admin_note}`}</p>
+        <p className="text-[10px] text-slate-500">{`GigEzee note: ${complaint.admin_note}`}</p>
       )}
 
       {error && <p className="text-[11px] text-red-500">{error}</p>}
@@ -257,12 +261,12 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
               send(
                 `/complaints/${complaint.id}/escalate`,
                 null,
-                'Sent to KOODAM for review.'
+                'Sent to GigEzee for review.'
               )
             }
             className="flex-1 text-[11px] font-bold text-white bg-red-500 rounded-lg py-2"
           >
-            Escalate to KOODAM
+            Escalate to GigEzee
           </button>
         </div>
       )}

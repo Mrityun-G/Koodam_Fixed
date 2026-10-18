@@ -31,10 +31,10 @@ export const ChatModal = () => {
     : null;
 
   // Support either a contact name string or a contact object.
-  // 'KOODAM Customer' is the app's placeholder, not a real name.
+  // 'GigEzee Customer' is the app's placeholder, not a real name.
   const explicitName =
     typeof chatPartner === 'string'
-      ? chatPartner !== 'KOODAM Customer' && chatPartner
+      ? chatPartner !== 'GigEzee Customer' && chatPartner
       : chatPartner?.name ||
         chatPartner?.partnerName ||
         chatPartner?.customerName;
@@ -42,7 +42,7 @@ export const ChatModal = () => {
   const partnerName =
     explicitName ||
     orderContact?.name ||
-    'KOODAM User';
+    'GigEzee User';
 
   const partnerPhone =
     typeof chatPartner === 'object' && chatPartner
@@ -263,7 +263,7 @@ export const ChatModal = () => {
 
                 {partnerVehicle
                   ? `Active on ${partnerVehicle}`
-                  : 'Active on KOODAM'}
+                  : 'Active on GigEzee'}
                 
                 {partnerDistance
                   ? ` (${partnerDistance})`

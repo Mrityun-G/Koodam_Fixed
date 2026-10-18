@@ -29,7 +29,7 @@ const partnerIcon = (heading) =>
     className: '',
     html:
       '<div style="position:relative;width:34px;height:34px;">' +
-      '<div style="position:absolute;inset:0;border-radius:9999px;background:rgba(255,106,0,.25);animation:koodam-pulse 1.6s ease-out infinite;"></div>' +
+      '<div style="position:absolute;inset:0;border-radius:9999px;background:rgba(255,106,0,.25);animation:gigezee-pulse 1.6s ease-out infinite;"></div>' +
       (heading != null
         ? `<div style="position:absolute;inset:0;transform:rotate(${heading}deg);">` +
           '<div style="position:absolute;left:50%;top:-2px;margin-left:-6px;width:0;height:0;' +
