@@ -3345,6 +3345,21 @@ const handleConfirmBooking = async () => {
   let createdRequestId = null;
   let safetyPin = null;
 
+  // The number for the tracking card's call button. It isn't in the
+  // home-screen listing any more - handing every partner's phone to
+  // everyone who opens the app is what that used to mean - so it's
+  // asked for here, for this one partner, now that they're being
+  // booked. A failure only costs the call button.
+  let helperPhone = '';
+
+  try {
+    helperPhone =
+      (await authorizedFetch(`/partners/${targetPartnerId}/contact`))
+        ?.phone || '';
+  } catch (error) {
+    console.warn('Could not load partner contact:', error.message);
+  }
+
   // The partner's real details, shown on the customer's tracking card
   const helperDetails = {
     helperAvatar:
@@ -3352,7 +3367,7 @@ const handleConfirmBooking = async () => {
         ? selectedHelper.avatar
         : '',
     helperRating: Number(selectedHelper?.rating || 0),
-    helperPhone: selectedHelper?.phone || '',
+    helperPhone,
     helperVehicle: selectedHelper?.vehicle || '',
     helperVehicleNumber: selectedHelper?.vehicleNumber || '',
     helperVerified: Boolean(

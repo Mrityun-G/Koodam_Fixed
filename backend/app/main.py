@@ -155,6 +155,10 @@ with engine.begin() as connection:
         "ON partner_services (service_id); "
         "CREATE INDEX IF NOT EXISTS ix_complaints_customer_id "
         "ON complaints (customer_id); "
+        # The home screen asks for partners in a box around the member;
+        # without this every request scans the whole partner table
+        "CREATE INDEX IF NOT EXISTS ix_partners_latitude_longitude "
+        "ON partners (latitude, longitude); "
         # Postgres has no ADD CONSTRAINT IF NOT EXISTS
         "DO $$ BEGIN "
         "IF NOT EXISTS (SELECT 1 FROM pg_constraint "
