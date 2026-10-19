@@ -20,6 +20,7 @@ def _jsonb(type_, compiler, **kw):
     return "JSON"
 
 
+from app.auth import current_firebase_uid
 from app.database import Base, get_db
 import app.models.user, app.models.partner, app.models.service, app.models.booking  # noqa
 import app.models.booking_detail, app.models.partner_service, app.models.app_config  # noqa
@@ -71,6 +72,10 @@ def _db():
 
 
 api.dependency_overrides[get_db] = _db
+
+# /services/with-partners is signed-in only now: a partner's details
+# aren't public. Stand in for the Firebase check the app does.
+api.dependency_overrides[current_firebase_uid] = lambda: "test-member-uid"
 client = TestClient(api)
 SYNC = [r.path for r in sync_r.router.routes if r.path.endswith("/sync")][0]
 BILL = [r.path for r in sync_r.router.routes

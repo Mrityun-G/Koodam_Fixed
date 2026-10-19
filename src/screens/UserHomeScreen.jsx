@@ -7,6 +7,7 @@ import { Avatar } from '../components/Avatar';
 import { VoiceAssistant } from '../components/VoiceAssistant';
 import { detectService, pickBestHelper, reliabilityPenalty } from '../lib/voiceIntent';
 import { helpersFromServices, withDistance } from '../lib/helpers';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 export const UserHomeScreen = () => {
   const {
@@ -85,9 +86,10 @@ export const UserHomeScreen = () => {
   // How often the helper list refreshes while Home is open
   const HELPERS_REFRESH_MS = 2 * 60 * 1000;
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  'http://127.0.0.1:8000';
+  // The loader runs on a timer set up once, so it reads the member's
+  // position through a ref rather than closing over a stale value
+  const userCoordsRef = useRef(userCoords);
+  userCoordsRef.current = userCoords;
 
 
 useEffect(() => {
@@ -100,18 +102,19 @@ useEffect(() => {
         setHelpersLoading(true);
       }
 
-      // Every service with its partners in one request
-      const response = await fetch(
-        `${BACKEND_URL}/services/with-partners`
+      // Every service with its partners in one request. The member's
+      // position goes with it so the backend sends only the partners
+      // who can actually reach them, nearest first - the response
+      // stays small however many partners have signed up.
+      const coords = userCoordsRef.current;
+
+      const query = coords
+        ? `?lat=${coords.lat}&lng=${coords.lng}`
+        : '';
+
+      const services = await authorizedFetch(
+        `/services/with-partners${query}`
       );
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load helpers (${response.status})`
-        );
-      }
-
-      const services = await response.json();
 
       const allHelpers = helpersFromServices(services);
 
@@ -173,7 +176,30 @@ useEffect(() => {
 
 }, []);
 
-  // Real distances; helpers out of their service radius are left out
+  // The first load often happens before the browser has given up a
+  // position, and the member can change their area from the header.
+  // Either way the backend has to be asked again, because which
+  // partners can reach them is the backend's answer now.
+  const askedFromRef = useRef(null);
+
+  useEffect(() => {
+    if (!userCoords || !loadHelpersRef.current) {
+      return;
+    }
+
+    const from = `${userCoords.lat.toFixed(3)},${userCoords.lng.toFixed(3)}`;
+
+    // ~100 m. Without this the GPS watcher's every jitter refetches.
+    if (askedFromRef.current === from) {
+      return;
+    }
+
+    askedFromRef.current = from;
+    loadHelpersRef.current();
+  }, [userCoords]);
+
+  // Distance labels; the backend has already left out helpers whose
+  // service radius doesn't reach the member
   const nearbyHelpers = useMemo(
     () => withDistance(helpers, userCoords),
     [helpers, userCoords]

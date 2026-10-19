@@ -1,7 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from math import asin, cos, radians, sin, sqrt
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from uuid import UUID
 
+from app.auth import current_firebase_uid
 from app.database import get_db
 from app.models.service import Service
 from app.models.partner_service import PartnerService
@@ -16,6 +21,34 @@ router = APIRouter(
     prefix="/services",
     tags=["Services"]
 )
+
+
+EARTH_RADIUS_KM = 6371.0
+
+# One degree of latitude is this far anywhere; longitude shrinks towards
+# the poles, which is why the box below divides by cos(latitude)
+KM_PER_DEGREE_LAT = 111.0
+
+# Most partners a member is sent for one service tile. The home screen
+# shows a handful, so this is generous; it exists to keep the response
+# a fixed size however many partners sign up.
+NEAREST_PER_SERVICE = 20
+
+# Used to size the bounding box when no partner has a radius set yet
+DEFAULT_SERVICE_RADIUS_KM = 5
+
+
+def haversine_km(lat1, lng1, lat2, lng2) -> float:
+    """Great-circle distance in km. Mirrors the app's lib/geo.js."""
+    d_lat = radians(lat2 - lat1)
+    d_lng = radians(lng2 - lng1)
+
+    h = (
+        sin(d_lat / 2) ** 2
+        + cos(radians(lat1)) * cos(radians(lat2)) * sin(d_lng / 2) ** 2
+    )
+
+    return 2 * EARTH_RADIUS_KM * asin(sqrt(h))
 
 
 # Adding or changing services is for GigEzee staff only
@@ -91,13 +124,22 @@ def is_bookable(partner, service=None) -> bool:
     return bool(partner.is_online) and can_take_bookings(partner)
 
 
-def partner_listing(partner, user, partner_service, service) -> dict:
+def partner_listing(
+    partner, user, partner_service, service, distance_km=None
+) -> dict:
+    # No email or phone here. This list is read by every member on the
+    # home screen, and a partner's contact details aren't theirs to
+    # have: the booking flow asks for the number it needs, once, from
+    # /partners/{id}/contact.
     return {
         "partner_id": partner.id,
         "name": user.name,
-        "email": user.email,
-        "phone": user.phone,
         "avatar": user.avatar,
+        # How far the partner is from the member who asked, in km, or
+        # null when the member's own position isn't known yet
+        "distance_km": (
+            round(distance_km, 2) if distance_km is not None else None
+        ),
         "experience_years": partner_service.experience_years,
         "rating": partner.rating,
         "reviews_count": partner.reviews_count,
@@ -124,15 +166,29 @@ def partner_listing(partner, user, partner_service, service) -> dict:
 # Declared before /{service_id} so "with-partners" isn't read as an ID
 @router.get("/with-partners")
 def get_services_with_partners(
+    lat: Optional[float] = Query(None, ge=-90, le=90),
+    lng: Optional[float] = Query(None, ge=-180, le=180),
+    per_service: int = Query(NEAREST_PER_SERVICE, ge=1, le=100),
+    firebase_uid: str = Depends(current_firebase_uid),
     db: Session = Depends(get_db)
 ):
     """
-    Every active service with the partners offering it, in one query,
-    so the home screen needs one request instead of one per service.
+    Every active service with the partners who can reach the member,
+    nearest first.
+
+    `lat`/`lng` are the member's position. Given them, the database is
+    asked only for partners in a box around it, and the ones whose own
+    service radius doesn't stretch that far are dropped - so the
+    response is the size of the member's neighbourhood, not of the
+    partner table. Without a position (location not granted yet) the
+    best-rated partners come back instead, still capped at
+    `per_service`, so the screen fills but the response stays bounded.
     """
+    knows_where = lat is not None and lng is not None
+
     # Services with no partners still come back (outer joins), so the
     # whole screen is one query
-    rows = (
+    query = (
         db.query(Service, Partner, User, PartnerService)
         .outerjoin(
             PartnerService,
@@ -142,9 +198,35 @@ def get_services_with_partners(
         .outerjoin(Partner, Partner.id == PartnerService.partner_id)
         .outerjoin(User, User.id == Partner.user_id)
         .filter(Service.is_active == True)
-        .order_by(Service.sort_order, Service.title)
-        .all()
     )
+
+    if knows_where:
+        # The box has to be wide enough for the furthest-reaching
+        # partner, because each one is kept or dropped by their own
+        # radius below. One scalar query, so a partner who sets a wide
+        # radius is never silently cut off.
+        widest_km = (
+            db.query(func.max(Partner.service_radius_km)).scalar()
+            or DEFAULT_SERVICE_RADIUS_KM
+        )
+
+        d_lat = widest_km / KM_PER_DEGREE_LAT
+
+        # cos() of a latitude near the poles approaches zero; the floor
+        # keeps the box finite rather than dividing by ~0
+        d_lng = widest_km / max(
+            KM_PER_DEGREE_LAT * cos(radians(lat)), 1e-6
+        )
+
+        # Indexed on (latitude, longitude) - see app/main.py
+        query = query.filter(
+            Partner.latitude.isnot(None),
+            Partner.longitude.isnot(None),
+            Partner.latitude.between(lat - d_lat, lat + d_lat),
+            Partner.longitude.between(lng - d_lng, lng + d_lng),
+        )
+
+    rows = query.order_by(Service.sort_order, Service.title).all()
 
     services = {}
 
@@ -155,10 +237,42 @@ def get_services_with_partners(
         })
 
         # Offline or suspended partners aren't offered to customers
-        if partner and user and is_bookable(partner, service):
-            entry["partners"].append(
-                partner_listing(partner, user, partner_service, service)
+        if not (partner and user and is_bookable(partner, service)):
+            continue
+
+        distance_km = None
+
+        if knows_where:
+            distance_km = haversine_km(
+                lat, lng, partner.latitude, partner.longitude
             )
+
+            # The box is square and generous; this is the real test,
+            # against the radius this partner actually set
+            radius_km = (
+                partner.service_radius_km or DEFAULT_SERVICE_RADIUS_KM
+            )
+
+            if distance_km > radius_km:
+                continue
+
+        entry["partners"].append(
+            partner_listing(
+                partner, user, partner_service, service, distance_km
+            )
+        )
+
+    # Nearest first when the member's position is known, best-rated
+    # first when it isn't, then capped either way
+    for entry in services.values():
+        entry["partners"].sort(
+            key=(
+                (lambda p: p["distance_km"])
+                if knows_where
+                else (lambda p: -(p["rating"] or 0))
+            )
+        )
+        entry["partners"] = entry["partners"][:per_service]
 
     return list(services.values())
 
