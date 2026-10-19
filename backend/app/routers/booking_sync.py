@@ -56,6 +56,7 @@ class RecipientSync(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     phone: Optional[str] = Field(default=None, max_length=20)
     age: Optional[int] = Field(default=None, ge=0, le=120)
+    address: Optional[str] = Field(default=None, max_length=300)
     notes: Optional[str] = Field(default=None, max_length=1000)
 
 
@@ -291,6 +292,7 @@ def sync_recipient(db: Session, booking: Booking, data: BookingSync):
     record.name = person.name.strip()
     record.phone = (person.phone or "").strip() or None
     record.age = person.age
+    record.address = (person.address or "").strip() or None
     record.notes = (person.notes or "").strip() or None
 
 

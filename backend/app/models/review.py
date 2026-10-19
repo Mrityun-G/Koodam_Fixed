@@ -19,7 +19,8 @@ class Review(Base):
     booking_id = Column(
         UUID(as_uuid=True),
         ForeignKey("bookings.id"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     rating = Column(

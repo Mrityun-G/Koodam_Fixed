@@ -261,7 +261,7 @@ export const BillingHistory = ({
                     <img
                       src={bill.repair_photo_url}
                       alt="Finished repair"
-                      className="w-full max-h-32 rounded-xl object-cover"
+                      className="w-full max-h-32 object-contain bg-slate-50"
                     />
                   </a>
                 )}

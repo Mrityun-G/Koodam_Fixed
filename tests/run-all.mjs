@@ -24,7 +24,9 @@ const steps = [
     '--outDir', `"${join(tmpdir(), 'gigezee-test-build')}"`
   ], root],
   ['2. Booking screen tests', process.execPath, ['tests/bookFor.test.mjs'], root],
-  ['3. Server tests', python, ['-W', 'ignore', 'tests/test_booking_for.py'], join(root, 'backend')]
+  ['3. Server tests', python, ['-W', 'ignore', 'tests/test_booking_for.py'], join(root, 'backend')],
+  ['4. AI diagnosis tests', python, ['-W', 'ignore', 'tests/test_diagnosis.py'], join(root, 'backend')],
+  ['5. Job photo tests', python, ['-W', 'ignore', 'tests/test_photo.py'], join(root, 'backend')]
 ];
 
 let failed = 0;

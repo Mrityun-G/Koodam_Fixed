@@ -103,6 +103,9 @@ class BookingRecipient(Base):
     # Asked for children only
     age = Column(Integer, nullable=True)
 
+    # Where the partner goes, as the customer typed it
+    address = Column(Text, nullable=True)
+
     # Instructions for the partner (school pickup time, allergies...)
     notes = Column(Text, nullable=True)
 

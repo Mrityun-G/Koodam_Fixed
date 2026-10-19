@@ -31,3 +31,7 @@ backend/db_backups/
 # Firebase service account keys (backend phone booking)
 *service-account*.json
 *firebase-adminsdk*.json
+
+# Android build output
+apks/
+android/local.properties

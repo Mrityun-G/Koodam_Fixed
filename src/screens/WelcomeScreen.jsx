@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, PORTAL } from '../context/AppContext';
 
 export const WelcomeScreen = () => {
   const { language, setLanguage, navigateTo, showToast } = useApp();
@@ -9,7 +9,10 @@ export const WelcomeScreen = () => {
     en: {
       community: 'GigEzee Community',
       title: 'Welcome to GigEzee',
-      subtitle: 'Choose how you would like to get started today.',
+      subtitle: 'Book trusted local help from your neighbourhood.',
+      partnerCommunity: 'GigEzee Partner',
+      partnerTitle: 'Welcome to GigEzee Partner',
+      partnerSubtitle: 'Manage your jobs, earnings and payouts.',
       card1Role: 'Seek Help',
       card1Title: 'I Need Help / Book Services',
       card1Desc: 'Find trusted local helpers, handymen, electricians, and community volunteers.',
@@ -22,9 +25,12 @@ export const WelcomeScreen = () => {
       card2SignupLink: 'New Service Partner? Create an account'
     },
     ta: {
-      community: 'கிக்ஈஸி சமூக சேவை',
-      title: 'கிக்ஈஸிக்கு வரவேற்கிறோம்',
-      subtitle: 'இன்று நீங்கள் எவ்வாறு தொடங்க விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்.',
+      community: 'GigEzee சமூக சேவை',
+      title: 'GigEzee-க்கு வரவேற்கிறோம்',
+      subtitle: 'உங்கள் அக்கம்பக்கத்திலிருந்து நம்பகமான உதவியை முன்பதிவு செய்யுங்கள்.',
+      partnerCommunity: 'GigEzee Partner',
+      partnerTitle: 'GigEzee Partner-க்கு வரவேற்கிறோம்',
+      partnerSubtitle: 'உங்கள் வேலைகள், வருமானம் மற்றும் பணப்பரிமாற்றங்களை நிர்வகிக்கவும்.',
       card1Role: 'உதவி பெற',
       card1Title: 'எனக்கு உதவி தேவை / சேவைகளை பதிவு செய்',
       card1Desc: 'நம்பகமான உள்ளூர் கைவினைஞர்கள், எலக்ட்ரீஷியன்கள் மற்றும் தன்னார்வலர்களைக் கண்டறியவும்.',
@@ -37,9 +43,12 @@ export const WelcomeScreen = () => {
       card2SignupLink: 'புதிய சேவை கூட்டாளரா? கணக்கு உருவாக்கவும்'
     },
     kn: {
-      community: 'ಗಿಗ್‌ಈಸಿ ಸಮುದಾಯ ಸೇವೆ',
-      title: 'ಗಿಗ್‌ಈಸಿಗೆ ಸುಸ್ವಾಗತ',
-      subtitle: 'ಇಂದು ನೀವು ಹೇಗೆ ಪ್ರಾರಂಭಿಸಲು ಬಯಸುತ್ತೀರಿ ಎಂಬುದನ್ನು ಆರಿಸಿ.',
+      community: 'GigEzee ಸಮುದಾಯ ಸೇವೆ',
+      title: 'GigEzee-ಗೆ ಸುಸ್ವಾಗತ',
+      subtitle: 'ನಿಮ್ಮ ನೆರೆಹೊರೆಯ ವಿಶ್ವಾಸಾರ್ಹ ಸಹಾಯವನ್ನು ಬುಕ್ ಮಾಡಿ.',
+      partnerCommunity: 'GigEzee Partner',
+      partnerTitle: 'GigEzee Partner-ಗೆ ಸುಸ್ವಾಗತ',
+      partnerSubtitle: 'ನಿಮ್ಮ ಕೆಲಸಗಳು, ಗಳಿಕೆ ಮತ್ತು ಪಾವತಿಗಳನ್ನು ನಿರ್ವಹಿಸಿ.',
       card1Role: 'ಸಹಾಯ ಪಡೆಯಿರಿ',
       card1Title: 'ನನಗೆ ಸಹಾಯ ಬೇಕು / ಸೇವೆಗಳನ್ನು ಬುಕ್ ಮಾಡಿ',
       card1Desc: 'ವಿಶ್ವಾಸಾರ್ಹ ಸ್ಥಳೀಯ ಸಹಾಯಕರು ಮತ್ತು ಎಲೆಕ್ಟ್ರಿಷಿಯನ್ ಗಳನ್ನು ಹುಡುಕಿ.',
@@ -54,6 +63,7 @@ export const WelcomeScreen = () => {
   };
 
   const t = strings[language] || strings.en;
+  const isPartnerApp = PORTAL === 'partner';
 
   return (
     <main className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
@@ -65,14 +75,14 @@ export const WelcomeScreen = () => {
           {/* Logo Pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ffdbcc] text-[#7b2f00] text-[11px] font-bold uppercase tracking-wider mb-3 shadow-xs">
             <img src="/logo.svg" alt="GigEzee" className="w-4 h-4 object-contain" />
-            <span>{t.community}</span>
+            <span>{isPartnerApp ? t.partnerCommunity : t.community}</span>
           </div>
 
           <h1 className="text-2xl font-extrabold text-[#0b1c30] tracking-tight mb-1">
-            {t.title}
+            {isPartnerApp ? t.partnerTitle : t.title}
           </h1>
           <p className="text-sm text-[#4e5c92] font-medium max-w-xs">
-            {t.subtitle}
+            {isPartnerApp ? t.partnerSubtitle : t.subtitle}
           </p>
 
           {/* Social Proof Card */}
@@ -101,9 +111,9 @@ export const WelcomeScreen = () => {
           </div>
         </div>
 
-        {/* Role Selection Cards */}
+        {/* Only this app's card: customers at /, partners at /partner */}
         <div className="px-4 flex flex-col gap-4 mt-2">
-          {/* Card 1: User / Member Module */}
+          {!isPartnerApp && (
           <div className="relative bg-white rounded-2xl p-4 shadow-md flex flex-col transition-all duration-200 hover:shadow-lg border border-slate-100 overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#ffdbcc]/30 rounded-bl-full pointer-events-none -z-0"></div>
             
@@ -144,8 +154,9 @@ export const WelcomeScreen = () => {
               </button>
             </div>
           </div>
+          )}
 
-          {/* Card 2: Service Provider Module */}
+          {isPartnerApp && (
           <div className="relative bg-[#1b2a5e] text-white rounded-2xl p-4 shadow-md flex flex-col transition-all duration-200 hover:shadow-lg overflow-hidden border border-slate-700">
             <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-[#b3c1ff]/20 rounded-full pointer-events-none"></div>
             
@@ -186,6 +197,7 @@ export const WelcomeScreen = () => {
               </button>
             </div>
           </div>
+          )}
         </div>
 
         <div className="px-4 mt-6 flex flex-col items-center gap-4 text-center">

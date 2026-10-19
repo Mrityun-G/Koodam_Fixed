@@ -196,7 +196,7 @@ const DocumentUpload = ({ icon: Icon, label, accent, file, onSelect, onRemove, e
           }`}
         >
           {previewUrl ? (
-            <img src={previewUrl} alt={label} className="w-11 h-11 rounded-lg object-cover shrink-0" />
+            <img src={previewUrl} alt={label} className="w-14 aspect-[4/3] object-contain bg-white/10 shrink-0" />
           ) : (
             <div className="w-11 h-11 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
               <FileText size={20} className="text-white/70" />
@@ -331,7 +331,7 @@ export const AuthScreen = () => {
             }`}
           >
             <img src="/logo.svg" alt="GigEzee" className="w-4 h-4 object-contain" />
-            <span>GigEzee Community</span>
+            <span>{isPartner ? 'GigEzee Partner' : 'GigEzee Community'}</span>
           </div>
 
           <div
@@ -371,7 +371,7 @@ export const AuthScreen = () => {
           <>
             <button
               type="button"
-              onClick={() => signInWithGoogle(role)}
+              onClick={() => signInWithGoogle()}
               disabled={authLoading}
               className={`w-full py-3.5 rounded-full text-sm font-bold flex items-center justify-center gap-3 shadow-lg border active:scale-98 transition-all disabled:opacity-60 ${
                 isPartner
@@ -594,17 +594,6 @@ export const AuthScreen = () => {
             className={`font-bold hover:underline ${isPartner ? 'text-white' : 'text-[#a14000]'}`}
           >
             {isSignup ? 'Log In' : 'Sign Up'}
-          </button>
-        </div>
-
-        <div className={`text-center text-[11px] ${isPartner ? 'text-[#dce1ff]/70' : 'text-slate-400'}`}>
-          {isPartner ? 'Looking for local help instead?' : 'Want to offer services instead?'}{' '}
-          <button
-            type="button"
-            onClick={() => navigateTo(isPartner ? 'memberLogin' : 'partnerLogin')}
-            className="font-bold hover:underline"
-          >
-            {isPartner ? 'Community Member Login' : 'Service Partner Login'}
           </button>
         </div>
       </main>

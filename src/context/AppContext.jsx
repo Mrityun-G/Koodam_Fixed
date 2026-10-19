@@ -49,6 +49,8 @@ import { useRoute } from '../lib/route';
 
 import { uploadRepairPhoto, isHostedPhoto } from '../lib/repairPhoto';
 
+import { attachDiagnosisToOrder } from '../lib/diagnosis';
+
 import {
   EMPTY_BOOK_FOR,
   bookForProblem,
@@ -60,7 +62,8 @@ import {
 
 import {
   haversineDistanceKm,
-  estimateEtaMinutes
+  estimateEtaMinutes,
+  geocodeAddress
 } from '../lib/geo';
 
 import {
@@ -76,19 +79,82 @@ import {
   oauthReturnError
 } from '../lib/supabase';
 
-// Which login page (member or partner) started a Google sign-in; kept in
-// storage because Google redirects away from the app and back
-const GOOGLE_ROLE_KEY = 'gigezee-google-login-role';
+// When this tab started a Google sign-in. Google redirects the tab away
+// and back, so sessionStorage survives the round trip while keeping the
+// customer and partner tabs' sign-ins apart. It is also what marks the
+// return: Supabase strips the tokens from the address bar as soon as its
+// client is created, so the URL can't be relied on past the first render.
+const GOOGLE_LOGIN_KEY = 'gigezee-google-login-started';
+const GOOGLE_LOGIN_MAX_MS = 10 * 60 * 1000;
 
-// Shareable links straight to one login page: ?login=member or ?login=partner
+const markGoogleLoginStarted = () => {
+  const startedAt = String(Date.now());
+
+  try {
+    sessionStorage.setItem(GOOGLE_LOGIN_KEY, startedAt);
+  } catch {
+    // Without storage the return can't be recognised as ours
+  }
+
+  try {
+    // Backup for a return that lands outside this tab (the packaged app
+    // sends the user through the system browser and back by deep link)
+    localStorage.setItem(GOOGLE_LOGIN_KEY, startedAt);
+  } catch {
+    // Nothing to fall back on
+  }
+};
+
+const isFresh = (value) => {
+  const startedAt = Number(value);
+  return startedAt > 0 && Date.now() - startedAt < GOOGLE_LOGIN_MAX_MS;
+};
+
+const googleLoginPending = () => {
+  try {
+    if (isFresh(sessionStorage.getItem(GOOGLE_LOGIN_KEY))) {
+      return true;
+    }
+  } catch {
+    // Fall through to the shared note
+  }
+
+  // The shared note only counts on the page load Google actually returned
+  // to, so another tab reloading mid-sign-in doesn't claim it
+  if (!isOAuthReturn) {
+    return false;
+  }
+
+  try {
+    return isFresh(localStorage.getItem(GOOGLE_LOGIN_KEY));
+  } catch {
+    return false;
+  }
+};
+
+const clearGoogleLogin = () => {
+  try {
+    sessionStorage.removeItem(GOOGLE_LOGIN_KEY);
+    // Notes left in the old shared place by a previous build
+    localStorage.removeItem(GOOGLE_LOGIN_KEY);
+  } catch {
+    // Nothing to clear
+  }
+};
+
+// Customers use the app at /, service partners a separate app at /partner.
+// An Android build has no path to read, so each APK is built with
+// VITE_PORTAL set to the app it is; on the web the path still decides.
+export const PORTAL =
+  import.meta.env.VITE_PORTAL === 'partner' ||
+  /^\/partner(\/|$)/.test(window.location.pathname)
+    ? 'partner'
+    : 'member';
+
 const LOGIN_LINK_SCREENS = {
   member: 'memberLogin',
   partner: 'partnerLogin'
 };
-
-const startScreen = () =>
-  LOGIN_LINK_SCREENS[new URLSearchParams(window.location.search).get('login')] ||
-  'landing';
 
 const accountRoleOf = (backendUser) =>
   backendUser.role === 'PARTNER' ? 'partner' : 'member';
@@ -341,7 +407,7 @@ export const AppProvider = ({ children }) => {
 
   const [role, setRole] = useState('welcome');
 
-  const [currentScreen, setCurrentScreen] = useState(startScreen);
+  const [currentScreen, setCurrentScreen] = useState('landing');
 
   // Latest screen, readable inside long-lived listeners
   const currentScreenRef = useRef(currentScreen);
@@ -397,6 +463,23 @@ export const AppProvider = ({ children }) => {
   // auth listener (which would race it)
   const loginInProgressRef = useRef(false);
 
+  // True until Firebase has said whether anyone is still logged in (and, if
+  // so, their dashboard has been restored). Without it every reload flashes
+  // the landing page before jumping to the home screen.
+  const [authBooting, setAuthBooting] = useState(
+    Boolean(isFirebaseConfigured && auth)
+  );
+
+  // True while a Google sign-in started in this tab is still being finished,
+  // so the landing page isn't shown underneath it either
+  const [googleCompleting, setGoogleCompleting] = useState(() =>
+    googleLoginPending()
+  );
+
+  // A Google return is completed once, even across the remount that
+  // StrictMode uses to re-run effects in development
+  const googleCompletionRef = useRef(false);
+
 
   // =========================================================
   // Partner KYC
@@ -420,6 +503,7 @@ useEffect(() => {
 
       // No logged-in Firebase user
       if (!user) {
+        setAuthBooting(false);
         return;
       }
 
@@ -502,8 +586,11 @@ useEffect(() => {
           }
         }
 
+        // A partner's login isn't restored in the customer app (or the
+        // reverse); that app stays on its own start screen
         if (
           !loginInProgressRef.current &&
+          restoredRole === PORTAL &&
           SIGNED_OUT_SCREENS.includes(currentScreenRef.current)
         ) {
           setRole(restoredRole);
@@ -517,11 +604,21 @@ useEffect(() => {
           'Failed to load user profile:',
           error
         );
+      } finally {
+        // Every path above lands here, so the splash can never stick
+        setAuthBooting(false);
       }
     }
   );
 
-  return () => unsubscribe();
+  // Firebase always reports once, but never leave the app on a splash
+  // screen if it somehow doesn't
+  const bootTimeout = setTimeout(() => setAuthBooting(false), 8000);
+
+  return () => {
+    clearTimeout(bootTimeout);
+    unsubscribe();
+  };
 
 }, []);
 
@@ -583,6 +680,10 @@ const [notificationsEnabled, setNotificationsEnabled] =
   // their child) and, for care services, how many hours
   const [bookFor, setBookFor] = useState(EMPTY_BOOK_FOR);
   const [careHours, setCareHours] = useState(null);
+
+  // What GigEzee AI worked out from the member's photo, carried
+  // from the diagnosis screen through to the partner's job
+  const [diagnosis, setDiagnosis] = useState(null);
 
   // Fees come from the backend (GET /config) so the app always shows
   // what is actually charged; these are only used until it answers
@@ -792,6 +893,7 @@ useEffect(() => {
             name: order.bookedFor.name,
             phone: order.bookedFor.phone || null,
             age: order.bookedFor.age ?? null,
+            address: order.bookedFor.address || order.area || null,
             notes: order.bookedFor.notes || null
           }
         : null,
@@ -1175,7 +1277,7 @@ useEffect(() => {
   const destinationCoords =
     activeOrder.customerLat != null && activeOrder.customerLng != null
       ? { lat: activeOrder.customerLat, lng: activeOrder.customerLng }
-      : role === 'member'
+      : role === 'member' && !activeOrder.bookedFor
       ? userCoords
       : null;
 
@@ -2144,8 +2246,8 @@ const requestsRef = ref(db, requestPath);
   };
 
 
-  // Each account belongs to one side of the app. Logging in from the
-  // other side's page logs straight back out and opens the right page.
+  // Each account belongs to one app (customer or partner). Logging in
+  // to the other app logs straight back out and says which app to use.
   const rejectWrongLoginPage = async (backendUser, targetRole) => {
     const accountRole = accountRoleOf(backendUser);
 
@@ -2161,11 +2263,12 @@ const requestsRef = ref(db, requestPath);
 
     showToast(
       accountRole === 'partner'
-        ? 'This is a Service Partner account. Please log in from Service Partner Login.'
-        : 'This is a Community Member account. Please log in from Community Member Login.'
+        ? 'This is a Service Partner account. Please log in on the GigEzee Partner app.'
+        : 'This is a Community Member account. Please log in on the GigEzee customer app.'
     );
 
-    navigateTo(LOGIN_LINK_SCREENS[accountRole]);
+    // Stay on this app's login page (a Google return starts on the landing page)
+    navigateTo(LOGIN_LINK_SCREENS[targetRole]);
 
     return true;
   };
@@ -2627,20 +2730,17 @@ const signIn = async (
   // Google Sign-In (Supabase OAuth)
   // =========================================================
 
-  // Step 1: remember which login page was used, then go to Google
-  const signInWithGoogle = async (targetRole) => {
-    try {
-      localStorage.setItem(GOOGLE_ROLE_KEY, targetRole);
-    } catch {
-      // Without storage the role can't survive the redirect; member is the fallback
-    }
+  // Step 1: note that a Google sign-in started, then go to Google
+  const signInWithGoogle = async () => {
+    markGoogleLoginStarted();
 
     setAuthLoading(true);
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        // Back to the same app (/ or /partner) the login started in
+        redirectTo: window.location.origin + window.location.pathname,
         queryParams: { prompt: 'select_account' }
       }
     });
@@ -2656,14 +2756,9 @@ const signIn = async (
   // The same Google login is used to sign in to Firebase, which the
   // bookings, chat and live GPS data require.
   const completeGoogleSignIn = async (session) => {
-    let targetRole = 'member';
-
-    try {
-      targetRole = localStorage.getItem(GOOGLE_ROLE_KEY) || 'member';
-      localStorage.removeItem(GOOGLE_ROLE_KEY);
-    } catch {
-      // Fall back to member
-    }
+    // Google returns to the app the login started in (/ or /partner)
+    const targetRole = PORTAL;
+    clearGoogleLogin();
 
     setAuthLoading(true);
     loginInProgressRef.current = true;
@@ -2743,6 +2838,7 @@ const signIn = async (
     } finally {
       loginInProgressRef.current = false;
       setAuthLoading(false);
+      setGoogleCompleting(false);
 
       // Remove the OAuth tokens/code from the address bar
       window.history.replaceState(null, '', window.location.pathname);
@@ -2750,27 +2846,10 @@ const signIn = async (
   };
 
   useEffect(() => {
-    let handled = false;
-
-    // A normal page load (not a return from Google): clear any leftover
-    // "Google login in progress" note from a sign-in that was abandoned,
-    // so it can't trigger a failed Google login later
-    if (!isOAuthReturn) {
-      try {
-        localStorage.removeItem(GOOGLE_ROLE_KEY);
-      } catch {
-        // Nothing to clear
-      }
-      return undefined;
-    }
-
     // The user cancelled on Google's page
-    if (oauthReturnError) {
-      try {
-        localStorage.removeItem(GOOGLE_ROLE_KEY);
-      } catch {
-        // Nothing to clear
-      }
+    if (isOAuthReturn && oauthReturnError) {
+      clearGoogleLogin();
+      setGoogleCompleting(false);
 
       window.history.replaceState(null, '', window.location.pathname);
 
@@ -2781,28 +2860,41 @@ const signIn = async (
       return undefined;
     }
 
+    // This tab never started a Google sign-in, so any Supabase session in
+    // storage belongs to something else and isn't finished here.
+    if (!googleLoginPending()) {
+      clearGoogleLogin();
+      setGoogleCompleting(false);
+      return undefined;
+    }
+
+    // The return isn't recognised from the address bar: Supabase clears the
+    // tokens out of it the moment its client is created, so a reload (or
+    // Vite's hot reload) between Google and this effect used to leave the
+    // Supabase session in storage with Firebase never signed in -- a partner
+    // stranded on the landing page. The per-tab note set in step 1 is the
+    // marker instead, so the sign-in still finishes on a later page load.
     const handle = (session) => {
-      // Only finish sign-ins this app started (the role key is set in step 1)
-      let pending = false;
-
-      try {
-        pending = Boolean(localStorage.getItem(GOOGLE_ROLE_KEY));
-      } catch {
-        pending = false;
-      }
-
-      if (!session || !pending || handled) {
+      if (!session || googleCompletionRef.current || !googleLoginPending()) {
         return;
       }
 
-      handled = true;
+      googleCompletionRef.current = true;
+      setGoogleCompleting(true);
       completeGoogleSignIn(session);
     };
 
-    supabase.auth.getSession().then(({ data }) => handle(data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        handle(data.session);
+      } else if (!googleCompletionRef.current) {
+        // Came back without a session (abandoned sign-in): show the app
+        setGoogleCompleting(false);
+      }
+    });
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         handle(session);
       }
     });
@@ -3426,10 +3518,39 @@ const handleConfirmBooking = async () => {
         }
       );
 
+      // Hand the photo and the causes to check over to the partner who
+      // takes this job. A failure here never undoes the booking - the
+      // member still gets their helper, just without the AI's notes.
+      if (diagnosis?.id) {
+        try {
+          await attachDiagnosisToOrder(diagnosis.id, createdRequestId);
+        } catch (error) {
+          console.error('Could not attach the diagnosis:', error);
+        }
+
+        setDiagnosis(null);
+      }
+
       // Save where the customer is so the partner can navigate there:
       // the place picked in the header, else the device GPS (in the
-      // background; the booking never waits on it).
-      if (userCoords) {
+      // background; the booking never waits on it). When booking for
+      // someone else, the job is at the address typed for them: look it
+      // up on the map, and if that fails save nothing so the partner
+      // navigates by the address text instead of to the member.
+      if (bookedFor) {
+        const orderIdForLocation = createdRequestId;
+
+        geocodeAddress(visitArea, userCoords).then((coords) => {
+          if (!coords) return;
+
+          return update(
+            ref(db, `orders/${toDbKey(orderIdForLocation)}`),
+            { customerLat: coords.lat, customerLng: coords.lng }
+          );
+        }).catch((error) => {
+          console.error('❌ Failed to save visit location:', error);
+        });
+      } else if (userCoords) {
         update(
           ref(db, `orders/${toDbKey(createdRequestId)}`),
           { customerLat: userCoords.lat, customerLng: userCoords.lng }
@@ -3608,6 +3729,8 @@ const handleConfirmBooking = async () => {
       'requests'
     );
   }, 1200);
+
+  return true;
 };
 
 // =========================================================
@@ -4540,6 +4663,9 @@ return (
       authUser,
       authLoading,
 
+      // The app is still working out who is logged in; show a splash
+      isBooting: authBooting || googleCompleting,
+
       partnerKyc,
 
       signUp,
@@ -4575,6 +4701,10 @@ return (
       setBookFor,
       careHours,
       setCareHours,
+
+      diagnosis,
+      setDiagnosis,
+
 
       trustFee,
       platformCommissionPercent,

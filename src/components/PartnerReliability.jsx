@@ -128,7 +128,7 @@ export const PartnerReliability = () => {
           <p className="text-[11px] text-slate-500">
             {activeEscalations.length === 0
               ? 'No escalations. Keep it up!'
-              : `${record.recent_strikes} of ${record.strikes_to_suspend} strikes in the last ${record.strike_window_days} days`}
+              : `${record.recent_strikes} ${record.recent_strikes === 1 ? 'strike' : 'strikes'} in the last ${record.strike_window_days} days (${record.strikes_to_suspend} means a suspension)`}
           </p>
         </div>
         <span className="material-symbols-outlined text-[18px] text-slate-300">

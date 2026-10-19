@@ -17,13 +17,15 @@ class PartnerService(Base):
     partner_id = Column(
         UUID(as_uuid=True),
         ForeignKey("partners.id"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     service_id = Column(
         UUID(as_uuid=True),
         ForeignKey("services.id"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     experience_years = Column(

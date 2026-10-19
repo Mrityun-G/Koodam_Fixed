@@ -10,3 +10,4 @@ requests==2.31.0
 PyJWT==2.13.0
 cryptography==50.0.0
 firebase-admin==7.7.0
+anthropic==1.15.0

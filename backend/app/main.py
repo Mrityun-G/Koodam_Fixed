@@ -33,6 +33,7 @@ from app.routers.payouts import router as payouts_router
 from app.routers.escalations import router as escalations_router
 from app.routers.ivr import router as ivr_router
 from app.routers.photo import router as photo_router
+from app.routers.diagnosis import router as diagnosis_router
 from app.routers.me import router as me_router
 from app.routers.app_config import router as app_config_router
 
@@ -76,6 +77,7 @@ app.include_router(payouts_router)
 app.include_router(escalations_router)
 app.include_router(ivr_router)
 app.include_router(photo_router)
+app.include_router(diagnosis_router)
 app.include_router(me_router)
 app.include_router(app_config_router)
 
@@ -108,6 +110,8 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS duration_minutes INTEGER; "
         "ALTER TABLE booking_extra_charges "
         "ADD COLUMN IF NOT EXISTS photo_url VARCHAR; "
+        "ALTER TABLE booking_recipients "
+        "ADD COLUMN IF NOT EXISTS address TEXT; "
         "ALTER TABLE booking_payouts "
         "ADD COLUMN IF NOT EXISTS withdrawal_id UUID "
         "REFERENCES partner_withdrawals(id); "
@@ -125,7 +129,28 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS icon_color VARCHAR, "
         "ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0, "
         "ADD COLUMN IF NOT EXISTS requires_police_verification "
-        "BOOLEAN NOT NULL DEFAULT false"
+        "BOOLEAN NOT NULL DEFAULT false; "
+        # Indexes for the most-run lookups; names match the models
+        "CREATE INDEX IF NOT EXISTS ix_bookings_partner_id_status "
+        "ON bookings (partner_id, status); "
+        "CREATE INDEX IF NOT EXISTS ix_bookings_status_booking_time "
+        "ON bookings (status, booking_time); "
+        "CREATE INDEX IF NOT EXISTS ix_bookings_user_id ON bookings (user_id); "
+        "CREATE INDEX IF NOT EXISTS ix_reviews_booking_id ON reviews (booking_id); "
+        "CREATE INDEX IF NOT EXISTS ix_partner_services_partner_id "
+        "ON partner_services (partner_id); "
+        "CREATE INDEX IF NOT EXISTS ix_partner_services_service_id "
+        "ON partner_services (service_id); "
+        "CREATE INDEX IF NOT EXISTS ix_complaints_customer_id "
+        "ON complaints (customer_id); "
+        # Postgres has no ADD CONSTRAINT IF NOT EXISTS
+        "DO $$ BEGIN "
+        "IF NOT EXISTS (SELECT 1 FROM pg_constraint "
+        "WHERE conname = 'photos_firebase_order_id_fkey') THEN "
+        "ALTER TABLE photos ADD CONSTRAINT photos_firebase_order_id_fkey "
+        "FOREIGN KEY (firebase_order_id) "
+        "REFERENCES booking_details (firebase_order_id); "
+        "END IF; END $$"
     ))
 
 

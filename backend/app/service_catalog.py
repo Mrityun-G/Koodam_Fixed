@@ -26,6 +26,21 @@ from app.models.service import Service
 # app_config key listing the "added_later" tiles already added
 ADDED_TILES_KEY = "catalog_tiles_added"
 
+# app_config key listing the tiles already switched off below
+RETIRED_TILES_KEY = "catalog_tiles_retired"
+
+# Tiles that were added to the catalog and then dropped. Taking them out
+# of CATALOG isn't enough: add_later_tiles has already written them to
+# every database that started up while they were listed, so they keep
+# appearing on Home. Each title here is switched off once, then
+# remembered, so staff can turn it back on later without it being
+# switched off again on the next restart.
+RETIRED_TILES = [
+    "Flex & Banner Printing",
+    "Printouts & Xerox",
+    "Online Document Help",
+]
+
 
 CATALOG = [
     {
@@ -165,6 +180,38 @@ def _fold_into(db: Session, old: Service, tile: Service) -> None:
     old.is_active = False
 
 
+def retire_tiles(db: Session) -> None:
+    """Switch off a dropped tile once, and stop listing its partners."""
+    marker = db.get(AppConfig, RETIRED_TILES_KEY)
+    retired = list(marker.value) if marker else []
+
+    for title in RETIRED_TILES:
+        if title in retired:
+            continue
+
+        tile = db.query(Service).filter(Service.title == title).first()
+
+        if tile:
+            tile.is_active = False
+
+            # Nobody should stay listed for a tile that isn't bookable
+            for link in db.query(PartnerService).filter(
+                PartnerService.service_id == tile.id
+            ):
+                link.is_active = False
+
+        # Remembered whether or not the tile was there, so a database
+        # that never had it doesn't get checked again every restart
+        retired.append(title)
+
+    if marker:
+        marker.value = retired
+    else:
+        db.add(AppConfig(key=RETIRED_TILES_KEY, value=retired))
+
+    db.commit()
+
+
 def add_later_tiles(db: Session) -> None:
     marker = db.get(AppConfig, ADDED_TILES_KEY)
     added = list(marker.value) if marker else []
@@ -265,3 +312,7 @@ def sync_service_catalog(db: Session) -> None:
 
     # A new database already has every tile; just record that
     add_later_tiles(db)
+
+    # Tiles that were added and then dropped linger in databases that
+    # started up while they were listed; switch those off
+    retire_tiles(db)
