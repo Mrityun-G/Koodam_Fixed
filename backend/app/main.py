@@ -1,8 +1,10 @@
+import logging
+
 from fastapi import FastAPI
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import ALLOWED_ORIGINS
+from app.config import ALLOWED_ORIGINS, FAKE_AI
 from app.database import engine, Base, SessionLocal
 
 from app.models.user import User
@@ -44,6 +46,16 @@ from app.service_catalog import sync_service_catalog
 
 
 app = FastAPI(title="GigEzee Backend")
+
+
+# Loud on purpose: a deployment serving canned diagnoses should be
+# obvious in the logs, not something you have to go looking for
+if FAKE_AI:
+    logging.getLogger(__name__).warning(
+        "GIGEZEE_FAKE_AI is ON - GigEzee AI is returning canned answers "
+        "and no photo is being analysed. Set ANTHROPIC_API_KEY (and drop "
+        "GIGEZEE_FAKE_AI) for real diagnoses."
+    )
 
 
 app.add_middleware(

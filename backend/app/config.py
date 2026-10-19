@@ -27,6 +27,21 @@ ALLOWED_ORIGINS = [
 # a service themselves.
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 
+# Serve canned diagnoses instead of calling Claude, so the camera flow
+# can be tested on a deployed backend with no API key and no charges.
+# The answers are fixed text, not real analysis: every one is marked
+# [DEV FAKE] in summary_for_partner so the rows can be found and
+# deleted. Never leave this on once a real key is set - see
+# app/fake_diagnosis.py.
+FAKE_AI = os.getenv("GIGEZEE_FAKE_AI", "").strip().lower() in {
+    "1", "true", "yes", "on"
+}
+
+# A real key is what the feature should run on; the fake is only a
+# stand-in while there isn't one
+if FAKE_AI and ANTHROPIC_API_KEY:
+    FAKE_AI = False
+
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")

@@ -8,11 +8,12 @@ from app.ai_diagnosis import (
     ALLOWED_IMAGE_TYPES,
     LANGUAGE_NAMES,
     DiagnosisUnavailable,
-    diagnose,
+    diagnose as diagnose_with_ai,
 )
 from app.auth import current_firebase_uid
-from app.config import ANTHROPIC_API_KEY
+from app.config import ANTHROPIC_API_KEY, FAKE_AI
 from app.database import get_db
+from app.fake_diagnosis import diagnose as diagnose_with_canned_answer
 from app.models.diagnosis import Diagnosis
 from app.models.service import Service
 
@@ -32,6 +33,11 @@ router = APIRouter(
 # Phone photos are shrunk by the app before sending; this leaves room
 MAX_BYTES = 5 * 1024 * 1024
 
+# Real AI unless GIGEZEE_FAKE_AI is on and no key is set (config decides
+# that). Bound to one name here because tests and
+# tests/dev_server_fake_ai.py swap this attribute to fake the call.
+diagnose = diagnose_with_canned_answer if FAKE_AI else diagnose_with_ai
+
 
 def diagnosis_response(record: Diagnosis) -> dict:
     return {
@@ -45,8 +51,15 @@ def diagnosis_response(record: Diagnosis) -> dict:
 
 @router.get("/available")
 def diagnosis_available():
-    """Whether the app should offer the camera at all."""
-    return {"available": bool(ANTHROPIC_API_KEY)}
+    """
+    Whether the app should offer the camera at all. `fake` tells a
+    caller the answers are canned, so a tester can tell the two apart
+    without reading summary_for_partner.
+    """
+    return {
+        "available": bool(ANTHROPIC_API_KEY) or FAKE_AI,
+        "fake": FAKE_AI and not ANTHROPIC_API_KEY,
+    }
 
 
 @router.post("")
