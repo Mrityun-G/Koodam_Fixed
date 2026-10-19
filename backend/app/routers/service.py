@@ -91,7 +91,7 @@ def is_bookable(partner, service=None) -> bool:
     return bool(partner.is_online) and can_take_bookings(partner)
 
 
-def partner_listing(partner, user, partner_service) -> dict:
+def partner_listing(partner, user, partner_service, service) -> dict:
     return {
         "partner_id": partner.id,
         "name": user.name,
@@ -104,10 +104,11 @@ def partner_listing(partner, user, partner_service) -> dict:
         "completion_rate": partner.completion_rate,
         # 100 = no escalations; lower partners rank lower in search
         "reliability_score": partner.reliability_score,
+        # Same price the booking is charged at (see routers/booking.py)
         "hourly_rate": (
             partner_service.price_override
             if partner_service.price_override is not None
-            else partner.hourly_rate
+            else service.price
         ),
         "vehicle": partner.vehicle,
         "vehicle_number": partner.vehicle_number,
@@ -156,7 +157,7 @@ def get_services_with_partners(
         # Offline or suspended partners aren't offered to customers
         if partner and user and is_bookable(partner, service):
             entry["partners"].append(
-                partner_listing(partner, user, partner_service)
+                partner_listing(partner, user, partner_service, service)
             )
 
     return list(services.values())
@@ -222,7 +223,7 @@ def get_partners_for_service(
     results = [row for row in results if is_bookable(row[0], service)]
 
     partners = [
-        partner_listing(partner, user, partner_service)
+        partner_listing(partner, user, partner_service, service)
         for partner, user, partner_service in results
     ]
 

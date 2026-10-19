@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/run-all.mjs"
+    "test": "node tests/run-all.mjs",
+    "apk": "node tools/build-apks.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

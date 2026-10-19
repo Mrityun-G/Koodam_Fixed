@@ -1,13 +1,15 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, PORTAL } from '../context/AppContext';
 
 export const LandingScreen = () => {
   const { language, navigateTo } = useApp();
+  const isPartnerApp = PORTAL === 'partner';
 
   const strings = {
     en: {
       name: 'GigEzee',
       tagline: 'Neighborhood Mutual Aid & Services',
+      partnerTagline: 'Earn by serving your neighbourhood',
       quote: 'People Helping People, Stronger Together',
       cta: 'Get Started',
       offline: 'No smartphone? Book by phone call'
@@ -15,6 +17,7 @@ export const LandingScreen = () => {
     ta: {
       name: 'GigEzee',
       tagline: 'சமூக பரஸ்பர உதவி & சேவைகள்',
+      partnerTagline: 'உங்கள் அக்கம்பக்கத்திற்குச் சேவை செய்து சம்பாதியுங்கள்',
       quote: 'மக்கள் மக்களுக்கு உதவுகிறோம், ஒன்றாக வலிமையாக',
       cta: 'தொடங்குங்கள்',
       offline: 'ஸ்மார்ட்போன் இல்லையா? தொலைபேசி அழைப்பில் முன்பதிவு செய்யுங்கள்'
@@ -22,6 +25,7 @@ export const LandingScreen = () => {
     kn: {
       name: 'GigEzee',
       tagline: 'ನೆರೆಹೊರೆ ಪರಸ್ಪರ ನೆರವು & ಸೇವೆಗಳು',
+      partnerTagline: 'ನಿಮ್ಮ ನೆರೆಹೊರೆಗೆ ಸೇವೆ ಸಲ್ಲಿಸಿ ಗಳಿಸಿ',
       quote: 'ಜನರು ಜನರಿಗೆ ಸಹಾಯ, ಒಟ್ಟಿಗೆ ಬಲಿಷ್ಠ',
       cta: 'ಪ್ರಾರಂಭಿಸಿ',
       offline: 'ಸ್ಮಾರ್ಟ್‌ಫೋನ್ ಇಲ್ಲವೇ? ಫೋನ್ ಕರೆಯಲ್ಲಿ ಬುಕ್ ಮಾಡಿ'
@@ -37,9 +41,12 @@ export const LandingScreen = () => {
         <div className="p-1.5 rounded-2xl bg-white shadow-md mb-3">
           <img src="/logo.svg" alt="GigEzee" className="w-16 h-16 rounded-xl" />
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#0b1c30]">{t.name}</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#0b1c30]">
+          {t.name}
+          {isPartnerApp && <span className="text-[#1b2a5e]"> Partner</span>}
+        </h1>
         <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-1.5 max-w-[220px]">
-          {t.tagline}
+          {isPartnerApp ? t.partnerTagline : t.tagline}
         </p>
         <p className="italic text-base text-[#1b2a5e] font-semibold mt-2.5 max-w-[240px]">
           {t.quote}
@@ -67,14 +74,16 @@ export const LandingScreen = () => {
         </button>
 
         {/* Offline mode: customers without a smartphone book by calling */}
-        <button
-          onClick={() => navigateTo('offline')}
-          className="w-full mt-2.5 py-3 px-4 rounded-2xl border border-[#ffdbcc] bg-[#fff8f4] text-[#a14000] text-sm font-bold flex items-center justify-center gap-2 active:scale-98 transition-all"
-          type="button"
-        >
-          <span className="material-symbols-outlined text-[18px]">call</span>
-          {t.offline}
-        </button>
+        {!isPartnerApp && (
+          <button
+            onClick={() => navigateTo('offline')}
+            className="w-full mt-2.5 py-3 px-4 rounded-2xl border border-[#ffdbcc] bg-[#fff8f4] text-[#a14000] text-sm font-bold flex items-center justify-center gap-2 active:scale-98 transition-all"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[18px]">call</span>
+            {t.offline}
+          </button>
+        )}
       </div>
     </main>
   );

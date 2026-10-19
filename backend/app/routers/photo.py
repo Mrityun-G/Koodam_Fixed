@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import current_firebase_uid
 from app.database import get_db
+from app.models.booking_detail import BookingDetail
 from app.models.photo import Photo
 
 
@@ -35,6 +36,13 @@ async def upload_photo(
     firebase_uid: str = Depends(current_firebase_uid),
     db: Session = Depends(get_db)
 ):
+    booking_known = db.query(BookingDetail.booking_id).filter(
+        BookingDetail.firebase_order_id == order_id
+    ).first()
+
+    if not booking_known:
+        raise HTTPException(status_code=404, detail="This booking couldn't be found.")
+
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail="Please choose a photo.")
 

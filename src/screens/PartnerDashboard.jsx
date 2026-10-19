@@ -2,6 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { relationLabel } from '../lib/bookFor';
 import {
+  diagnosisPhotoUrl,
+  fetchDiagnosisForOrder,
+  likelihoodLabel,
+  urgencyInfo
+} from '../lib/diagnosis';
+import {
   DEFAULT_JOB_MINUTES,
   findClash,
   jobsToTimeRanges
@@ -47,7 +53,6 @@ export const PartnerDashboard = () => {
     declineIncomingJob,
     reviews,
     showToast,
-    handleSelectMember,
     navigateTo,
     isSharingLocation,
     startSharingLocation,
@@ -90,6 +95,23 @@ export const PartnerDashboard = () => {
       await refreshPartnerOverview();
     } finally {
       setEarningsRefreshing(false);
+    }
+  };
+
+  // Home Refresh: the overview cards are a snapshot taken by the server,
+  // so a job finished or a rating left elsewhere only shows here once
+  // they're asked for again
+  const [homeRefreshing, setHomeRefreshing] = useState(false);
+
+  const refreshHome = async () => {
+    if (homeRefreshing) return;
+
+    setHomeRefreshing(true);
+
+    try {
+      await refreshPartnerOverview();
+    } finally {
+      setHomeRefreshing(false);
     }
   };
 
@@ -716,6 +738,37 @@ export const PartnerDashboard = () => {
   };
 
   // ================================
+  // GIGEZEE AI DIAGNOSIS
+  // When the member photographed the problem instead of naming it, the
+  // partner sees the same photo and the causes to check before they go.
+  // ================================
+
+  const [jobDiagnosis, setJobDiagnosis] = useState(null);
+
+  useEffect(() => {
+    const orderId = activeOrder.orderId;
+
+    if (!orderId) {
+      setJobDiagnosis(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    fetchDiagnosisForOrder(orderId)
+      .then((result) => {
+        if (!cancelled) setJobDiagnosis(result);
+      })
+      .catch((error) => {
+        console.error('Could not load the diagnosis:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrder.orderId]);
+
+  // ================================
   // POLICE VERIFICATION
   // ================================
 
@@ -726,17 +779,17 @@ export const PartnerDashboard = () => {
       canUpload: true
     },
     UNDER_REVIEW: {
-      label: 'Certificate under review',
+      label: 'Submitted — waiting for admin approval',
       tone: 'bg-amber-100 text-amber-600',
       canUpload: false
     },
     VERIFIED: {
-      label: 'Police verified',
+      label: 'Approved by admin',
       tone: 'bg-[#00ae78]/15 text-[#006c49]',
       canUpload: false
     },
     REJECTED: {
-      label: 'Certificate rejected',
+      label: 'Rejected by admin — please upload again',
       tone: 'bg-red-50 text-red-500',
       canUpload: true
     }
@@ -799,10 +852,14 @@ export const PartnerDashboard = () => {
 
     setIsUploadingPolice(true);
 
+    // Don't let a hanging request leave the card stuck on "Uploading…"
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     try {
       const response = await fetch(
         `${BACKEND_URL}/partners/${partnerProfile.id}/police-verification`,
-        { method: 'POST', body: formData }
+        { method: 'POST', body: formData, signal: controller.signal }
       );
 
       const data = await response.json().catch(() => null);
@@ -811,12 +868,25 @@ export const PartnerDashboard = () => {
         throw new Error(data?.detail || 'Upload failed');
       }
 
-      setPoliceVerification(data);
-      showToast('Police certificate submitted for review.');
+      // The backend parks the certificate at UNDER_REVIEW until an admin
+      // approves it. Fall back to that if the body didn't come back.
+      setPoliceVerification(
+        data?.status
+          ? data
+          : { status: 'UNDER_REVIEW', rejection_reason: null }
+      );
+
+      showToast('Certificate submitted. An admin will approve it shortly.');
     } catch (error) {
       console.error('Police certificate upload failed:', error);
-      showToast(error.message || 'Upload failed. Please try again.');
+
+      showToast(
+        error.name === 'AbortError'
+          ? 'Upload timed out. Please try again.'
+          : error.message || 'Upload failed. Please try again.'
+      );
     } finally {
+      clearTimeout(timeoutId);
       setIsUploadingPolice(false);
     }
   };
@@ -1220,13 +1290,27 @@ export const PartnerDashboard = () => {
 
         <section className="space-y-2">
 
-          <div className="px-1">
+          <div className="px-1 flex items-center justify-between gap-2">
             <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[18px] text-[#ff6a00]">
                 insights
               </span>
               Today's Overview
             </h2>
+
+            <button
+              type="button"
+              onClick={refreshHome}
+              disabled={homeRefreshing}
+              aria-label="Refresh today's overview"
+              title="Refresh today's overview"
+              className="flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[11px] font-bold text-[#a14000] disabled:opacity-60 active:scale-95 transition-all"
+            >
+              <span className={`material-symbols-outlined text-[15px] ${homeRefreshing ? 'animate-spin' : ''}`}>
+                refresh
+              </span>
+              {homeRefreshing ? 'Refreshing' : 'Refresh'}
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
@@ -1655,6 +1739,107 @@ export const PartnerDashboard = () => {
           </section>
         )}
 
+        {jobDiagnosis && activeOrder.currentStep <= 4 && (
+          <section className="bg-white rounded-2xl p-4 border border-[#ffdbcc] flex flex-col gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">
+                  auto_awesome
+                </span>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[#0b1c30]">
+                  GigEzee AI read the customer's photo
+                </p>
+                <p className="text-[11px] text-slate-600" data-no-translate>
+                  {jobDiagnosis.appliance}
+                </p>
+              </div>
+
+              {jobDiagnosis.urgency && (
+                <span
+                  className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${urgencyInfo(jobDiagnosis.urgency).tone}`}
+                >
+                  {urgencyInfo(jobDiagnosis.urgency).label}
+                </span>
+              )}
+            </div>
+
+            {jobDiagnosis.safety_warning && (
+              <div className="flex items-start gap-2 p-2.5 rounded-xl bg-red-50">
+                <span
+                  className="material-symbols-outlined text-red-600 text-[18px] shrink-0"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  warning
+                </span>
+                <p className="text-[11px] text-red-700 leading-relaxed">
+                  {jobDiagnosis.safety_warning}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-start gap-3">
+              {diagnosisPhotoUrl(jobDiagnosis) && (
+                <a
+                  href={diagnosisPhotoUrl(jobDiagnosis)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0"
+                >
+                  <img
+                    src={diagnosisPhotoUrl(jobDiagnosis)}
+                    alt="What the customer photographed"
+                    className="w-24 aspect-[4/3] object-contain bg-slate-50"
+                  />
+                </a>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] text-[#0b1c30] leading-relaxed" data-no-translate>
+                  {jobDiagnosis.summary_for_partner}
+                </p>
+
+                {jobDiagnosis.member_note && (
+                  <p className="text-[11px] text-slate-500 mt-1.5 italic" data-no-translate>
+                    {`"${jobDiagnosis.member_note}"`}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[11px] font-bold text-[#0b1c30]">
+                Likely causes to check
+              </p>
+
+              {jobDiagnosis.likely_causes?.map((cause, index) => (
+                <div
+                  key={cause.cause}
+                  className="flex items-start gap-2 text-[11px] text-slate-600"
+                >
+                  <span className="font-bold text-[#a14000] shrink-0">
+                    {`${index + 1}.`}
+                  </span>
+                  <span data-no-translate>
+                    {cause.cause}
+                    <span className="text-slate-400">
+                      {` · ${likelihoodLabel(cause.likelihood)}`}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              This is the AI's reading of a photo, not a confirmed fault.
+              Check it yourself on arrival and tell the customer what you
+              find before starting work.
+            </p>
+          </section>
+        )}
+
         {activeOrder.bookedFor?.name &&
           activeOrder.currentStep >= 3 &&
           activeOrder.currentStep <= 4 && (
@@ -1873,7 +2058,7 @@ export const PartnerDashboard = () => {
                         <img
                           src={charge.photoUrl}
                           alt={charge.item}
-                          className="w-8 h-8 rounded-lg object-cover shrink-0"
+                          className="w-10 aspect-[4/3] object-contain bg-slate-50 shrink-0"
                         />
                       )}
 
@@ -1988,7 +2173,7 @@ export const PartnerDashboard = () => {
               <img
                 src={activeOrder.repairPhotoUrl}
                 alt="Finished repair"
-                className="w-full max-h-48 rounded-xl object-cover"
+                className="w-full max-h-48 object-contain bg-slate-50"
               />
             )}
 
@@ -2700,7 +2885,7 @@ export const PartnerDashboard = () => {
                 className="hidden"
               />
 
-              {policeStatusInfo.canUpload && (
+              {policeStatusInfo.canUpload ? (
                 <button
                   onClick={() => policeFileInputRef.current?.click()}
                   disabled={isUploadingPolice}
@@ -2712,6 +2897,14 @@ export const PartnerDashboard = () => {
                     ? 'Re-upload'
                     : 'Upload'}
                 </button>
+              ) : (
+                <span
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold ${policeStatusInfo.tone}`}
+                >
+                  {policeVerification.status === 'VERIFIED'
+                    ? 'Approved'
+                    : 'Pending approval'}
+                </span>
               )}
             </div>
 
@@ -2937,30 +3130,6 @@ export const PartnerDashboard = () => {
               </span>
             </button>
 
-            <button
-              onClick={handleSelectMember}
-              className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[18px]">
-                  swap_horiz
-                </span>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
-                  Switch to Resident View
-                </p>
-
-                <p className="text-[11px] text-slate-500 truncate">
-                  Book services as a community member
-                </p>
-              </div>
-
-              <span className="material-symbols-outlined text-[18px] text-slate-300 shrink-0">
-                chevron_right
-              </span>
-            </button>
           </div>
         </section>
 

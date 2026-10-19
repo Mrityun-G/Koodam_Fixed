@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 
-from sqlalchemy import Column, String, Integer, DateTime, LargeBinary
+from sqlalchemy import Column, String, Integer, DateTime, LargeBinary, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.database import Base
@@ -18,7 +18,12 @@ class Photo(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # The live order (Firebase key) it belongs to
-    firebase_order_id = Column(String, nullable=False, index=True)
+    firebase_order_id = Column(
+        String,
+        ForeignKey("booking_details.firebase_order_id"),
+        nullable=False,
+        index=True
+    )
 
     # "repair" or "part"
     label = Column(String, nullable=False)

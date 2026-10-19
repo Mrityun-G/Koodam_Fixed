@@ -113,11 +113,12 @@ def sync_user(
         .first()
     )
 
+    # An account's role is fixed at sign-up; logging in from the other
+    # login page must not turn a member into a partner (skipping KYC)
     if existing_user:
 
         existing_user.name = user_data.name
         existing_user.email = user_data.email
-        existing_user.role = user_data.role
 
         if user_data.phone is not None:
             existing_user.phone = user_data.phone
@@ -152,7 +153,6 @@ def sync_user(
 
         existing_email.firebase_uid = user_data.firebase_uid
         existing_email.name = user_data.name
-        existing_email.role = user_data.role
 
         if user_data.phone is not None:
             existing_email.phone = user_data.phone

@@ -31,7 +31,7 @@ const buildFaqs = ({ trustFee, commissionPercent }) => [
   },
   {
     q: 'How do I become a Service Partner?',
-    a: 'Go to your Profile and tap "Switch to Service Partner" to access the Partner Dashboard, where you can go online and start receiving nearby job requests.'
+    a: 'Service Partners have their own account. Log out, open Service Partner Sign Up, and upload your Aadhaar, PAN and Voter ID (use a different email from your member account). After you log in, the Partner Dashboard lets you go online and receive nearby job requests.'
   },
   {
     q: 'Is my personal information safe?',

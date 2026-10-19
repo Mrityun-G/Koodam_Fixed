@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { AppProvider, useApp } from './context/AppContext';
+import { AppProvider, useApp, PORTAL } from './context/AppContext';
 import { MobileFrame } from './components/MobileFrame';
 import { LandingScreen } from './screens/LandingScreen';
 import { OfflineModeScreen } from './screens/OfflineModeScreen';
@@ -7,6 +7,7 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 import { AuthScreen } from './screens/AuthScreen';
 import { UserHomeScreen } from './screens/UserHomeScreen';
 import { BookingScreen } from './screens/BookingScreen';
+import { DiagnoseScreen } from './screens/DiagnoseScreen';
 import { PaymentScreen } from './screens/PaymentScreen';
 import { AdminEscalationsScreen } from './screens/AdminEscalationsScreen';
 import { LiveTrackingScreen } from './screens/LiveTrackingScreen';
@@ -23,8 +24,24 @@ import { ChatModal } from './components/ChatModal';
 import { EmergencyModal } from './components/EmergencyModal';
 import { startDomTranslator } from './lib/domTranslator';
 
+// Shown while Firebase works out whether somebody is still logged in, and
+// while a Google sign-in is being finished. Both are asynchronous, so
+// without it every reload flashes the landing page first.
+const BootSplash = () => (
+  <main className="flex-1 flex flex-col items-center justify-center gap-5 w-full bg-white h-full">
+    <div className="p-1.5 rounded-2xl bg-white shadow-md">
+      <img src="/logo.svg" alt="GigEzee" className="w-16 h-16 rounded-xl" />
+    </div>
+    <h1 className="text-2xl font-extrabold tracking-tight text-[#0b1c30]">
+      GigEzee
+      {PORTAL === 'partner' && <span className="text-[#1b2a5e]"> Partner</span>}
+    </h1>
+    <span className="w-6 h-6 rounded-full border-2 border-[#ffdbcc] border-t-[#ff6a00] animate-spin"></span>
+  </main>
+);
+
 const AppContent = () => {
-  const { currentScreen, toastMessage, language } = useApp();
+  const { currentScreen, toastMessage, language, isBooting } = useApp();
 
   // Show the whole app in the chosen language (English, Tamil or Kannada)
   useEffect(
@@ -35,7 +52,8 @@ const AppContent = () => {
   return (
     <MobileFrame overlay={<ChatModal />}>
       {/* Dynamic Screen Routing */}
-      {currentScreen === 'landing' && <LandingScreen />}
+      {isBooting && <BootSplash />}
+      {!isBooting && currentScreen === 'landing' && <LandingScreen />}
       {currentScreen === 'offline' && <OfflineModeScreen />}
       {currentScreen === 'welcome' && <WelcomeScreen />}
       {(currentScreen === 'memberLogin' ||
@@ -44,6 +62,7 @@ const AppContent = () => {
         currentScreen === 'partnerSignup') && <AuthScreen />}
       {currentScreen === 'home' && <UserHomeScreen />}
       {currentScreen === 'booking' && <BookingScreen />}
+      {currentScreen === 'diagnose' && <DiagnoseScreen />}
       {currentScreen === 'payment' && <PaymentScreen />}
       {currentScreen === 'tracking' && <LiveTrackingScreen />}
       {currentScreen === 'nearbyMap' && <NearbyMapScreen />}
@@ -63,14 +82,14 @@ const AppContent = () => {
       {/* Global Tactile Toast Notification */}
       {toastMessage && (
         <div className="fixed inset-x-6 top-6 z-50 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-5 duration-200">
-          <div className="bg-[#213145] text-[#eaf1ff] text-xs font-semibold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-slate-700/80 max-w-sm pointer-events-auto">
+          <div className="bg-[#213145] text-[#eaf1ff] text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-slate-700/80 max-w-sm pointer-events-auto">
             <span
-              className="material-symbols-outlined text-[16px] text-[#ff6a00]"
+              className="material-symbols-outlined text-[16px] text-[#ff6a00] shrink-0"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               info
             </span>
-            <span className="truncate">{toastMessage}</span>
+            <span className="leading-snug">{toastMessage}</span>
           </div>
         </div>
       )}
