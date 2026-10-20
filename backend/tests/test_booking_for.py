@@ -20,6 +20,7 @@ def _jsonb(type_, compiler, **kw):
     return "JSON"
 
 
+from app.auth import current_firebase_uid
 from app.database import Base, get_db
 import app.models.user, app.models.partner, app.models.service, app.models.booking  # noqa
 import app.models.booking_detail, app.models.partner_service, app.models.app_config  # noqa
@@ -30,7 +31,12 @@ from app.models.partner import Partner
 from app.models.service import Service
 from app.models.app_config import AppConfig
 from app.models.booking_detail import BookingDetail, BookingRecipient
-from app.service_catalog import sync_service_catalog
+from app.service_catalog import (
+    RETIRED_TILES,
+    RETIRED_TILES_KEY,
+    retire_tiles,
+    sync_service_catalog,
+)
 
 engine = create_engine("sqlite://", poolclass=StaticPool,
                        connect_args={"check_same_thread": False})
@@ -66,6 +72,10 @@ def _db():
 
 
 api.dependency_overrides[get_db] = _db
+
+# /services/with-partners is signed-in only now: a partner's details
+# aren't public. Stand in for the Firebase check the app does.
+api.dependency_overrides[current_firebase_uid] = lambda: "test-member-uid"
 client = TestClient(api)
 SYNC = [r.path for r in sync_r.router.routes if r.path.endswith("/sync")][0]
 BILL = [r.path for r in sync_r.router.routes
@@ -109,6 +119,47 @@ db.expire_all()
 check("restart: Child Care switched off by staff stays off",
       db.query(Service).filter(Service.title == "Child Care").one().is_active is False)
 cc[0].is_active = True
+db.commit()
+
+# ---------- Dropped tiles ----------
+# Taking a tile out of CATALOG doesn't remove rows already written to a
+# database that started up while it was listed, so they are switched off
+check("dropped tiles are no longer in the catalog",
+      not {s.title for s in db.query(Service).filter(Service.is_active.is_(True))}
+      & set(RETIRED_TILES))
+
+live_before = db.query(Service).filter(Service.is_active.is_(True)).count()
+
+# A database that still has one, as the deployed one does
+stale_title = RETIRED_TILES[0]
+db.add(Service(id=uuid.uuid4(), title=stale_title, category=stale_title,
+               description="left over", price=99.0, duration_minutes=60,
+               tag="Printing", icon="print", sort_order=90, is_active=True))
+db.flush()
+stale = db.query(Service).filter(Service.title == stale_title).one()
+db.query(AppConfig).filter(AppConfig.key == RETIRED_TILES_KEY).delete()
+db.commit()
+
+retire_tiles(db)
+db.expire_all()
+
+check("a leftover dropped tile is switched off",
+      db.query(Service).filter(Service.title == stale_title,
+                               Service.is_active.is_(True)).count() == 0)
+check("switching it off leaves the rest of the catalog alone",
+      db.query(Service).filter(Service.is_active.is_(True)).count() == live_before)
+check("the retirement is remembered",
+      set(db.get(AppConfig, RETIRED_TILES_KEY).value) == set(RETIRED_TILES))
+
+# Staff may want it back; a restart must not undo their decision
+stale.is_active = True
+db.commit()
+retire_tiles(db)
+db.expire_all()
+check("staff re-enabling a dropped tile survives a restart",
+      db.query(Service).filter(Service.title == stale_title,
+                               Service.is_active.is_(True)).count() == 1)
+db.query(Service).filter(Service.title == stale_title).delete()
 db.commit()
 
 # Simulate the live DB, which predates Child Care

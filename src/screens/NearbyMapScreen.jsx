@@ -8,9 +8,7 @@ import { Avatar } from '../components/Avatar';
 import { MapTiles } from '../components/LiveMap';
 import { estimateEtaMinutes } from '../lib/geo';
 import { helpersFromServices, withDistance } from '../lib/helpers';
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 // Partners send their position while online; this picks it up
 const REFRESH_MS = 20000;
@@ -98,18 +96,28 @@ export const NearbyMapScreen = () => {
   const [flyTarget, setFlyTarget] = useState(null);
   const hasLoadedRef = useRef(false);
 
+  // Which partners the backend returns depends on where the member is,
+  // so the pins are reloaded when they move - rounded to ~100 m, or
+  // the GPS watcher's jitter would refetch continuously
+  const aroundKey = userCoords
+    ? `${userCoords.lat.toFixed(3)},${userCoords.lng.toFixed(3)}`
+    : '';
+
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/services/with-partners`);
+        // The member's position goes with the request: the backend
+        // returns the partners who can reach them, so the map doesn't
+        // download every partner in the country to draw a few pins.
+        const query = userCoords
+          ? `?lat=${userCoords.lat}&lng=${userCoords.lng}`
+          : '';
 
-        if (!response.ok) {
-          throw new Error(`Failed to load helpers (${response.status})`);
-        }
-
-        const data = await response.json();
+        const data = await authorizedFetch(
+          `/services/with-partners${query}`
+        );
 
         if (!cancelled) {
           setServices(data);
@@ -141,7 +149,7 @@ export const NearbyMapScreen = () => {
       clearInterval(timer);
       document.removeEventListener('visibilitychange', refreshIfVisible);
     };
-  }, []);
+  }, [aroundKey]);
 
   // One pin per partner, with every service they offer near the customer
   const partners = useMemo(() => {

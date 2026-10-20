@@ -90,11 +90,24 @@ def assign_service_to_partner(
         PartnerService.service_id == data.service_id
     ).first()
 
+    # Removing a service only marks its row inactive, and the partner's
+    # list hides those. Adding it again brings that row back, instead of
+    # refusing a service they can't see they already have.
     if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="This service is already assigned to this partner"
-        )
+        if existing.is_active:
+            raise HTTPException(
+                status_code=400,
+                detail="This service is already assigned to this partner"
+            )
+
+        existing.is_active = True
+        existing.experience_years = data.experience_years
+        existing.price_override = data.price_override
+
+        db.commit()
+        db.refresh(existing)
+
+        return existing
 
     new_partner_service = PartnerService(
         partner_id=partner.id,

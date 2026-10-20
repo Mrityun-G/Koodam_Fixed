@@ -3,9 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { estimateEtaMinutes } from '../lib/geo';
 import { helpersFromServices, withDistance } from '../lib/helpers';
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 // Closest first; a helper with no known distance goes last
 const byDistance = (a, b) =>
@@ -33,13 +31,14 @@ export const EmergencyModal = () => {
     let isActive = true;
     setLoading(true);
 
-    fetch(`${BACKEND_URL}/services/with-partners`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to load services (${response.status})`);
-        }
-        return response.json();
-      })
+    // An emergency is the one time the nearest helper matters most,
+    // so the member's position goes with the request and the backend
+    // answers with the partners who can actually reach them
+    const query = userCoords
+      ? `?lat=${userCoords.lat}&lng=${userCoords.lng}`
+      : '';
+
+    authorizedFetch(`/services/with-partners${query}`)
       .then((services) => {
         if (isActive) setHelpers(helpersFromServices(services));
       })
@@ -54,7 +53,7 @@ export const EmergencyModal = () => {
     return () => {
       isActive = false;
     };
-  }, [isEmergencyModalOpen]);
+  }, [isEmergencyModalOpen, userCoords]);
 
   // For each service, the nearest online helper who covers the member
   const emergencyServices = useMemo(() => {

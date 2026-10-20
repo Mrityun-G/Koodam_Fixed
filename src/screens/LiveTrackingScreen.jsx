@@ -287,7 +287,7 @@ export const LiveTrackingScreen = () => {
                         <img
                           src={charge.photoUrl}
                           alt={charge.item}
-                          className="w-full max-h-40 rounded-lg object-cover"
+                          className="w-full max-h-40 object-contain bg-slate-50"
                         />
                       </a>
                     )}

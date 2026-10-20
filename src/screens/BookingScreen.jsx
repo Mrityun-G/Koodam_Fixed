@@ -538,12 +538,28 @@ export const BookingScreen = () => {
   const partnerId = helper.partnerId || helper.partner_id;
   const [busyRanges, setBusyRanges] = useState([]);
 
+  // Until the partner's jobs load, a taken slot would look free
+  const [busyLoaded, setBusyLoaded] = useState(false);
+
+  // Saving a request takes a few seconds; a second tap would send it twice
+  const [sending, setSending] = useState(false);
+
+  const sendRequest = async () => {
+    setSending(true);
+
+    // On success the screen moves to tracking, so it stays disabled
+    if (!(await handleConfirmBooking())) {
+      setSending(false);
+    }
+  };
+
   useEffect(() => {
     if (!partnerId) {
       return undefined;
     }
 
     let cancelled = false;
+    setBusyLoaded(false);
 
     fetch(`${BACKEND_URL}/partners/${partnerId}/busy-slots`)
       .then(response => (response.ok ? response.json() : []))
@@ -554,6 +570,12 @@ export const BookingScreen = () => {
       })
       .catch(error => {
         console.error('Failed to load partner busy slots:', error);
+      })
+      .finally(() => {
+        // A failed load doesn't block booking; the partner sees any clash
+        if (!cancelled) {
+          setBusyLoaded(true);
+        }
       });
 
     return () => {
@@ -572,7 +594,7 @@ export const BookingScreen = () => {
       start,
       isPast,
       isBooked,
-      isAvailable: !isPast && !isBooked
+      isAvailable: busyLoaded && !isPast && !isBooked
     };
   });
 
@@ -1249,7 +1271,9 @@ export const BookingScreen = () => {
 <div className="text-[11px] text-[#006c49] font-bold">
   {!selectedDateEntry
     ? 'Select a date to see free slots'
-    : availableSlotCount > 0
+    : !busyLoaded
+      ? 'Checking availability…'
+      : availableSlotCount > 0
       ? `${availableSlotCount} slot${availableSlotCount === 1 ? '' : 's'} free`
       : 'Fully booked on this date'}
 </div>
@@ -1432,8 +1456,9 @@ export const BookingScreen = () => {
           </div>
 
           <button
-  onClick={handleConfirmBooking}
+  onClick={sendRequest}
   disabled={
+    sending ||
     !hasSelectedService ||
     !selectedDateEntry ||
     !isSelectedTimeAvailable ||
@@ -1445,9 +1470,11 @@ export const BookingScreen = () => {
   type="button"
 >
   <span>
-    {isForSomeoneElse && bookFor.name.trim()
-      ? `Book for ${bookFor.name.trim().split(' ')[0]}`
-      : 'Send Service Request'}
+    {sending
+      ? 'Sending…'
+      : isForSomeoneElse && bookFor.name.trim()
+        ? `Book for ${bookFor.name.trim().split(' ')[0]}`
+        : 'Send Service Request'}
   </span>
 
   <span className="material-symbols-outlined text-[18px]">

@@ -46,7 +46,7 @@ export const RepairBill = ({ order, fallbackTrustFee = 0 }) => {
           <img
             src={order.repairPhotoUrl}
             alt="Finished repair"
-            className="w-full max-h-56 rounded-xl object-cover border border-slate-100"
+            className="w-full max-h-56 object-contain bg-slate-50 border border-slate-100"
           />
         </a>
       )}
@@ -71,7 +71,7 @@ export const RepairBill = ({ order, fallbackTrustFee = 0 }) => {
                 <img
                   src={charge.photoUrl}
                   alt={charge.item}
-                  className="w-6 h-6 rounded-md object-cover shrink-0"
+                  className="w-8 aspect-[4/3] object-contain bg-slate-50 shrink-0"
                 />
               )}
               <span className="truncate">{charge.item} (extra part)</span>

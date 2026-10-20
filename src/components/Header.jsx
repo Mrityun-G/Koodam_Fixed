@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 
-export const Header = ({ subtitle = 'Home' }) => {
+export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
   const {
     location,
     setLocation,
@@ -225,6 +225,26 @@ export const Header = ({ subtitle = 'Home' }) => {
 
           {/* Right Action Icons */}
           <div className="flex items-center gap-1 shrink-0">
+
+            {/* Reload what's on the page. Only shown on screens that
+                pass a handler, so the rest of the app is unchanged. */}
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={refreshing}
+                aria-label={refreshing ? 'Refreshing' : 'Refresh page'}
+                title="Refresh"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-[#0b1c30] hover:bg-[#eff4ff] active:scale-95 transition-all disabled:opacity-50"
+              >
+                <span
+                  className={`material-symbols-outlined text-[22px] ${
+                    refreshing ? 'animate-spin' : ''
+                  }`}
+                >
+                  refresh
+                </span>
+              </button>
+            )}
 
             {/* Notification Bell */}
             <div className="relative">

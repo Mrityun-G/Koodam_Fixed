@@ -362,6 +362,29 @@ def update_location(
     }
 
 
+# The number a member calls once they've booked. Kept out of the
+# home-screen listing so a partner's phone isn't handed to everyone who
+# opens the app - it's asked for here, for one partner, by a signed-in
+# member who is making a booking.
+@router.get("/{identifier}/contact")
+def get_partner_contact(
+    identifier: UUID,
+    firebase_uid: str = Depends(current_firebase_uid),
+    db: Session = Depends(get_db)
+):
+    partner = get_partner_or_404(db, identifier)
+    owner = db.get(User, partner.user_id)
+
+    if not owner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+
+    return {
+        "partner_id": partner.id,
+        "name": owner.name,
+        "phone": owner.phone
+    }
+
+
 def to_iso_utc(value: Optional[datetime]) -> Optional[str]:
     # Stored times are naive UTC; mark them so the browser converts correctly
     return f"{value.isoformat()}Z" if value else None

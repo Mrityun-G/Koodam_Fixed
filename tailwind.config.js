@@ -8,6 +8,53 @@ export default
   darkMode: "class",
   theme: {
     extend: {
+      // Motion used by the landing and loading screens. Defined here rather
+      // than pulled in as a plugin so the app keeps building offline, and so
+      // every animation the app uses is visible in one place.
+      keyframes: {
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(14px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" }
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" }
+        },
+        // Overshoots slightly, so the logo lands rather than just appearing
+        "pop-in": {
+          "0%": { opacity: "0", transform: "scale(0.82)" },
+          "60%": { opacity: "1", transform: "scale(1.04)" },
+          "100%": { opacity: "1", transform: "scale(1)" }
+        },
+        // Very slow drift across the hero photo
+        "ken-burns": {
+          "0%": { transform: "scale(1)" },
+          "100%": { transform: "scale(1.09) translateY(-1.5%)" }
+        },
+        "float-soft": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" }
+        },
+        // Rings expanding out from under the logo while the app boots
+        "ring-out": {
+          "0%": { transform: "scale(0.75)", opacity: "0.5" },
+          "100%": { transform: "scale(1.9)", opacity: "0" }
+        },
+        // Indeterminate progress: a short bar sweeping the track
+        "bar-slide": {
+          "0%": { transform: "translateX(-110%)" },
+          "100%": { transform: "translateX(340%)" }
+        }
+      },
+      animation: {
+        "fade-up": "fade-up .62s cubic-bezier(.22,.9,.3,1) both",
+        "fade-in": "fade-in .8s ease-out both",
+        "pop-in": "pop-in .7s cubic-bezier(.34,1.46,.5,1) both",
+        "ken-burns": "ken-burns 20s ease-out forwards",
+        "float-soft": "float-soft 4.5s ease-in-out infinite",
+        "ring-out": "ring-out 2.2s cubic-bezier(.2,.6,.3,1) infinite",
+        "bar-slide": "bar-slide 1.3s cubic-bezier(.65,.05,.36,1) infinite"
+      },
       colors: {
         "surface-variant": "#d3e4fe",
         "on-error-container": "#93000a",

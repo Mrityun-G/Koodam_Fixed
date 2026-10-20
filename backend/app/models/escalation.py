@@ -39,7 +39,8 @@ class Complaint(Base):
     customer_id = Column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     # NO_SHOW, LATE, POOR_WORK, OVERCHARGED, BEHAVIOUR, OTHER

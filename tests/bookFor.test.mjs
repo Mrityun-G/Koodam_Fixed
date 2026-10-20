@@ -48,7 +48,7 @@ t('child empty age blocked', () => assert.match(B.bookForProblem(form({ relation
 t('child no phone needed', () => assert.equal(B.bookForProblem(form({ relation: 'CHILD', name: 'Anu', age: '7', address: 'x' })), ''));
 t('child age 0 ok', () => assert.equal(B.bookForProblem(form({ relation: 'CHILD', name: 'Anu', age: '0', address: 'x' })), ''));
 t('toBookedFor cleans input', () => assert.deepEqual(
-  B.toBookedFor(form({ relation: 'CHILD', name: ' Anu ', age: '7', phone: '+91 98765-43210', notes: ' pickup 3pm ' })),
-  { relation: 'CHILD', name: 'Anu', phone: '+919876543210', age: 7, notes: 'pickup 3pm' }));
+  B.toBookedFor(form({ relation: 'CHILD', name: ' Anu ', age: '7', phone: '+91 98765-43210', address: ' 12 Anna Nagar ', notes: ' pickup 3pm ' })),
+  { relation: 'CHILD', name: 'Anu', phone: '+919876543210', age: 7, address: '12 Anna Nagar', notes: 'pickup 3pm' }));
 t('age only kept for child', () => assert.equal(B.toBookedFor(form({ relation: 'FRIEND', name: 'A', age: '30' })).age, null));
 console.log(`\n${n} checks passed`);

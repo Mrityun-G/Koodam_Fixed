@@ -75,17 +75,17 @@ export const toHelper = (service, partner) => ({
   avatar:
     partner.avatar || '',
 
-  phone:
-    partner.phone || '',
-
   vehicle:
     partner.vehicle || '',
 
   vehicleNumber:
     partner.vehicle_number || '',
 
-  email:
-    partner.email || '',
+  // How far the backend worked out this partner is, in km, or null
+  // when the member's position wasn't known. The backend has already
+  // left out anyone whose radius doesn't reach, so this is for display.
+  distanceKm:
+    partner.distance_km ?? null,
 
   latitude:
     partner.latitude,
@@ -121,29 +121,34 @@ export const helpersFromServices = (services = []) =>
     (service.partners || []).map((partner) => toHelper(service, partner))
   );
 
-// Adds the distance from the member to each helper and leaves out
-// helpers whose service radius doesn't reach them. Without both
-// locations a helper is still shown, as "Nearby".
+// Labels each helper with how far away they are.
+//
+// The radius filter lives in the backend now: asking it for partners
+// near the member is what keeps the response small, rather than
+// downloading every partner and hiding most of them here. It sends
+// distance_km with each one, which is what this prefers.
+//
+// The fallback is for callers that have the member's position but
+// asked without it, and for anything still holding an older response.
+// A helper with no distance at all is shown as "Nearby" rather than
+// dropped, so a partner is never silently missing from a list the
+// backend meant to include.
 export const withDistance = (helpers, userCoords) =>
-  helpers
-    .map((helper) => {
-      const distanceKm =
-        userCoords && helper.latitude != null && helper.longitude != null
-          ? haversineDistanceKm(userCoords, {
-              lat: helper.latitude,
-              lng: helper.longitude
-            })
-          : null;
+  helpers.map((helper) => {
+    const distanceKm =
+      helper.distanceKm != null
+        ? helper.distanceKm
+        : userCoords && helper.latitude != null && helper.longitude != null
+        ? haversineDistanceKm(userCoords, {
+            lat: helper.latitude,
+            lng: helper.longitude
+          })
+        : null;
 
-      return {
-        ...helper,
-        distanceKm,
-        distance:
-          distanceKm == null ? 'Nearby' : `${distanceKm.toFixed(1)} km`
-      };
-    })
-    .filter(
-      (helper) =>
-        helper.distanceKm == null ||
-        helper.distanceKm <= helper.serviceRadiusKm
-    );
+    return {
+      ...helper,
+      distanceKm,
+      distance:
+        distanceKm == null ? 'Nearby' : `${distanceKm.toFixed(1)} km`
+    };
+  });

@@ -77,6 +77,7 @@ export const toBookedFor = (form) => {
     name: form.name.trim(),
     phone: form.phone.replace(/[^\d+]/g, ''),
     age: form.relation === 'CHILD' && form.age !== '' ? Number(form.age) : null,
+    address: form.address.trim(),
     notes: form.notes.trim()
   };
 };

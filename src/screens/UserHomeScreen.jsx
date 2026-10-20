@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { checkDiagnosisAvailable } from '../lib/diagnosis';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
 import { Avatar } from '../components/Avatar';
 import { VoiceAssistant } from '../components/VoiceAssistant';
 import { detectService, pickBestHelper, reliabilityPenalty } from '../lib/voiceIntent';
 import { helpersFromServices, withDistance } from '../lib/helpers';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 export const UserHomeScreen = () => {
   const {
@@ -16,13 +18,39 @@ export const UserHomeScreen = () => {
     setChatPartner,
     setIsEmergencyModalOpen,
     navigateTo,
-    showToast
+    showToast,
+    diagnosis,
+    selectedService
   } = useApp();
+
+  // GigEzee AI is only offered when the backend has it configured
+  const [aiAvailable, setAiAvailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    checkDiagnosisAvailable().then((available) => {
+      if (!cancelled) setAiAvailable(available);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllHelpers, setShowAllHelpers] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterActive, setFilterActive] = useState(false);
+
+  // Coming back from GigEzee AI: show helpers for what it found, which
+  // is what the diagnosis screen said it would do. The member can still
+  // clear the filter, and the diagnosis clears itself once they book.
+  useEffect(() => {
+    if (diagnosis && selectedService?.id) {
+      setSelectedCategory(selectedService.id);
+    }
+  }, [diagnosis, selectedService?.id]);
 
   // One tile per service, in the order and colours set in the backend
   const [categories, setCategories] = useState([]);
@@ -32,6 +60,16 @@ export const UserHomeScreen = () => {
   const hasLoadedHelpersRef = useRef(false);
   const loadHelpersRef = useRef(null);
   const [helpersRefreshing, setHelpersRefreshing] = useState(false);
+
+  // The header's refresh. Reloads the service tiles and the helpers
+  // together - both come from the one request - and says so, since
+  // nothing else on screen tells the member it worked.
+  const refreshPage = async () => {
+    if (helpersRefreshing) return;
+
+    await refreshHelpers();
+    showToast('Page refreshed');
+  };
 
   const refreshHelpers = async () => {
     if (helpersRefreshing || !loadHelpersRef.current) return;
@@ -48,9 +86,10 @@ export const UserHomeScreen = () => {
   // How often the helper list refreshes while Home is open
   const HELPERS_REFRESH_MS = 2 * 60 * 1000;
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  'http://127.0.0.1:8000';
+  // The loader runs on a timer set up once, so it reads the member's
+  // position through a ref rather than closing over a stale value
+  const userCoordsRef = useRef(userCoords);
+  userCoordsRef.current = userCoords;
 
 
 useEffect(() => {
@@ -63,18 +102,19 @@ useEffect(() => {
         setHelpersLoading(true);
       }
 
-      // Every service with its partners in one request
-      const response = await fetch(
-        `${BACKEND_URL}/services/with-partners`
+      // Every service with its partners in one request. The member's
+      // position goes with it so the backend sends only the partners
+      // who can actually reach them, nearest first - the response
+      // stays small however many partners have signed up.
+      const coords = userCoordsRef.current;
+
+      const query = coords
+        ? `?lat=${coords.lat}&lng=${coords.lng}`
+        : '';
+
+      const services = await authorizedFetch(
+        `/services/with-partners${query}`
       );
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load helpers (${response.status})`
-        );
-      }
-
-      const services = await response.json();
 
       const allHelpers = helpersFromServices(services);
 
@@ -136,7 +176,30 @@ useEffect(() => {
 
 }, []);
 
-  // Real distances; helpers out of their service radius are left out
+  // The first load often happens before the browser has given up a
+  // position, and the member can change their area from the header.
+  // Either way the backend has to be asked again, because which
+  // partners can reach them is the backend's answer now.
+  const askedFromRef = useRef(null);
+
+  useEffect(() => {
+    if (!userCoords || !loadHelpersRef.current) {
+      return;
+    }
+
+    const from = `${userCoords.lat.toFixed(3)},${userCoords.lng.toFixed(3)}`;
+
+    // ~100 m. Without this the GPS watcher's every jitter refetches.
+    if (askedFromRef.current === from) {
+      return;
+    }
+
+    askedFromRef.current = from;
+    loadHelpersRef.current();
+  }, [userCoords]);
+
+  // Distance labels; the backend has already left out helpers whose
+  // service radius doesn't reach the member
   const nearbyHelpers = useMemo(
     () => withDistance(helpers, userCoords),
     [helpers, userCoords]
@@ -221,7 +284,11 @@ useEffect(() => {
 
   return (
     <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
-      <Header subtitle="Home" />
+      <Header
+        subtitle="Home"
+        onRefresh={refreshPage}
+        refreshing={helpersRefreshing}
+      />
 
       <main className="flex-1 flex flex-col relative w-full pb-6">
         {/* Search & Filter Bar Section */}
@@ -327,6 +394,35 @@ useEffect(() => {
             </div>
           </div>
         </div>
+
+        {/* Don't know what's wrong? Photograph it. */}
+        {aiAvailable && (
+          <div className="px-4 pt-3">
+            <button
+              onClick={() => navigateTo('diagnose', 'home')}
+              className="w-full bg-white rounded-2xl p-3.5 shadow-xs border border-[#ffdbcc] flex items-center gap-3 text-left hover:bg-[#fff8f4] active:scale-[0.99] transition-all"
+            >
+              <div className="w-11 h-11 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[22px]">
+                  photo_camera
+                </span>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-[#0b1c30]">
+                  Not sure what's wrong?
+                </p>
+                <p className="text-[11px] text-[#5a4136] leading-snug">
+                  Take a photo and GigEzee AI will work it out for you
+                </p>
+              </div>
+
+              <span className="material-symbols-outlined text-[#a14000] text-[20px] shrink-0">
+                chevron_right
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Service Categories Grid Section */}
         <div className="px-4 pt-3 pb-1 flex flex-col gap-2">
