@@ -80,6 +80,10 @@ FAKE_AI = os.getenv("GIGEZEE_FAKE_AI", "").strip().lower() in {
 if FAKE_AI and ANTHROPIC_API_KEY:
     FAKE_AI = False
 
+# Gnani (api.vachana.ai) speech to text, used only where the browser
+# cannot listen for itself. Unset means the app falls back to typing.
+GNANI_API_KEY = os.getenv("GNANI_API_KEY", "").strip()
+
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")

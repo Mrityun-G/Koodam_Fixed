@@ -78,6 +78,21 @@ const countMatches = (text, words) =>
  * symptoms that could belong to several ("water" is also in "water
  * heater"), because it's counted alongside them.
  */
+// The words worth boosting when a clip is transcribed by the server.
+// Taken from the lists above so boosting and matching can never drift
+// apart. Multi-word entries and anything with punctuation are dropped by
+// the backend, which only accepts single words.
+export const boostWords = () =>
+  Array.from(
+    new Set(
+      Object.values(SERVICE_KEYWORDS)
+        .flat()
+        .map((word) => word.trim())
+        .filter((word) => word && !word.includes(' ') && !word.includes('/'))
+    )
+  );
+
+
 export const detectService = (spokenText) => {
   const text = ` ${String(spokenText || '').toLowerCase()} `;
 
