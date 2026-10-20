@@ -1,68 +1,69 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, PORTAL } from '../context/AppContext';
 
 export const WelcomeScreen = () => {
-  const { language, setLanguage, handleSelectMember, handleSelectPartner, navigateTo, showToast } = useApp();
+  const { language, setLanguage, navigateTo, showToast } = useApp();
 
   // Multi-lingual copy dictionary
   const strings = {
     en: {
-      community: 'KOODAM Community',
-      title: 'Welcome to KOODAM',
-      subtitle: 'Choose how you would like to get started today.',
+      community: 'GigEzee Community',
+      title: 'Welcome to GigEzee',
+      subtitle: 'Book trusted local help from your neighbourhood.',
+      partnerCommunity: 'GigEzee Partner',
+      partnerTitle: 'Welcome to GigEzee Partner',
+      partnerSubtitle: 'Manage your jobs, earnings and payouts.',
       card1Role: 'Seek Help',
       card1Title: 'I Need Help / Book Services',
       card1Desc: 'Find trusted local helpers, handymen, electricians, and community volunteers.',
-      card1Btn: 'Continue as Community Member',
+      card1Btn: 'Community Member Login',
       card2Role: 'Provide Service',
       card2Title: 'I Want to Help / Provide Services',
       card2Desc: 'Offer your skills, grow your local client base, and earn with neighborhood trust.',
-      card2Btn: 'Join as Service Partner',
+      card2Btn: 'Service Partner Login',
       card1SignupLink: 'New here? Create an account',
-      card2SignupLink: 'New Service Partner? Create an account',
-      loginPrompt: 'Already have an account?',
-      loginMemberBtn: 'Member Log In',
-      loginPartnerBtn: 'Partner Log In'
+      card2SignupLink: 'New Service Partner? Create an account'
     },
     ta: {
-      community: 'கூடம் சமூக சேவை',
-      title: 'கூடத்திற்கு வரவேற்கிறோம்',
-      subtitle: 'இன்று நீங்கள் எவ்வாறு தொடங்க விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்.',
+      community: 'GigEzee சமூக சேவை',
+      title: 'GigEzee-க்கு வரவேற்கிறோம்',
+      subtitle: 'உங்கள் அக்கம்பக்கத்திலிருந்து நம்பகமான உதவியை முன்பதிவு செய்யுங்கள்.',
+      partnerCommunity: 'GigEzee Partner',
+      partnerTitle: 'GigEzee Partner-க்கு வரவேற்கிறோம்',
+      partnerSubtitle: 'உங்கள் வேலைகள், வருமானம் மற்றும் பணப்பரிமாற்றங்களை நிர்வகிக்கவும்.',
       card1Role: 'உதவி பெற',
       card1Title: 'எனக்கு உதவி தேவை / சேவைகளை பதிவு செய்',
       card1Desc: 'நம்பகமான உள்ளூர் கைவினைஞர்கள், எலக்ட்ரீஷியன்கள் மற்றும் தன்னார்வலர்களைக் கண்டறியவும்.',
-      card1Btn: 'சமூக உறுப்பினராக தொடரவும்',
+      card1Btn: 'சமூக உறுப்பினர் உள்நுழைவு',
       card2Role: 'சேவை வழங்க',
       card2Title: 'நான் உதவ விரும்புகிறேன் / சேவை கூட்டாளர்',
       card2Desc: 'உங்கள் திறமைகளை வழங்கி, உள்ளூர் வாடிக்கையாளர்களைப் பெற்று, நம்பிக்கையுடன் சம்பாதிக்கவும்.',
-      card2Btn: 'சேவை கூட்டாளராக இணையுங்கள்',
+      card2Btn: 'சேவைக் கூட்டாளர் உள்நுழைவு',
       card1SignupLink: 'புதியவரா? கணக்கு உருவாக்கவும்',
-      card2SignupLink: 'புதிய சேவை கூட்டாளரா? கணக்கு உருவாக்கவும்',
-      loginPrompt: 'ஏற்கனவே கணக்கு உள்ளதா?',
-      loginMemberBtn: 'உறுப்பினர் உள்நுழைவு',
-      loginPartnerBtn: 'கூட்டாளர் உள்நுழைவு'
+      card2SignupLink: 'புதிய சேவை கூட்டாளரா? கணக்கு உருவாக்கவும்'
     },
     kn: {
-      community: 'ಕೂಡಂ ಸಮುದಾಯ ಸೇವೆ',
-      title: 'ಕೂಡಂ ಗೆ ಸುಸ್ವಾಗತ',
-      subtitle: 'ಇಂದು ನೀವು ಹೇಗೆ ಪ್ರಾರಂಭಿಸಲು ಬಯಸುತ್ತೀರಿ ಎಂಬುದನ್ನು ಆರಿಸಿ.',
+      community: 'GigEzee ಸಮುದಾಯ ಸೇವೆ',
+      title: 'GigEzee-ಗೆ ಸುಸ್ವಾಗತ',
+      subtitle: 'ನಿಮ್ಮ ನೆರೆಹೊರೆಯ ವಿಶ್ವಾಸಾರ್ಹ ಸಹಾಯವನ್ನು ಬುಕ್ ಮಾಡಿ.',
+      partnerCommunity: 'GigEzee Partner',
+      partnerTitle: 'GigEzee Partner-ಗೆ ಸುಸ್ವಾಗತ',
+      partnerSubtitle: 'ನಿಮ್ಮ ಕೆಲಸಗಳು, ಗಳಿಕೆ ಮತ್ತು ಪಾವತಿಗಳನ್ನು ನಿರ್ವಹಿಸಿ.',
       card1Role: 'ಸಹಾಯ ಪಡೆಯಿರಿ',
       card1Title: 'ನನಗೆ ಸಹಾಯ ಬೇಕು / ಸೇವೆಗಳನ್ನು ಬುಕ್ ಮಾಡಿ',
       card1Desc: 'ವಿಶ್ವಾಸಾರ್ಹ ಸ್ಥಳೀಯ ಸಹಾಯಕರು ಮತ್ತು ಎಲೆಕ್ಟ್ರಿಷಿಯನ್ ಗಳನ್ನು ಹುಡುಕಿ.',
-      card1Btn: 'ಸಮುದಾಯ ಸದಸ್ಯರಾಗಿ ಮುಂದುವರಿಯಿರಿ',
+      card1Btn: 'ಸಮುದಾಯ ಸದಸ್ಯ ಲಾಗಿನ್',
       card2Role: 'ಸೇವೆ ಒದಗಿಸಿ',
       card2Title: 'ನಾನು ಸೇವೆಗಳನ್ನು ಒದಗಿಸಲು ಬಯಸುತ್ತೇನೆ',
       card2Desc: 'ನಿಮ್ಮ ಕೌಶಲ್ಯಗಳನ್ನು ನೀಡಿ ಮತ್ತು ನೆರೆಹೊರೆಯ ನಂಬಿಕೆಯೊಂದಿಗೆ ಗಳಿಸಿ.',
-      card2Btn: 'ಸೇವಾ ಪಾಲುದಾರರಾಗಿ ಸೇರಿ',
+      card2Btn: 'ಸೇವಾ ಪಾಲುದಾರ ಲಾಗಿನ್',
       card1SignupLink: 'ಹೊಸಬರೇ? ಖಾತೆ ರಚಿಸಿ',
-      card2SignupLink: 'ಹೊಸ ಸೇವಾ ಪಾಲುದಾರರೇ? ಖಾತೆ ರಚಿಸಿ',
-      loginPrompt: 'ಈಗಾಗಲೇ ಖಾತೆ ಹೊಂದಿದ್ದೀರಾ?',
-      loginMemberBtn: 'ಸದಸ್ಯ ಲಾಗಿನ್',
-      loginPartnerBtn: 'ಪಾಲುದಾರ ಲಾಗಿನ್'
+      card2SignupLink: 'ಹೊಸ ಸೇವಾ ಪಾಲುದಾರರೇ? ಖಾತೆ ರಚಿಸಿ'
     }
   };
 
   const t = strings[language] || strings.en;
+  const isPartnerApp = PORTAL === 'partner';
 
   return (
     <main className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
@@ -73,15 +74,15 @@ export const WelcomeScreen = () => {
           
           {/* Logo Pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ffdbcc] text-[#7b2f00] text-[11px] font-bold uppercase tracking-wider mb-3 shadow-xs">
-            <img src="/logo.svg" alt="KOODAM" className="w-4 h-4 object-contain" />
-            <span>{t.community}</span>
+            <img src="/logo.svg" alt="GigEzee" className="w-4 h-4 object-contain" />
+            <span>{isPartnerApp ? t.partnerCommunity : t.community}</span>
           </div>
 
           <h1 className="text-2xl font-extrabold text-[#0b1c30] tracking-tight mb-1">
-            {t.title}
+            {isPartnerApp ? t.partnerTitle : t.title}
           </h1>
           <p className="text-sm text-[#4e5c92] font-medium max-w-xs">
-            {t.subtitle}
+            {isPartnerApp ? t.partnerSubtitle : t.subtitle}
           </p>
 
           {/* Social Proof Card */}
@@ -110,9 +111,9 @@ export const WelcomeScreen = () => {
           </div>
         </div>
 
-        {/* Role Selection Cards */}
+        {/* Only this app's card: customers at /, partners at /partner */}
         <div className="px-4 flex flex-col gap-4 mt-2">
-          {/* Card 1: User / Member Module */}
+          {!isPartnerApp && (
           <div className="relative bg-white rounded-2xl p-4 shadow-md flex flex-col transition-all duration-200 hover:shadow-lg border border-slate-100 overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#ffdbcc]/30 rounded-bl-full pointer-events-none -z-0"></div>
             
@@ -136,7 +137,7 @@ export const WelcomeScreen = () => {
               </p>
 
               <button
-                onClick={handleSelectMember}
+                onClick={() => navigateTo('memberLogin')}
                 className="w-full py-3.5 px-4 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all"
                 type="button"
               >
@@ -153,8 +154,9 @@ export const WelcomeScreen = () => {
               </button>
             </div>
           </div>
+          )}
 
-          {/* Card 2: Service Provider Module */}
+          {isPartnerApp && (
           <div className="relative bg-[#1b2a5e] text-white rounded-2xl p-4 shadow-md flex flex-col transition-all duration-200 hover:shadow-lg overflow-hidden border border-slate-700">
             <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-[#b3c1ff]/20 rounded-full pointer-events-none"></div>
             
@@ -178,7 +180,7 @@ export const WelcomeScreen = () => {
               </p>
 
               <button
-                onClick={handleSelectPartner}
+                onClick={() => navigateTo('partnerLogin')}
                 className="w-full py-3.5 px-4 rounded-full bg-white hover:bg-slate-100 text-[#05164b] text-sm font-bold flex items-center justify-center gap-2 shadow-xs active:scale-98 transition-all"
                 type="button"
               >
@@ -195,30 +197,10 @@ export const WelcomeScreen = () => {
               </button>
             </div>
           </div>
+          )}
         </div>
 
-        {/* Footer Info & Language Selector */}
         <div className="px-4 mt-6 flex flex-col items-center gap-4 text-center">
-          <div className="w-full flex flex-col items-center gap-2">
-            <span className="text-xs text-[#4e5c92]">{t.loginPrompt}</span>
-            <div className="w-full flex gap-3">
-              <button
-                onClick={() => navigateTo('memberLogin')}
-                className="flex-1 py-2.5 rounded-full border border-[#ff6a00]/40 text-[#a14000] text-xs font-bold hover:bg-[#fff1e8] active:scale-98 transition-all"
-                type="button"
-              >
-                {t.loginMemberBtn}
-              </button>
-              <button
-                onClick={() => navigateTo('partnerLogin')}
-                className="flex-1 py-2.5 rounded-full border border-[#1b2a5e]/30 text-[#1b2a5e] text-xs font-bold hover:bg-[#eff4ff] active:scale-98 transition-all"
-                type="button"
-              >
-                {t.loginPartnerBtn}
-              </button>
-            </div>
-          </div>
-
           {/* Language Selector Pill Tray */}
           <div className="inline-flex items-center p-1 rounded-full bg-[#eff4ff] shadow-xs border border-slate-200">
             <button

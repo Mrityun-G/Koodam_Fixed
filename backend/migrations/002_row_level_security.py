@@ -7,7 +7,7 @@ by definition. Only partner_payout_accounts and booking_payouts had row
 level security on, so names, emails, phone numbers, addresses, bookings
 and KYC rows were reachable with a key that ships in the app bundle.
 
-KOODAM never talks to Postgres through that REST API: the FastAPI backend
+GigEzee never talks to Postgres through that REST API: the FastAPI backend
 owns the tables and connects as their owner, and a table's owner bypasses
 RLS. So turning RLS on with no permissive policy denies the anon and
 authenticated roles everything while the backend carries on unaffected.

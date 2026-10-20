@@ -1,13 +1,10 @@
+import logging
+
 from fastapi import FastAPI
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import (
-    ALLOWED_ORIGINS,
-    IVR_PHONE_NUMBER,
-    PLATFORM_COMMISSION_PERCENT,
-    TRUST_FEE,
-)
+from app.config import ALLOWED_ORIGINS, FAKE_AI
 from app.database import engine, Base, SessionLocal
 
 from app.models.user import User
@@ -18,9 +15,12 @@ from app.models.review import Review
 from app.models.emergency import EmergencyRequest
 from app.models.partner_service import PartnerService
 from app.models.partner_document import PartnerDocument
-from app.models.booking_detail import BookingDetail, BookingExtraCharge
-from app.models.payout import PartnerPayoutAccount, BookingPayout
+from app.models.booking_detail import BookingDetail, BookingExtraCharge, BookingRecipient
+from app.models.payout import PartnerPayoutAccount, BookingPayout, PartnerWithdrawal
 from app.models.escalation import Complaint, PartnerEscalation
+from app.models.photo import Photo
+from app.models.notification import Notification
+from app.models.app_config import AppConfig
 from app.models.client_error import ClientError
 
 from app.routers.user import router as user_router
@@ -35,6 +35,12 @@ from app.routers.payment import router as payment_router
 from app.routers.payouts import router as payouts_router
 from app.routers.escalations import router as escalations_router
 from app.routers.ivr import router as ivr_router
+from app.routers.photo import router as photo_router
+from app.routers.diagnosis import router as diagnosis_router
+from app.routers.me import router as me_router
+from app.routers.app_config import router as app_config_router
+
+from app.app_config import seed_app_config
 from app.routers.client_errors import router as client_errors_router
 
 from app.escalations import start_sweeper
@@ -42,7 +48,17 @@ from app.rate_limit import RateLimitMiddleware
 from app.service_catalog import sync_service_catalog
 
 
-app = FastAPI(title="KOODAM Backend")
+app = FastAPI(title="GigEzee Backend")
+
+
+# Loud on purpose: a deployment serving canned diagnoses should be
+# obvious in the logs, not something you have to go looking for
+if FAKE_AI:
+    logging.getLogger(__name__).warning(
+        "GIGEZEE_FAKE_AI is ON - GigEzee AI is returning canned answers "
+        "and no photo is being analysed. Set ANTHROPIC_API_KEY (and drop "
+        "GIGEZEE_FAKE_AI) for real diagnoses."
+    )
 
 
 app.add_middleware(RateLimitMiddleware)
@@ -78,6 +94,10 @@ app.include_router(payment_router)
 app.include_router(payouts_router)
 app.include_router(escalations_router)
 app.include_router(ivr_router)
+app.include_router(photo_router)
+app.include_router(diagnosis_router)
+app.include_router(me_router)
+app.include_router(app_config_router)
 app.include_router(client_errors_router)
 
 
@@ -105,20 +125,63 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS partner_payout DOUBLE PRECISION, "
         "ADD COLUMN IF NOT EXISTS repair_photo_url VARCHAR, "
         "ADD COLUMN IF NOT EXISTS source VARCHAR, "
-        "ADD COLUMN IF NOT EXISTS payment_method VARCHAR; "
+        "ADD COLUMN IF NOT EXISTS payment_method VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS duration_minutes INTEGER; "
         "ALTER TABLE booking_extra_charges "
         "ADD COLUMN IF NOT EXISTS photo_url VARCHAR; "
+        "ALTER TABLE booking_recipients "
+        "ADD COLUMN IF NOT EXISTS address TEXT; "
+        "ALTER TABLE booking_payouts "
+        "ADD COLUMN IF NOT EXISTS withdrawal_id UUID "
+        "REFERENCES partner_withdrawals(id); "
+        "CREATE INDEX IF NOT EXISTS ix_booking_payouts_withdrawal_id "
+        "ON booking_payouts (withdrawal_id); "
+        "ALTER TABLE partner_withdrawals "
+        "ADD COLUMN IF NOT EXISTS razorpay_payout_id VARCHAR; "
+        "ALTER TABLE users "
+        "ADD COLUMN IF NOT EXISTS language VARCHAR NOT NULL DEFAULT 'en', "
+        "ADD COLUMN IF NOT EXISTS notifications_enabled "
+        "BOOLEAN NOT NULL DEFAULT true; "
         "ALTER TABLE services "
         "ADD COLUMN IF NOT EXISTS icon VARCHAR, "
         "ADD COLUMN IF NOT EXISTS bg_color VARCHAR, "
         "ADD COLUMN IF NOT EXISTS icon_color VARCHAR, "
-        "ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0"
+        "ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0, "
+        "ADD COLUMN IF NOT EXISTS requires_police_verification "
+        "BOOLEAN NOT NULL DEFAULT false; "
+        # Indexes for the most-run lookups; names match the models
+        "CREATE INDEX IF NOT EXISTS ix_bookings_partner_id_status "
+        "ON bookings (partner_id, status); "
+        "CREATE INDEX IF NOT EXISTS ix_bookings_status_booking_time "
+        "ON bookings (status, booking_time); "
+        "CREATE INDEX IF NOT EXISTS ix_bookings_user_id ON bookings (user_id); "
+        "CREATE INDEX IF NOT EXISTS ix_reviews_booking_id ON reviews (booking_id); "
+        "CREATE INDEX IF NOT EXISTS ix_partner_services_partner_id "
+        "ON partner_services (partner_id); "
+        "CREATE INDEX IF NOT EXISTS ix_partner_services_service_id "
+        "ON partner_services (service_id); "
+        "CREATE INDEX IF NOT EXISTS ix_complaints_customer_id "
+        "ON complaints (customer_id); "
+        # The home screen asks for partners in a box around the member;
+        # without this every request scans the whole partner table
+        "CREATE INDEX IF NOT EXISTS ix_partners_latitude_longitude "
+        "ON partners (latitude, longitude); "
+        # Postgres has no ADD CONSTRAINT IF NOT EXISTS
+        "DO $$ BEGIN "
+        "IF NOT EXISTS (SELECT 1 FROM pg_constraint "
+        "WHERE conname = 'photos_firebase_order_id_fkey') THEN "
+        "ALTER TABLE photos ADD CONSTRAINT photos_firebase_order_id_fkey "
+        "FOREIGN KEY (firebase_order_id) "
+        "REFERENCES booking_details (firebase_order_id); "
+        "END IF; END $$"
     ))
 
 
-# Services match the tiles customers see on Home
+# Services match the tiles customers see on Home; fees, limits and app
+# text get their first values
 with SessionLocal() as db:
     sync_service_catalog(db)
+    seed_app_config(db)
 
 
 # Look for overdue jobs and unanswered complaints while the server runs
@@ -130,7 +193,7 @@ def run_escalation_checks():
 @app.get("/")
 def root():
     return {
-        "message": "KOODAM Backend is running!"
+        "message": "GigEzee Backend is running!"
     }
 
 
@@ -138,17 +201,6 @@ def root():
 def health():
     return {
         "status": "healthy"
-    }
-
-
-# Prices the app shows, so they always match what the backend charges
-@app.get("/config")
-def public_config():
-    return {
-        "trust_fee": TRUST_FEE,
-        "platform_commission_percent": PLATFORM_COMMISSION_PERCENT,
-        # The number customers without a smartphone call to book
-        "phone_booking_number": IVR_PHONE_NUMBER
     }
 
 

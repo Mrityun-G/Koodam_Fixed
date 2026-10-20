@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Boolean, Column, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
@@ -22,6 +22,17 @@ class User(Base):
     avatar = Column(String, nullable=True)
 
     role = Column(String, nullable=False, default="MEMBER")
+
+    # App settings that follow the user to any device
+    # "en", "ta" or "kn"
+    language = Column(String, nullable=False, default="en", server_default="en")
+
+    notifications_enabled = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true"
+    )
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

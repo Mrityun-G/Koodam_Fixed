@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { relationLabel } from '../lib/bookFor';
+import {
+  diagnosisPhotoUrl,
+  fetchDiagnosisForOrder,
+  likelihoodLabel,
+  urgencyInfo
+} from '../lib/diagnosis';
 import {
   DEFAULT_JOB_MINUTES,
   findClash,
@@ -18,6 +25,19 @@ import {
 
 // Marks a job the customer booked by phone call (offline mode): they have
 // no app and pay in cash
+// "Child, 7 yrs · 6 hrs" for a booking made for someone else
+const bookedForSummary = (bookedFor, durationMinutes) =>
+  [
+    bookedFor &&
+      `${relationLabel(bookedFor.relation)}${
+        bookedFor.age != null ? `, ${bookedFor.age} yrs` : ''
+      }`,
+    durationMinutes &&
+      `${Math.round(durationMinutes / 60)} hr${durationMinutes === 60 ? '' : 's'}`
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
 const PhoneBookingBadge = () => (
   <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#7b2f00] bg-[#ffdbcc] px-2 py-0.5 rounded-full">
     <span className="material-symbols-outlined text-[13px]">call</span>
@@ -38,7 +58,6 @@ export const PartnerDashboard = () => {
     declineIncomingJob,
     reviews,
     showToast,
-    handleSelectMember,
     navigateTo,
     isSharingLocation,
     startSharingLocation,
@@ -84,8 +103,25 @@ export const PartnerDashboard = () => {
     }
   };
 
+  // Home Refresh: the overview cards are a snapshot taken by the server,
+  // so a job finished or a rating left elsewhere only shows here once
+  // they're asked for again
+  const [homeRefreshing, setHomeRefreshing] = useState(false);
+
+  const refreshHome = async () => {
+    if (homeRefreshing) return;
+
+    setHomeRefreshing(true);
+
+    try {
+      await refreshPartnerOverview();
+    } finally {
+      setHomeRefreshing(false);
+    }
+  };
+
   // What the partner actually takes home from a request: the customer's
-  // total minus KOODAM's trust fee and commission (same split the backend
+  // total minus GigEzee's trust fee and commission (same split the backend
   // makes when the customer pays; extra parts added later go to the
   // partner in full)
   const partnerShareOf = (customerTotal) => {
@@ -230,7 +266,7 @@ export const PartnerDashboard = () => {
       icon: style.icon,
       tone: style.tone,
       status: job.status === 'IN_PROGRESS' ? 'In progress' : 'Confirmed',
-      customer: job.customer_name || 'KOODAM Customer',
+      customer: job.customer_name || 'GigEzee Customer',
       address: job.address || 'Nearby',
       date: when,
       startMs: when ? when.getTime() : null,
@@ -256,7 +292,7 @@ export const PartnerDashboard = () => {
   const incomingClash = incomingJobDetails?.scheduledAt
     ? findClash(
         Number(incomingJobDetails.scheduledAt),
-        DEFAULT_JOB_MINUTES,
+        incomingJobDetails.durationMinutes || DEFAULT_JOB_MINUTES,
         jobsToTimeRanges(partnerUpcomingJobs)
       )
     : null;
@@ -668,6 +704,37 @@ export const PartnerDashboard = () => {
   };
 
   // ================================
+  // GIGEZEE AI DIAGNOSIS
+  // When the member photographed the problem instead of naming it, the
+  // partner sees the same photo and the causes to check before they go.
+  // ================================
+
+  const [jobDiagnosis, setJobDiagnosis] = useState(null);
+
+  useEffect(() => {
+    const orderId = activeOrder.orderId;
+
+    if (!orderId) {
+      setJobDiagnosis(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    fetchDiagnosisForOrder(orderId)
+      .then((result) => {
+        if (!cancelled) setJobDiagnosis(result);
+      })
+      .catch((error) => {
+        console.error('Could not load the diagnosis:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrder.orderId]);
+
+  // ================================
   // POLICE VERIFICATION
   // ================================
 
@@ -678,17 +745,17 @@ export const PartnerDashboard = () => {
       canUpload: true
     },
     UNDER_REVIEW: {
-      label: 'Certificate under review',
+      label: 'Submitted — waiting for admin approval',
       tone: 'bg-amber-100 text-amber-600',
       canUpload: false
     },
     VERIFIED: {
-      label: 'Police verified',
+      label: 'Approved by admin',
       tone: 'bg-[#00ae78]/15 text-[#006c49]',
       canUpload: false
     },
     REJECTED: {
-      label: 'Certificate rejected',
+      label: 'Rejected by admin — please upload again',
       tone: 'bg-red-50 text-red-500',
       canUpload: true
     }
@@ -752,18 +819,35 @@ export const PartnerDashboard = () => {
 
     setIsUploadingPolice(true);
 
+    // Don't let a hanging request leave the card stuck on "Uploading…"
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     try {
       const data = await authorizedFetch(
         `/partners/${partnerProfile.id}/police-verification`,
-        { method: 'POST', body: formData }
+        { method: 'POST', body: formData, signal: controller.signal }
       );
 
-      setPoliceVerification(data);
-      showToast('Police certificate submitted for review.');
+      // The backend parks the certificate at UNDER_REVIEW until an admin
+      // approves it. Fall back to that if the body didn't come back.
+      setPoliceVerification(
+        data?.status
+          ? data
+          : { status: 'UNDER_REVIEW', rejection_reason: null }
+      );
+
+      showToast('Certificate submitted. An admin will approve it shortly.');
     } catch (error) {
       console.error('Police certificate upload failed:', error);
-      showToast(error.message || 'Upload failed. Please try again.');
+
+      showToast(
+        error.name === 'AbortError'
+          ? 'Upload timed out. Please try again.'
+          : error.message || 'Upload failed. Please try again.'
+      );
     } finally {
+      clearTimeout(timeoutId);
       setIsUploadingPolice(false);
     }
   };
@@ -878,7 +962,7 @@ export const PartnerDashboard = () => {
           >
             <img
               src="/logo.svg"
-              alt="KOODAM Community Logo"
+              alt="GigEzee Community Logo"
               className="h-8 w-auto object-contain shrink-0"
             />
 
@@ -1167,13 +1251,27 @@ export const PartnerDashboard = () => {
 
         <section className="space-y-2">
 
-          <div className="px-1">
+          <div className="px-1 flex items-center justify-between gap-2">
             <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[18px] text-[#ff6a00]">
                 insights
               </span>
               Today's Overview
             </h2>
+
+            <button
+              type="button"
+              onClick={refreshHome}
+              disabled={homeRefreshing}
+              aria-label="Refresh today's overview"
+              title="Refresh today's overview"
+              className="flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[11px] font-bold text-[#a14000] disabled:opacity-60 active:scale-95 transition-all"
+            >
+              <span className={`material-symbols-outlined text-[15px] ${homeRefreshing ? 'animate-spin' : ''}`}>
+                refresh
+              </span>
+              {homeRefreshing ? 'Refreshing' : 'Refresh'}
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
@@ -1484,6 +1582,22 @@ export const PartnerDashboard = () => {
                   </p>
                 )}
 
+                {(incomingJobDetails.bookedFor || incomingJobDetails.durationMinutes) && (
+                  <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[15px] text-[#a14000]">
+                      {incomingJobDetails.bookedFor?.relation === 'CHILD' ? 'child_care' : 'person'}
+                    </span>
+                    <span className="font-bold text-[#0b1c30]">
+                      {incomingJobDetails.bookedFor
+                        ? `For the customer's ${bookedForSummary(
+                            incomingJobDetails.bookedFor,
+                            incomingJobDetails.durationMinutes
+                          ).toLowerCase()}`
+                        : bookedForSummary(null, incomingJobDetails.durationMinutes)}
+                    </span>
+                  </p>
+                )}
+
                 {incomingClash && (
                   <p className="text-xs text-red-500 font-bold flex items-center gap-1 mt-0.5">
                     <span className="material-symbols-outlined text-[15px]">
@@ -1585,6 +1699,170 @@ export const PartnerDashboard = () => {
             </div>
           </section>
         )}
+
+        {jobDiagnosis && activeOrder.currentStep <= 4 && (
+          <section className="bg-white rounded-2xl p-4 border border-[#ffdbcc] flex flex-col gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">
+                  auto_awesome
+                </span>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[#0b1c30]">
+                  GigEzee AI read the customer's photo
+                </p>
+                <p className="text-[11px] text-slate-600" data-no-translate>
+                  {jobDiagnosis.appliance}
+                </p>
+              </div>
+
+              {jobDiagnosis.urgency && (
+                <span
+                  className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${urgencyInfo(jobDiagnosis.urgency).tone}`}
+                >
+                  {urgencyInfo(jobDiagnosis.urgency).label}
+                </span>
+              )}
+            </div>
+
+            {jobDiagnosis.safety_warning && (
+              <div className="flex items-start gap-2 p-2.5 rounded-xl bg-red-50">
+                <span
+                  className="material-symbols-outlined text-red-600 text-[18px] shrink-0"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  warning
+                </span>
+                <p className="text-[11px] text-red-700 leading-relaxed">
+                  {jobDiagnosis.safety_warning}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-start gap-3">
+              {diagnosisPhotoUrl(jobDiagnosis) && (
+                <a
+                  href={diagnosisPhotoUrl(jobDiagnosis)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0"
+                >
+                  <img
+                    src={diagnosisPhotoUrl(jobDiagnosis)}
+                    alt="What the customer photographed"
+                    className="w-24 aspect-[4/3] object-contain bg-slate-50"
+                  />
+                </a>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] text-[#0b1c30] leading-relaxed" data-no-translate>
+                  {jobDiagnosis.summary_for_partner}
+                </p>
+
+                {jobDiagnosis.member_note && (
+                  <p className="text-[11px] text-slate-500 mt-1.5 italic" data-no-translate>
+                    {`"${jobDiagnosis.member_note}"`}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[11px] font-bold text-[#0b1c30]">
+                Likely causes to check
+              </p>
+
+              {jobDiagnosis.likely_causes?.map((cause, index) => (
+                <div
+                  key={cause.cause}
+                  className="flex items-start gap-2 text-[11px] text-slate-600"
+                >
+                  <span className="font-bold text-[#a14000] shrink-0">
+                    {`${index + 1}.`}
+                  </span>
+                  <span data-no-translate>
+                    {cause.cause}
+                    <span className="text-slate-400">
+                      {` · ${likelihoodLabel(cause.likelihood)}`}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              This is the AI's reading of a photo, not a confirmed fault.
+              Check it yourself on arrival and tell the customer what you
+              find before starting work.
+            </p>
+          </section>
+        )}
+
+        {activeOrder.bookedFor?.name &&
+          activeOrder.currentStep >= 3 &&
+          activeOrder.currentStep <= 4 && (
+            <section className="bg-[#eff4ff] rounded-2xl p-4 border border-[#dce1ff] flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#dce1ff] text-[#4e5c92] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">
+                    {activeOrder.bookedFor.relation === 'CHILD' ? 'child_care' : 'person'}
+                  </span>
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#0b1c30]">
+                    <span>You'll be meeting</span>{' '}
+                    <span data-no-translate>{activeOrder.bookedFor.name}</span>
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    {bookedForSummary(activeOrder.bookedFor, activeOrder.durationMinutes)}
+                    {' · '}
+                    {`Booked by ${activeOrder.customerName || 'the customer'}`}
+                  </p>
+                  {activeOrder.area && (
+                    <p className="text-[11px] text-slate-600 mt-0.5" data-no-translate>
+                      {activeOrder.area}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {activeOrder.bookedFor.notes && (
+                <p className="text-[11px] text-[#0b1c30] bg-white rounded-xl p-2.5 whitespace-pre-line" data-no-translate>
+                  {activeOrder.bookedFor.notes}
+                </p>
+              )}
+
+              <p className="text-[11px] text-slate-600">
+                {activeOrder.currentStep === 3
+                  ? `When you arrive, call ${activeOrder.customerName || 'the customer'} for the arrival code. It is on their phone, not with the person at home.`
+                  : `When you finish, give ${activeOrder.customerName || 'the customer'} the completion code over the phone.`}
+              </p>
+
+              <div className="flex gap-2">
+                {activeOrder.customerPhone && (
+                  <a
+                    href={`tel:${activeOrder.customerPhone}`}
+                    className="flex-1 py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold text-center active:scale-95 transition-all"
+                  >
+                    {`Call ${(activeOrder.customerName || 'customer').split(' ')[0]}`}
+                  </a>
+                )}
+
+                {activeOrder.bookedFor.phone && (
+                  <a
+                    href={`tel:${activeOrder.bookedFor.phone}`}
+                    className="flex-1 py-2.5 rounded-xl bg-white border border-slate-200 text-[#0b1c30] text-xs font-bold text-center active:scale-95 transition-all"
+                  >
+                    {`Call ${activeOrder.bookedFor.name.split(' ')[0]}`}
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
 
         {isPhoneBooking &&
           activeOrder.currentStep >= 3 &&
@@ -1723,7 +2001,7 @@ export const PartnerDashboard = () => {
 
                 <p className="text-[11px] text-slate-500">
                   {isPhoneBooking
-                    ? `Show the customer the part, then ask them to call ${phoneBookingNumber || "KOODAM's phone booking number"} to approve it.`
+                    ? `Show the customer the part, then ask them to call ${phoneBookingNumber || "GigEzee's phone booking number"} to approve it.`
                     : 'Need a costly component? Send the estimate for the customer to approve.'}
                 </p>
               </div>
@@ -1741,7 +2019,7 @@ export const PartnerDashboard = () => {
                         <img
                           src={charge.photoUrl}
                           alt={charge.item}
-                          className="w-8 h-8 rounded-lg object-cover shrink-0"
+                          className="w-10 aspect-[4/3] object-contain bg-slate-50 shrink-0"
                         />
                       )}
 
@@ -1844,7 +2122,7 @@ export const PartnerDashboard = () => {
 
                 <p className="text-[11px] text-slate-500">
                   {isPhoneBooking
-                    ? 'Show this photo to the customer before collecting cash. KOODAM keeps it as proof of the work.'
+                    ? 'Show this photo to the customer before collecting cash. GigEzee keeps it as proof of the work.'
                     : activeOrder.repairPhotoUrl
                     ? 'The customer can see this with the final bill.'
                     : 'Take a photo of the finished work. The customer sees it with the bill before paying.'}
@@ -1856,7 +2134,7 @@ export const PartnerDashboard = () => {
               <img
                 src={activeOrder.repairPhotoUrl}
                 alt="Finished repair"
-                className="w-full max-h-48 rounded-xl object-cover"
+                className="w-full max-h-48 object-contain bg-slate-50"
               />
             )}
 
@@ -1933,7 +2211,7 @@ export const PartnerDashboard = () => {
         <button
           onClick={() => {
             setChatPartner({
-              name: activeOrder?.customerName || 'KOODAM Customer',
+              name: activeOrder?.customerName || 'GigEzee Customer',
               avatar: activeOrder?.customerAvatar || '',
               customerId: activeOrder?.customerId
             });
@@ -2424,7 +2702,7 @@ export const PartnerDashboard = () => {
                   </span>
 
                   <span className="text-[10px] text-[#dce1ff]/80">
-                    Paid to your bank automatically after each job
+                    Withdraw it from Payouts below
                   </span>
                 </div>
               </div>
@@ -2568,7 +2846,7 @@ export const PartnerDashboard = () => {
                 className="hidden"
               />
 
-              {policeStatusInfo.canUpload && (
+              {policeStatusInfo.canUpload ? (
                 <button
                   onClick={() => policeFileInputRef.current?.click()}
                   disabled={isUploadingPolice}
@@ -2580,6 +2858,14 @@ export const PartnerDashboard = () => {
                     ? 'Re-upload'
                     : 'Upload'}
                 </button>
+              ) : (
+                <span
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold ${policeStatusInfo.tone}`}
+                >
+                  {policeVerification.status === 'VERIFIED'
+                    ? 'Approved'
+                    : 'Pending approval'}
+                </span>
               )}
             </div>
 
@@ -2800,30 +3086,6 @@ export const PartnerDashboard = () => {
               </span>
             </button>
 
-            <button
-              onClick={handleSelectMember}
-              className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[18px]">
-                  swap_horiz
-                </span>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
-                  Switch to Resident View
-                </p>
-
-                <p className="text-[11px] text-slate-500 truncate">
-                  Book services as a community member
-                </p>
-              </div>
-
-              <span className="material-symbols-outlined text-[18px] text-slate-300 shrink-0">
-                chevron_right
-              </span>
-            </button>
           </div>
         </section>
 

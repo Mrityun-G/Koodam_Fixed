@@ -154,7 +154,7 @@ export const OnboardingScreen = () => {
       icon={Languages}
       tint="bg-[#d3e4fe] text-[#354479]"
       title="Pick your language"
-      blurb="KOODAM works in English, Tamil and Kannada. You can change this any time in Settings."
+      blurb="GigEzee works in English, Tamil and Kannada. You can change this any time in Settings."
     >
       <div className="space-y-2.5">
         {LANGUAGES.map((option) => (
@@ -295,7 +295,7 @@ export const OnboardingScreen = () => {
               Your documents are in review
             </p>
             <p className="mt-0.5 text-[10px] leading-relaxed text-[#4e5c92]">
-              KOODAM checks every partner. You can start taking jobs while
+              GigEzee checks every partner. You can start taking jobs while
               this is in progress.
             </p>
           </div>
@@ -308,7 +308,7 @@ export const OnboardingScreen = () => {
     <StepShell
       icon={ShieldCheck}
       tint="bg-[#6ffbbe]/60 text-[#005236]"
-      title="How KOODAM keeps you safe"
+      title="How GigEzee keeps you safe"
       blurb="Three things worth knowing before your first booking."
     >
       <div className="space-y-2.5">
@@ -362,7 +362,7 @@ export const OnboardingScreen = () => {
     <div className="flex w-full flex-1 flex-col bg-gradient-to-b from-[#fff3ea] via-[#f8f9ff] to-[#f8f9ff]">
       <header className="flex shrink-0 items-center justify-between px-4 pt-5 pb-2">
         <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="KOODAM" className="h-5 w-5 object-contain" />
+          <img src="/logo.svg" alt="GigEzee" className="h-5 w-5 object-contain" />
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#7b2f00]">
             Getting started
           </span>

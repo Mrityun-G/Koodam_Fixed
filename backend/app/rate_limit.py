@@ -3,7 +3,7 @@ Request limits.
 
 Without these, one script can hammer sign-ups, flood the escalation queue
 or walk the booking endpoints as fast as the network allows. The counters
-live in this process's memory, which is enough for KOODAM's single Render
+live in this process's memory, which is enough for GigEzee's single Render
 instance; move them to Redis before running more than one worker, or each
 worker will allow the full quota on its own.
 """
@@ -18,10 +18,14 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.config import _setting
+
 
 def _limit(name: str, default: str) -> Tuple[int, int]:
-    """A "requests/seconds" setting, e.g. KOODAM_RATE_WRITE=60/60."""
-    raw = os.getenv(name, default)
+    """A "requests/seconds" setting, e.g. GIGEZEE_RATE_WRITE=60/60."""
+    # _setting reads both the GIGEZEE_ and the older KOODAM_ prefix, so a
+    # deployment configured before the rename keeps its limits.
+    raw = _setting(name, default)
 
     try:
         count, window = raw.split("/")
@@ -33,13 +37,13 @@ def _limit(name: str, default: str) -> Tuple[int, int]:
 
 # Anything that creates an account or sends an email: the expensive,
 # abusable paths. Deliberately tight.
-AUTH_LIMIT = _limit("KOODAM_RATE_AUTH", "10/60")
+AUTH_LIMIT = _limit("GIGEZEE_RATE_AUTH", "10/60")
 
 # Writes: bookings, syncs, complaints, profile edits, payments.
-WRITE_LIMIT = _limit("KOODAM_RATE_WRITE", "90/60")
+WRITE_LIMIT = _limit("GIGEZEE_RATE_WRITE", "90/60")
 
 # Reads. The app polls a few of these, so this is generous.
-READ_LIMIT = _limit("KOODAM_RATE_READ", "300/60")
+READ_LIMIT = _limit("GIGEZEE_RATE_READ", "300/60")
 
 # Paths that never count against anyone - uptime pings and the phone
 # provider's webhook, which has its own signature check.

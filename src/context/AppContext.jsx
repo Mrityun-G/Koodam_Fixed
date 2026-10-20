@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useState,
   useEffect,
@@ -56,9 +57,21 @@ import { useRoute } from '../lib/route';
 
 import { uploadRepairPhoto, isHostedPhoto } from '../lib/repairPhoto';
 
+import { attachDiagnosisToOrder } from '../lib/diagnosis';
+
+import {
+  EMPTY_BOOK_FOR,
+  bookForProblem,
+  isCareService,
+  priceForHours,
+  relationLabel,
+  toBookedFor
+} from '../lib/bookFor';
+
 import {
   haversineDistanceKm,
-  estimateEtaMinutes
+  estimateEtaMinutes,
+  geocodeAddress
 } from '../lib/geo';
 
 import {
@@ -74,17 +87,90 @@ import {
   oauthReturnError
 } from '../lib/supabase';
 
-// Which login page (member or partner) started a Google sign-in; kept in
-// storage because Google redirects away from the app and back
-const GOOGLE_ROLE_KEY = 'koodam-google-login-role';
+// When this tab started a Google sign-in. Google redirects the tab away
+// and back, so sessionStorage survives the round trip while keeping the
+// customer and partner tabs' sign-ins apart. It is also what marks the
+// return: Supabase strips the tokens from the address bar as soon as its
+// client is created, so the URL can't be relied on past the first render.
+const GOOGLE_LOGIN_KEY = 'gigezee-google-login-started';
+const GOOGLE_LOGIN_MAX_MS = 10 * 60 * 1000;
 
-// Which side of the app (member or partner) the user was last using
-const LAST_ROLE_KEY = 'koodam-last-role';
+const markGoogleLoginStarted = () => {
+  const startedAt = String(Date.now());
+
+  try {
+    sessionStorage.setItem(GOOGLE_LOGIN_KEY, startedAt);
+  } catch {
+    // Without storage the return can't be recognised as ours
+  }
+
+  try {
+    // Backup for a return that lands outside this tab (the packaged app
+    // sends the user through the system browser and back by deep link)
+    localStorage.setItem(GOOGLE_LOGIN_KEY, startedAt);
+  } catch {
+    // Nothing to fall back on
+  }
+};
+
+const isFresh = (value) => {
+  const startedAt = Number(value);
+  return startedAt > 0 && Date.now() - startedAt < GOOGLE_LOGIN_MAX_MS;
+};
+
+const googleLoginPending = () => {
+  try {
+    if (isFresh(sessionStorage.getItem(GOOGLE_LOGIN_KEY))) {
+      return true;
+    }
+  } catch {
+    // Fall through to the shared note
+  }
+
+  // The shared note only counts on the page load Google actually returned
+  // to, so another tab reloading mid-sign-in doesn't claim it
+  if (!isOAuthReturn) {
+    return false;
+  }
+
+  try {
+    return isFresh(localStorage.getItem(GOOGLE_LOGIN_KEY));
+  } catch {
+    return false;
+  }
+};
+
+const clearGoogleLogin = () => {
+  try {
+    sessionStorage.removeItem(GOOGLE_LOGIN_KEY);
+    // Notes left in the old shared place by a previous build
+    localStorage.removeItem(GOOGLE_LOGIN_KEY);
+  } catch {
+    // Nothing to clear
+  }
+};
+
+// Customers use the app at /, service partners a separate app at /partner.
+// An Android build has no path to read, so each APK is built with
+// VITE_PORTAL set to the app it is; on the web the path still decides.
+export const PORTAL =
+  import.meta.env.VITE_PORTAL === 'partner' ||
+  /^\/partner(\/|$)/.test(window.location.pathname)
+    ? 'partner'
+    : 'member';
+
+const LOGIN_LINK_SCREENS = {
+  member: 'memberLogin',
+  partner: 'partnerLogin'
+};
+
+const accountRoleOf = (backendUser) =>
+  backendUser.role === 'PARTNER' ? 'partner' : 'member';
 
 // The member's current booking, so a page reload brings back its
 // tracking screen and rating card ({ uid, orderId } only; the order
 // itself is read from Firebase)
-const ACTIVE_ORDER_KEY = 'koodam-active-order';
+const ACTIVE_ORDER_KEY = 'gigezee-active-order';
 
 // Accounts that have been through the getting-started steps. Stored by
 // uid so two people using one phone each see it once.
@@ -297,7 +383,7 @@ const authErrorMessage = (err) => {
   // fetch() couldn't reach the backend (offline, or the server is
   // restarting / waking up)
   if (err instanceof TypeError && /fetch/i.test(err.message)) {
-    return "Couldn't reach the KOODAM server. Check your internet and try again in a minute.";
+    return "Couldn't reach the GigEzee server. Check your internet and try again in a minute.";
   }
 
   return err?.message || 'Something went wrong. Please try again.';
@@ -347,7 +433,7 @@ export const AppProvider = ({ children }) => {
   // Remembered across reloads; the app is translated from this in App.jsx
   const [language, setLanguage] = useState(() => {
     try {
-      const saved = localStorage.getItem('koodam-language');
+      const saved = localStorage.getItem('gigezee-language');
       return ['en', 'ta', 'kn'].includes(saved) ? saved : 'en';
     } catch {
       return 'en';
@@ -356,7 +442,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('koodam-language', language);
+      localStorage.setItem('gigezee-language', language);
     } catch {
       // Storage can be unavailable (e.g. private mode); the choice then lasts this session
     }
@@ -382,16 +468,32 @@ export const AppProvider = ({ children }) => {
 
   const [authUser, setAuthUser] = useState(null);
 
-  // False until Firebase has told us whether anyone is signed in. Without
-  // it the Welcome screen flashes up for a moment on every reload before
-  // the saved session loads, which reads as having been logged out.
-  const [authResolved, setAuthResolved] = useState(!isFirebaseConfigured);
-
   // True between signing up and finishing (or skipping) onboarding
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   const [authLoading, setAuthLoading] =
     useState(false);
+
+  // While a login/sign-up is running it decides where to go, not the
+  // auth listener (which would race it)
+  const loginInProgressRef = useRef(false);
+
+  // True until Firebase has said whether anyone is still logged in (and, if
+  // so, their dashboard has been restored). Without it every reload flashes
+  // the landing page before jumping to the home screen.
+  const [authBooting, setAuthBooting] = useState(
+    Boolean(isFirebaseConfigured && auth)
+  );
+
+  // True while a Google sign-in started in this tab is still being finished,
+  // so the landing page isn't shown underneath it either
+  const [googleCompleting, setGoogleCompleting] = useState(() =>
+    googleLoginPending()
+  );
+
+  // A Google return is completed once, even across the remount that
+  // StrictMode uses to re-run effects in development
+  const googleCompletionRef = useRef(false);
 
 
   // =========================================================
@@ -438,7 +540,7 @@ useEffect(() => {
 
       // No logged-in Firebase user
       if (!user) {
-        setAuthResolved(true);
+        setAuthBooting(false);
         return;
       }
 
@@ -463,6 +565,11 @@ useEffect(() => {
         }
 
         const backendUser = await response.json();
+
+        // Logged out (e.g. wrong login page) while this was loading
+        if (auth.currentUser?.uid !== user.uid) {
+          return;
+        }
 
         // -------------------------------------------------
         // MEMBER
@@ -492,23 +599,10 @@ useEffect(() => {
 
         // -------------------------------------------------
         // Still logged in after a page reload: go back to the
-        // member home or Partner Hub instead of the landing page
+        // account's own dashboard instead of the landing page
         // -------------------------------------------------
 
-        let lastRole = null;
-
-        try {
-          lastRole = loginStorage().getItem(LAST_ROLE_KEY);
-        } catch {
-          lastRole = null;
-        }
-
-        const restoredRole =
-          lastRole === 'partner' || lastRole === 'member'
-            ? lastRole
-            : backendUser.role === 'PARTNER'
-              ? 'partner'
-              : 'member';
+        const restoredRole = accountRoleOf(backendUser);
 
         if (restoredRole === 'partner') {
           setPartnerProfile((previous) => ({ ...previous, ...backendUser }));
@@ -534,7 +628,13 @@ useEffect(() => {
           }
         }
 
-        if (SIGNED_OUT_SCREENS.includes(currentScreenRef.current)) {
+        // A partner's login isn't restored in the customer app (or the
+        // reverse); that app stays on its own start screen
+        if (
+          !loginInProgressRef.current &&
+          restoredRole === PORTAL &&
+          SIGNED_OUT_SCREENS.includes(currentScreenRef.current)
+        ) {
           setRole(restoredRole);
           setActiveTab('home');
           setCurrentScreen(restoredRole === 'partner' ? 'partner' : 'home');
@@ -546,19 +646,19 @@ useEffect(() => {
           'Failed to load user profile:',
           error
         );
-
       } finally {
-        setAuthResolved(true);
+        // Every path above lands here, so the splash can never stick
+        setAuthBooting(false);
       }
     }
   );
 
-  // If Firebase never answers (offline, or a blocked network), stop
-  // showing the splash rather than leaving people on it for good.
-  const bailOut = setTimeout(() => setAuthResolved(true), 8000);
+  // Firebase always reports once, but never leave the app on a splash
+  // screen if it somehow doesn't
+  const bootTimeout = setTimeout(() => setAuthBooting(false), 8000);
 
   return () => {
-    clearTimeout(bailOut);
+    clearTimeout(bootTimeout);
     unsubscribe();
   };
 
@@ -623,6 +723,15 @@ const [notificationsEnabled, setNotificationsEnabled] =
   const [selectedTime, setSelectedTime] =
     useState('');
 
+  // Who the booking is for (the member, or a guest, friend, relative or
+  // their child) and, for care services, how many hours
+  const [bookFor, setBookFor] = useState(EMPTY_BOOK_FOR);
+  const [careHours, setCareHours] = useState(null);
+
+  // What GigEzee AI worked out from the member's photo, carried
+  // from the diagnosis screen through to the partner's job
+  const [diagnosis, setDiagnosis] = useState(null);
+
   // Fees come from the backend (GET /config) so the app always shows
   // what is actually charged; these are only used until it answers
   const [trustFee, setTrustFee] = useState(20);
@@ -632,7 +741,12 @@ const [notificationsEnabled, setNotificationsEnabled] =
   // The number customers without a smartphone call to book (offline mode)
   const [phoneBookingNumber, setPhoneBookingNumber] = useState('');
 
-  useEffect(() => {
+  // FAQ, Terms, offline-mode steps and complaint reasons, managed by
+  // GigEzee staff in the database; screens fall back to their built-in
+  // text until this loads
+  const [appContent, setAppContent] = useState({});
+
+  const loadAppSettings = useCallback(() => {
     fetch(`${BACKEND_URL}/config`)
       .then((response) => (response.ok ? response.json() : null))
       .then((config) => {
@@ -646,7 +760,20 @@ const [notificationsEnabled, setNotificationsEnabled] =
       .catch((error) => {
         console.error('Failed to load app settings:', error);
       });
+
+    fetch(`${BACKEND_URL}/content`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((content) => {
+        if (content) setAppContent(content);
+      })
+      .catch((error) => {
+        console.error('Failed to load app content:', error);
+      });
   }, []);
+
+  useEffect(() => {
+    loadAppSettings();
+  }, [loadAppSettings]);
 
 
 // =========================================================
@@ -806,6 +933,17 @@ useEffect(() => {
       amount_paid: Number(order.totalPaid || 0),
       razorpay_payment_id: order.paymentId || null,
       scheduled_at: order.scheduledAt || null,
+      duration_minutes: order.durationMinutes || null,
+      booked_for: order.bookedFor?.name
+        ? {
+            relation: order.bookedFor.relation,
+            name: order.bookedFor.name,
+            phone: order.bookedFor.phone || null,
+            age: order.bookedFor.age ?? null,
+            address: order.bookedFor.address || order.area || null,
+            notes: order.bookedFor.notes || null
+          }
+        : null,
       created_at: order.createdAt || null,
       accepted_at: order.acceptedAt || null,
       completed_at: order.completedAt || null,
@@ -1174,7 +1312,7 @@ useEffect(() => {
   const destinationCoords =
     activeOrder.customerLat != null && activeOrder.customerLng != null
       ? { lat: activeOrder.customerLat, lng: activeOrder.customerLng }
-      : role === 'member'
+      : role === 'member' && !activeOrder.bookedFor
       ? userCoords
       : null;
 
@@ -1783,7 +1921,7 @@ const requestsRef = ref(db, requestPath);
             payout:
               Number(latestRequest.payout || 0),
             customerName:
-              latestRequest.customerName || 'KOODAM Customer',
+              latestRequest.customerName || 'GigEzee Customer',
             customerAvatar:
               latestRequest.customerAvatar || '',
             customerRating:
@@ -1792,11 +1930,16 @@ const requestsRef = ref(db, requestPath);
               latestRequest.scheduledAt || null,
             customerId:
               latestRequest.customerId || null,
-            // Booked by calling KOODAM: no app, pays in cash
+            // Booked by calling GigEzee: no app, pays in cash
             isPhoneBooking:
               latestRequest.source === 'PHONE',
             customerPhone:
-              latestRequest.customerPhone || ''
+              latestRequest.customerPhone || '',
+            // Booked for a guest, friend, relative or child
+            bookedFor:
+              latestRequest.bookedFor || null,
+            durationMinutes:
+              Number(latestRequest.durationMinutes) || null
           });
 
           setHasIncomingJob(true);
@@ -1848,7 +1991,7 @@ const requestsRef = ref(db, requestPath);
     useState(false);
 
   const [chatPartner, setChatPartner] =
-    useState('KOODAM Customer');
+    useState('GigEzee Customer');
 
 
   const [messages, setMessages] =
@@ -1925,8 +2068,79 @@ const requestsRef = ref(db, requestPath);
   // Notifications
   // =========================================================
 
+  // Saved per user in the database (GET/POST /me/notifications), so the
+  // list survives a reload and follows the user to another device
   const [notifications, setNotifications] =
     useState([]);
+
+  const timeAgo = (iso) => {
+    const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (!iso || minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} h ago`;
+    return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
+
+  // Settings saved before they've been loaded would overwrite the
+  // user's stored choice with this browser's defaults
+  const userSettingsLoadedRef = useRef(false);
+
+  // Notifications and settings stored on the signed-in user
+  useEffect(() => {
+    userSettingsLoadedRef.current = false;
+
+    if (!authUser?.uid) {
+      setNotifications([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    authorizedFetch('/me/notifications')
+      .then((rows) => {
+        if (cancelled) return;
+        setNotifications(
+          rows.map((row) => ({
+            id: row.id,
+            target: row.target,
+            title: row.title,
+            desc: row.desc,
+            time: timeAgo(row.created_at),
+            unread: row.unread,
+            screen: row.screen,
+            tab: row.tab
+          }))
+        );
+      })
+      .catch((error) => console.warn('Failed to load notifications:', error));
+
+    authorizedFetch('/me/settings')
+      .then((settings) => {
+        if (cancelled) return;
+        setLanguage(settings.language || 'en');
+        setNotificationsEnabled(settings.notifications_enabled !== false);
+        userSettingsLoadedRef.current = true;
+      })
+      .catch((error) => console.warn('Failed to load settings:', error));
+
+    return () => {
+      cancelled = true;
+    };
+    // userProfile.id appears once the backend has the user's account
+  }, [authUser?.uid, userProfile?.id]);
+
+  // Save setting changes to the user's account
+  useEffect(() => {
+    if (!authUser?.uid || !userSettingsLoadedRef.current) return;
+
+    authorizedFetch('/me/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        language,
+        notifications_enabled: notificationsEnabled
+      })
+    }).catch((error) => console.warn('Failed to save settings:', error));
+  }, [language, notificationsEnabled]);
 
 
   const addNotification = (
@@ -1938,9 +2152,11 @@ const requestsRef = ref(db, requestPath);
       tab = null
     }
   ) => {
+    const localId = `local-${Date.now()}-${Math.random()}`;
+
     setNotifications((prev) => [
       {
-        id: Date.now() + Math.random(),
+        id: localId,
         target,
         title,
         desc,
@@ -1951,6 +2167,20 @@ const requestsRef = ref(db, requestPath);
       },
       ...prev
     ]);
+
+    if (!authUser?.uid) return;
+
+    authorizedFetch('/me/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ target, title, desc: desc || null, screen, tab })
+    })
+      .then((saved) => {
+        // Use the stored id so marking it read later matches
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === localId ? { ...n, id: saved.id } : n))
+        );
+      })
+      .catch((error) => console.warn('Failed to save notification:', error));
   };
 
 
@@ -1962,6 +2192,13 @@ const requestsRef = ref(db, requestPath);
           : n
       )
     );
+
+    if (!authUser?.uid) return;
+
+    authorizedFetch('/me/notifications/read', {
+      method: 'POST',
+      body: JSON.stringify({ target })
+    }).catch((error) => console.warn('Failed to mark notifications read:', error));
   };
 
 
@@ -2072,13 +2309,6 @@ const requestsRef = ref(db, requestPath);
   const enterRole = (targetRole) => {
     setRole(targetRole);
 
-    // Remembered so a page reload returns to the same side of the app
-    try {
-      loginStorage().setItem(LAST_ROLE_KEY, targetRole);
-    } catch {
-      // Without storage a reload falls back to the account's own role
-    }
-
     if (targetRole === 'partner') {
       setCurrentScreen('partner');
     } else {
@@ -2088,19 +2318,31 @@ const requestsRef = ref(db, requestPath);
   };
 
 
-  const handleSelectMember = () => {
-    enterRole('member');
-    showToast(
-      'Switched to Community Member View'
-    );
-  };
+  // Each account belongs to one app (customer or partner). Logging in
+  // to the other app logs straight back out and says which app to use.
+  const rejectWrongLoginPage = async (backendUser, targetRole) => {
+    const accountRole = accountRoleOf(backendUser);
 
+    if (accountRole === targetRole) {
+      return false;
+    }
 
-  const handleSelectPartner = () => {
-    enterRole('partner');
+    await supabase.auth.signOut().catch(() => {});
+
+    if (auth) {
+      await signOut(auth).catch(() => {});
+    }
+
     showToast(
-      'Switched to Service Partner Dashboard'
+      accountRole === 'partner'
+        ? 'This is a Service Partner account. Please log in on the GigEzee Partner app.'
+        : 'This is a Community Member account. Please log in on the GigEzee customer app.'
     );
+
+    // Stay on this app's login page (a Google return starts on the landing page)
+    navigateTo(LOGIN_LINK_SCREENS[targetRole]);
+
+    return true;
   };
 
 
@@ -2132,7 +2374,7 @@ const requestsRef = ref(db, requestPath);
         name:
           firebaseUser.displayName ||
           extraData.name ||
-          'KOODAM User',
+          'GigEzee User',
         email: firebaseUser.email,
         phone: extraData.phone || null,
         avatar:
@@ -2179,6 +2421,7 @@ const signUp = async (
   }
 ) => {
   setAuthLoading(true);
+  loginInProgressRef.current = true;
 
   try {
     let cred = null;
@@ -2220,7 +2463,7 @@ const signUp = async (
           console.warn('Could not send the verification email:', verifyError);
         }
 
-        // Sync Firebase user with KOODAM backend
+        // Sync Firebase user with GigEzee backend
         backendUser =
           await syncUserWithBackend(
             cred.user,
@@ -2237,6 +2480,10 @@ const signUp = async (
           throw err;
         }
       }
+    }
+
+    if (backendUser && await rejectWrongLoginPage(backendUser, targetRole)) {
+      return false;
     }
 
     // -------------------------------------------------------
@@ -2319,7 +2566,7 @@ const signUp = async (
     }
 
     // -------------------------------------------------------
-    // Existing KOODAM navigation
+    // Existing GigEzee navigation
     // -------------------------------------------------------
 
     track(EVENTS.signUpCompleted, { role: targetRole });
@@ -2335,7 +2582,7 @@ const signUp = async (
     showToast(
       policeUploadFailed
         ? 'Account created, but the police certificate upload failed — you can upload it from your Profile.'
-        : `Welcome to KOODAM, ${name || 'there'}!`
+        : `Welcome to GigEzee, ${name || 'there'}!`
     );
 
     return true;
@@ -2355,6 +2602,7 @@ const signUp = async (
 
   } finally {
 
+    loginInProgressRef.current = false;
     setAuthLoading(false);
   }
 };
@@ -2448,6 +2696,7 @@ const signIn = async (
 ) => {
 
   setAuthLoading(true);
+  loginInProgressRef.current = true;
 
   try {
 
@@ -2485,7 +2734,7 @@ const signIn = async (
 
 
     // -------------------------------------------------------
-    // Sync Firebase User with KOODAM Backend
+    // Sync Firebase User with GigEzee Backend
     // -------------------------------------------------------
 
     if (
@@ -2501,10 +2750,9 @@ const signIn = async (
 
       if (backendUser) {
 
-  console.log(
-    '🔥 BACKEND USER AFTER LOGIN:',
-    backendUser
-  );
+  if (await rejectWrongLoginPage(backendUser, targetRole)) {
+    return false;
+  }
 
   if (targetRole === 'partner') {
     setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
@@ -2532,7 +2780,7 @@ const signIn = async (
 
 
     // -------------------------------------------------------
-    // Existing KOODAM navigation
+    // Existing GigEzee navigation
     // -------------------------------------------------------
 
     enterRole(targetRole);
@@ -2558,6 +2806,7 @@ const signIn = async (
 
   } finally {
 
+    loginInProgressRef.current = false;
     setAuthLoading(false);
   }
 };
@@ -2567,20 +2816,17 @@ const signIn = async (
   // Google Sign-In (Supabase OAuth)
   // =========================================================
 
-  // Step 1: remember which login page was used, then go to Google
-  const signInWithGoogle = async (targetRole) => {
-    try {
-      localStorage.setItem(GOOGLE_ROLE_KEY, targetRole);
-    } catch {
-      // Without storage the role can't survive the redirect; member is the fallback
-    }
+  // Step 1: note that a Google sign-in started, then go to Google
+  const signInWithGoogle = async () => {
+    markGoogleLoginStarted();
 
     setAuthLoading(true);
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        // Back to the same app (/ or /partner) the login started in
+        redirectTo: window.location.origin + window.location.pathname,
         queryParams: { prompt: 'select_account' }
       }
     });
@@ -2596,16 +2842,12 @@ const signIn = async (
   // The same Google login is used to sign in to Firebase, which the
   // bookings, chat and live GPS data require.
   const completeGoogleSignIn = async (session) => {
-    let targetRole = 'member';
-
-    try {
-      targetRole = localStorage.getItem(GOOGLE_ROLE_KEY) || 'member';
-      localStorage.removeItem(GOOGLE_ROLE_KEY);
-    } catch {
-      // Fall back to member
-    }
+    // Google returns to the app the login started in (/ or /partner)
+    const targetRole = PORTAL;
+    clearGoogleLogin();
 
     setAuthLoading(true);
+    loginInProgressRef.current = true;
 
     try {
       if (!session.provider_token) {
@@ -2632,18 +2874,20 @@ const signIn = async (
         }
       );
 
-      if (backendUser) {
-        if (targetRole === 'partner') {
-          setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
-        } else {
-          setUserProfile((prev) => ({ ...prev, ...backendUser }));
-        }
+      if (await rejectWrongLoginPage(backendUser, targetRole)) {
+        return;
+      }
+
+      if (targetRole === 'partner') {
+        setPartnerProfile((prev) => ({ ...prev, ...backendUser }));
+      } else {
+        setUserProfile((prev) => ({ ...prev, ...backendUser }));
       }
 
       enterRole(targetRole);
 
       showToast(
-        `Welcome to KOODAM, ${backendUser?.name || googleUser.full_name || 'there'}!`
+        `Welcome to GigEzee, ${backendUser?.name || googleUser.full_name || 'there'}!`
       );
     } catch (err) {
       console.error('Google sign-in could not be completed:', err);
@@ -2665,20 +2909,22 @@ const signIn = async (
       if (err?.code === 'auth/operation-not-allowed') {
         message = 'Google sign-in is not enabled in Firebase. Enable Google under Firebase Authentication > Sign-in method.';
       } else if (err?.code === 'auth/account-exists-with-different-credential') {
-        message = 'This email already has a KOODAM password. Please log in with your email and password.';
+        message = 'This email already has a GigEzee password. Please log in with your email and password.';
       } else if (err?.code === 'auth/invalid-credential') {
         message = 'Google sign-in is not set up correctly. Please log in with your email and password.';
       } else if (isServerUnreachable) {
-        message = "Can't reach the KOODAM server. Make sure the backend is running, then try again.";
+        message = "Can't reach the GigEzee server. Make sure the backend is running, then try again.";
       } else if (/Backend sync failed/.test(err?.message || '')) {
-        message = "Signed in with Google, but your KOODAM account couldn't be loaded. Please try again.";
+        message = "Signed in with Google, but your GigEzee account couldn't be loaded. Please try again.";
       }
 
       showToast(message);
 
-      navigateTo(targetRole === 'partner' ? 'partnerLogin' : 'memberLogin');
+      navigateTo(LOGIN_LINK_SCREENS[targetRole]);
     } finally {
+      loginInProgressRef.current = false;
       setAuthLoading(false);
+      setGoogleCompleting(false);
 
       // Remove the OAuth tokens/code from the address bar
       window.history.replaceState(null, '', window.location.pathname);
@@ -2686,27 +2932,10 @@ const signIn = async (
   };
 
   useEffect(() => {
-    let handled = false;
-
-    // A normal page load (not a return from Google): clear any leftover
-    // "Google login in progress" note from a sign-in that was abandoned,
-    // so it can't trigger a failed Google login later
-    if (!isOAuthReturn) {
-      try {
-        localStorage.removeItem(GOOGLE_ROLE_KEY);
-      } catch {
-        // Nothing to clear
-      }
-      return undefined;
-    }
-
     // The user cancelled on Google's page
-    if (oauthReturnError) {
-      try {
-        localStorage.removeItem(GOOGLE_ROLE_KEY);
-      } catch {
-        // Nothing to clear
-      }
+    if (isOAuthReturn && oauthReturnError) {
+      clearGoogleLogin();
+      setGoogleCompleting(false);
 
       window.history.replaceState(null, '', window.location.pathname);
 
@@ -2717,28 +2946,41 @@ const signIn = async (
       return undefined;
     }
 
+    // This tab never started a Google sign-in, so any Supabase session in
+    // storage belongs to something else and isn't finished here.
+    if (!googleLoginPending()) {
+      clearGoogleLogin();
+      setGoogleCompleting(false);
+      return undefined;
+    }
+
+    // The return isn't recognised from the address bar: Supabase clears the
+    // tokens out of it the moment its client is created, so a reload (or
+    // Vite's hot reload) between Google and this effect used to leave the
+    // Supabase session in storage with Firebase never signed in -- a partner
+    // stranded on the landing page. The per-tab note set in step 1 is the
+    // marker instead, so the sign-in still finishes on a later page load.
     const handle = (session) => {
-      // Only finish sign-ins this app started (the role key is set in step 1)
-      let pending = false;
-
-      try {
-        pending = Boolean(localStorage.getItem(GOOGLE_ROLE_KEY));
-      } catch {
-        pending = false;
-      }
-
-      if (!session || !pending || handled) {
+      if (!session || googleCompletionRef.current || !googleLoginPending()) {
         return;
       }
 
-      handled = true;
+      googleCompletionRef.current = true;
+      setGoogleCompleting(true);
       completeGoogleSignIn(session);
     };
 
-    supabase.auth.getSession().then(({ data }) => handle(data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        handle(data.session);
+      } else if (!googleCompletionRef.current) {
+        // Came back without a session (abandoned sign-in): show the app
+        setGoogleCompleting(false);
+      }
+    });
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         handle(session);
       }
     });
@@ -2774,9 +3016,7 @@ const signIn = async (
     }
 
 
-    // A reload after logging out should stay on the welcome screen
     try {
-      loginStorage().removeItem(LAST_ROLE_KEY);
       loginStorage().removeItem(ACTIVE_ORDER_KEY);
     } catch {
       // Nothing to clear
@@ -2789,7 +3029,7 @@ const signIn = async (
     setActiveOrder(EMPTY_ORDER);
     setMessages([]);
     setIsChatOpen(false);
-    setChatPartner('KOODAM Customer');
+    setChatPartner('GigEzee Customer');
     setHasIncomingJob(false);
     setPartnerUpcomingJobs([]);
     setReviews([]);
@@ -3282,9 +3522,42 @@ const updatePartnerProfile = async (
 // =========================================================
 
 const handleConfirmBooking = async () => {
+  // Care services are booked by the hour and priced for those hours
+  const bookedHours = isCareService(selectedService) ? careHours : null;
+  const servicePrice = priceForHours(selectedService, bookedHours);
+  const durationMinutes = bookedHours ? bookedHours * 60 : null;
+
   const finalTotal =
-    Number(selectedService?.price || 0) +
+    servicePrice +
     Number(trustFee || 0);
+
+  const bookForError = bookForProblem(bookFor);
+
+  if (bookForError) {
+    showToast(bookForError);
+    return;
+  }
+
+  // Set when booking for a guest, friend, relative or child
+  const bookedFor = toBookedFor(bookFor);
+
+  // Nobody is left alone with a child unless their police check passed
+  if (
+    (selectedHelper?.requiresPoliceVerification ||
+      bookedFor?.relation === 'CHILD') &&
+    !selectedHelper?.policeVerified
+  ) {
+    showToast(
+      'For child care, please choose a police-verified helper.'
+    );
+    return;
+  }
+
+  // Where the helper goes: the address given for the other person, else
+  // the place picked in the header
+  const visitArea = bookedFor
+    ? bookFor.address.trim()
+    : location || 'Nearby';
 
   const targetPartnerId =
     selectedHelper?.partnerId ||
@@ -3326,6 +3599,21 @@ const handleConfirmBooking = async () => {
   let createdRequestId = null;
   let safetyPin = null;
 
+  // The number for the tracking card's call button. It isn't in the
+  // home-screen listing any more - handing every partner's phone to
+  // everyone who opens the app is what that used to mean - so it's
+  // asked for here, for this one partner, now that they're being
+  // booked. A failure only costs the call button.
+  let helperPhone = '';
+
+  try {
+    helperPhone =
+      (await authorizedFetch(`/partners/${targetPartnerId}/contact`))
+        ?.phone || '';
+  } catch (error) {
+    console.warn('Could not load partner contact:', error.message);
+  }
+
   // The partner's real details, shown on the customer's tracking card
   const helperDetails = {
     helperAvatar:
@@ -3333,7 +3621,7 @@ const handleConfirmBooking = async () => {
         ? selectedHelper.avatar
         : '',
     helperRating: Number(selectedHelper?.rating || 0),
-    helperPhone: selectedHelper?.phone || '',
+    helperPhone,
     helperVehicle: selectedHelper?.vehicle || '',
     helperVehicleNumber: selectedHelper?.vehicleNumber || '',
     helperVerified: Boolean(
@@ -3373,7 +3661,7 @@ const handleConfirmBooking = async () => {
         customerName:
           userProfile?.name ||
           authUser?.displayName ||
-          'KOODAM Customer',
+          'GigEzee Customer',
 
         customerEmail:
           userProfile?.email ||
@@ -3390,6 +3678,9 @@ const handleConfirmBooking = async () => {
           '',
 
         customerRating: 5,
+
+        bookedFor,
+        durationMinutes,
 
         serviceId:
           selectedService?.id || null,
@@ -3411,7 +3702,7 @@ const handleConfirmBooking = async () => {
         etaMins: 7,
 
         area:
-          location || 'Nearby',
+          visitArea,
 
         // Lets the partner see the visit time and spot clashes
         scheduledAt: getScheduledTimestamp(
@@ -3453,11 +3744,16 @@ const handleConfirmBooking = async () => {
           customerName:
             userProfile?.name ||
             authUser?.displayName ||
-            'KOODAM Customer',
+            'GigEzee Customer',
           customerAvatar:
             userProfile?.avatar ||
             authUser?.photoURL ||
             '',
+          // The partner calls the member to get the arrival code when
+          // the person at home doesn't have the app (e.g. a child)
+          customerPhone: userProfile?.phone || '',
+          bookedFor,
+          durationMinutes,
           helperName: selectedHelper.name,
           ...helperDetails,
           serviceTitle: selectedService.title,
@@ -3468,7 +3764,7 @@ const handleConfirmBooking = async () => {
           totalAmount: finalTotal,
           // The bill as booked; approved extra parts are added on top
           baseAmount: finalTotal,
-          servicePrice: Number(selectedService?.price || 0),
+          servicePrice,
           trustFee: Number(trustFee || 0),
           totalPaid: 0,
           paymentStatus: 'PENDING',
@@ -3479,7 +3775,7 @@ const handleConfirmBooking = async () => {
           safetyPin,
           completionOtp: null,
           etaMinutes: 12,
-          area: location || 'Nearby',
+          area: visitArea,
           scheduledAt: getScheduledTimestamp(
             selectedDate,
             selectedTime
@@ -3491,10 +3787,39 @@ const handleConfirmBooking = async () => {
         }
       );
 
+      // Hand the photo and the causes to check over to the partner who
+      // takes this job. A failure here never undoes the booking - the
+      // member still gets their helper, just without the AI's notes.
+      if (diagnosis?.id) {
+        try {
+          await attachDiagnosisToOrder(diagnosis.id, createdRequestId);
+        } catch (error) {
+          console.error('Could not attach the diagnosis:', error);
+        }
+
+        setDiagnosis(null);
+      }
+
       // Save where the customer is so the partner can navigate there:
       // the place picked in the header, else the device GPS (in the
-      // background; the booking never waits on it).
-      if (userCoords) {
+      // background; the booking never waits on it). When booking for
+      // someone else, the job is at the address typed for them: look it
+      // up on the map, and if that fails save nothing so the partner
+      // navigates by the address text instead of to the member.
+      if (bookedFor) {
+        const orderIdForLocation = createdRequestId;
+
+        geocodeAddress(visitArea, userCoords).then((coords) => {
+          if (!coords) return;
+
+          return update(
+            ref(db, `orders/${toDbKey(orderIdForLocation)}`),
+            { customerLat: coords.lat, customerLng: coords.lng }
+          );
+        }).catch((error) => {
+          console.error('❌ Failed to save visit location:', error);
+        });
+      } else if (userCoords) {
         update(
           ref(db, `orders/${toDbKey(createdRequestId)}`),
           { customerLat: userCoords.lat, customerLng: userCoords.lng }
@@ -3618,8 +3943,11 @@ const handleConfirmBooking = async () => {
     totalPaid: 0,
     totalAmount: finalTotal,
     baseAmount: finalTotal,
-    servicePrice: Number(selectedService?.price || 0),
+    servicePrice,
     trustFee: Number(trustFee || 0),
+
+    bookedFor,
+    durationMinutes,
 
     etaMinutes: 12,
 
@@ -3627,14 +3955,19 @@ const handleConfirmBooking = async () => {
     feedback: ''
   });
 
+  // The next booking starts as one for the member themselves
+  setBookFor(EMPTY_BOOK_FOR);
+  setCareHours(null);
+
   // Member notification: request sent, awaiting partner response.
   addNotification(
     'member',
     {
       title: 'Request Sent',
 
-      desc:
-        `Your booking request has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`,
+      desc: bookedFor
+        ? `Your request for ${bookedFor.name} (${relationLabel(bookedFor.relation)}) has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`
+        : `Your booking request has been sent to ${selectedHelper.name}. Waiting for the partner to accept.`,
 
       screen: 'tracking',
 
@@ -3665,6 +3998,8 @@ const handleConfirmBooking = async () => {
       'requests'
     );
   }, 1200);
+
+  return true;
 };
 
 // =========================================================
@@ -3797,7 +4132,7 @@ const verifyArrivalOtp = async (rawCode) => {
     });
 
     setChatPartner({
-      name: matchedOrder.customerName || 'KOODAM Customer',
+      name: matchedOrder.customerName || 'GigEzee Customer',
       avatar: matchedOrder.customerAvatar || '',
       customerId: matchedOrder.customerId
     });
@@ -4088,7 +4423,7 @@ const confirmCashPayment = async () => {
 
   addNotification('partner', {
     title: 'Cash Payment Recorded',
-    desc: `₹${activeOrder.totalAmount} cash for ${activeOrder.serviceTitle}. KOODAM's share is settled from your earnings.`,
+    desc: `₹${activeOrder.totalAmount} cash for ${activeOrder.serviceTitle}. GigEzee's share is settled from your earnings.`,
     screen: 'partner',
     tab: 'jobs'
   });
@@ -4269,7 +4604,7 @@ const acceptIncomingJob = async () => {
   const acceptedPartnerName =
     partnerProfile?.name?.trim() ||
     authUser?.displayName?.trim() ||
-    'KOODAM Partner';
+    'GigEzee Partner';
 
   // Never accept a job that overlaps one the partner already has
   const requestedStart = Number(incomingJobDetails?.scheduledAt);
@@ -4287,7 +4622,7 @@ const acceptIncomingJob = async () => {
 
     const clash = findClash(
       requestedStart,
-      DEFAULT_JOB_MINUTES,
+      incomingJobDetails?.durationMinutes || DEFAULT_JOB_MINUTES,
       bookedRanges
     );
 
@@ -4369,7 +4704,7 @@ etaMinutes: 12,
     }));
 
     setChatPartner({
-      name: incomingJobDetails.customerName || 'KOODAM Customer',
+      name: incomingJobDetails.customerName || 'GigEzee Customer',
       avatar: incomingJobDetails.customerAvatar || '',
       customerId: incomingJobDetails.customerId
     });
@@ -4593,6 +4928,9 @@ return (
       authUser,
       authLoading,
 
+      // The app is still working out who is logged in; show a splash
+      isBooting: authBooting || googleCompleting,
+
       partnerKyc,
 
       signUp,
@@ -4608,7 +4946,6 @@ return (
       detectLocation,
       emailVerified,
       verificationSent,
-      authResolved,
 
       userProfile,
       updateUserProfile,
@@ -4633,8 +4970,20 @@ return (
       selectedTime,
       setSelectedTime,
 
+      bookFor,
+      setBookFor,
+      careHours,
+      setCareHours,
+
+      diagnosis,
+      setDiagnosis,
+
+
       trustFee,
       platformCommissionPercent,
+      appContent,
+      // Re-read fees and app text after staff change them
+      loadAppSettings,
 
       activeOrder,
       setActiveOrder,
@@ -4686,8 +5035,6 @@ return (
 
       navigateTo,
 
-      handleSelectMember,
-      handleSelectPartner,
 
       handleBookHelper,
 

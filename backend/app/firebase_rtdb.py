@@ -60,7 +60,7 @@ def _firebase_app() -> firebase_admin.App:
             _app = firebase_admin.initialize_app(
                 certificate,
                 {"databaseURL": url},
-                name="koodam-backend"
+                name="gigezee-backend"
             )
         except Exception as error:
             logger.exception("Firebase service account couldn't be loaded")

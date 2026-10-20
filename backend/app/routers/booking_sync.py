@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased
 from typing import Optional, Union
@@ -9,7 +9,9 @@ from datetime import datetime
 from app.authz import is_admin, owns_partner, require_user
 from app.database import get_db
 from app.models.booking import Booking
-from app.models.booking_detail import BookingDetail, BookingExtraCharge
+from app.models.booking_detail import (
+    BookingDetail, BookingExtraCharge, BookingRecipient
+)
 from app.models.partner import Partner
 from app.models.review import Review
 from app.models.service import Service
@@ -46,6 +48,19 @@ class ExtraChargeSync(BaseModel):
     responded_at: Timestamp = None
 
 
+RECIPIENT_RELATIONS = ("GUEST", "FRIEND", "RELATIVE", "CHILD")
+
+
+class RecipientSync(BaseModel):
+    """Who the service is for, when the customer booked for someone else."""
+    relation: str
+    name: str = Field(min_length=1, max_length=100)
+    phone: Optional[str] = Field(default=None, max_length=20)
+    age: Optional[int] = Field(default=None, ge=0, le=120)
+    address: Optional[str] = Field(default=None, max_length=300)
+    notes: Optional[str] = Field(default=None, max_length=1000)
+
+
 class BookingSync(BaseModel):
     firebase_order_id: str
 
@@ -69,6 +84,12 @@ class BookingSync(BaseModel):
 
     # The date and time slot the customer chose for the visit
     scheduled_at: Timestamp = None
+
+    # How long the partner is booked for (care is booked by the hour)
+    duration_minutes: Optional[int] = Field(default=None, ge=15, le=24 * 60)
+
+    # Set when the customer booked for a guest, friend, relative or child
+    booked_for: Optional[RecipientSync] = None
 
     created_at: Timestamp = None
     accepted_at: Timestamp = None
@@ -256,6 +277,26 @@ def sync_review(db: Session, booking: Booking, data: BookingSync):
     ))
 
 
+def sync_recipient(db: Session, booking: Booking, data: BookingSync):
+    person = data.booked_for
+
+    if not person or person.relation.upper() not in RECIPIENT_RELATIONS:
+        return
+
+    record = db.get(BookingRecipient, booking.id)
+
+    if not record:
+        record = BookingRecipient(booking_id=booking.id)
+        db.add(record)
+
+    record.relation = person.relation.upper()
+    record.name = person.name.strip()
+    record.phone = (person.phone or "").strip() or None
+    record.age = person.age
+    record.address = (person.address or "").strip() or None
+    record.notes = (person.notes or "").strip() or None
+
+
 def apply_sync(db: Session, data: BookingSync) -> Booking:
     detail = db.query(BookingDetail).filter(
         BookingDetail.firebase_order_id == data.firebase_order_id
@@ -287,6 +328,11 @@ def apply_sync(db: Session, data: BookingSync) -> Booking:
         booking.longitude = data.longitude
 
     detail.current_step = data.current_step
+
+    if data.duration_minutes:
+        detail.duration_minutes = data.duration_minutes
+
+    sync_recipient(db, booking, data)
     detail.repair_photo_url = (
         photo_link(data.repair_photo_url) or detail.repair_photo_url
     )
@@ -439,6 +485,16 @@ def build_bills(db: Session, filters: list) -> list:
 
     complaints = complaints_by_booking(db, booking_ids)
 
+    recipients = {
+        person.booking_id: person
+        for person in (
+            db.query(BookingRecipient)
+            .filter(BookingRecipient.booking_id.in_(booking_ids))
+            .all()
+            if booking_ids else []
+        )
+    }
+
     bills = []
 
     for booking, detail, service, partner, partner_user, customer in rows:
@@ -481,7 +537,14 @@ def build_bills(db: Session, filters: list) -> list:
             "amount_paid": detail.amount_paid if detail else 0.0,
             "razorpay_payment_id": detail.razorpay_payment_id if detail else None,
             "paid_at": to_iso_utc(detail.paid_at if detail else None),
-            "complaint": complaints.get(booking.id)
+            "complaint": complaints.get(booking.id),
+            "booked_for": (
+                {
+                    "name": recipients[booking.id].name,
+                    "relation": recipients[booking.id].relation
+                }
+                if booking.id in recipients else None
+            )
         })
 
     return bills

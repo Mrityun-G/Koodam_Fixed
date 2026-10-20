@@ -131,7 +131,7 @@ export const PaymentScreen = () => {
 
         currency: order.currency,
 
-        name: 'KOODAM',
+        name: 'GigEzee',
 
         description: `Payment for ${activeOrder.serviceTitle}`,
 
@@ -142,7 +142,7 @@ export const PaymentScreen = () => {
           name:
             activeOrder?.customerName ||
             userProfile?.name ||
-            'KOODAM Customer',
+            'GigEzee Customer',
           ...(userProfile?.email ? { email: userProfile.email } : {}),
           ...(userProfile?.phone ? { contact: userProfile.phone } : {})
         },

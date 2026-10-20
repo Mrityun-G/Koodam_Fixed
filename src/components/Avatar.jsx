@@ -32,7 +32,7 @@ export const Avatar = ({
   className = 'w-10 h-10 rounded-full',
   textClassName = 'text-base'
 }) => {
-  // The KOODAM logo was used as a stand-in photo; treat it as no photo
+  // The GigEzee logo was used as a stand-in photo; treat it as no photo
   const photo = src && src !== '/logo.svg' ? src : null;
   const [failed, setFailed] = useState(false);
 

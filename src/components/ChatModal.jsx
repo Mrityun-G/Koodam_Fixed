@@ -26,15 +26,23 @@ export const ChatModal = () => {
   // contact (e.g. from the bottom Chat tab).
   const orderContact = activeOrder?.orderId
     ? myRole === 'member'
-      ? { name: activeOrder.helperName, avatar: activeOrder.helperAvatar }
-      : { name: activeOrder.customerName, avatar: activeOrder.customerAvatar }
+      ? {
+          name: activeOrder.helperName,
+          avatar: activeOrder.helperAvatar,
+          phone: activeOrder.helperPhone
+        }
+      : {
+          name: activeOrder.customerName,
+          avatar: activeOrder.customerAvatar,
+          phone: activeOrder.customerPhone
+        }
     : null;
 
   // Support either a contact name string or a contact object.
-  // 'KOODAM Customer' is the app's placeholder, not a real name.
+  // 'GigEzee Customer' is the app's placeholder, not a real name.
   const explicitName =
     typeof chatPartner === 'string'
-      ? chatPartner !== 'KOODAM Customer' && chatPartner
+      ? chatPartner !== 'GigEzee Customer' && chatPartner
       : chatPartner?.name ||
         chatPartner?.partnerName ||
         chatPartner?.customerName;
@@ -42,12 +50,18 @@ export const ChatModal = () => {
   const partnerName =
     explicitName ||
     orderContact?.name ||
-    'KOODAM User';
+    'GigEzee User';
 
+  // Numbers come from the booking, not from the helper list: a
+  // partner's phone isn't handed out before there's a job between
+  // them. Chatting before booking has no number, and the button
+  // below goes quiet rather than dialling something made up.
   const partnerPhone =
-    typeof chatPartner === 'object' && chatPartner
+    (typeof chatPartner === 'object' && chatPartner
       ? chatPartner.phone || chatPartner.phone_number || ''
-      : '';
+      : '') ||
+    orderContact?.phone ||
+    '';
 
   const partnerAvatar =
     (typeof chatPartner === 'object' && chatPartner
@@ -263,7 +277,7 @@ export const ChatModal = () => {
 
                 {partnerVehicle
                   ? `Active on ${partnerVehicle}`
-                  : 'Active on KOODAM'}
+                  : 'Active on GigEzee'}
                 
                 {partnerDistance
                   ? ` (${partnerDistance})`
@@ -299,17 +313,25 @@ export const ChatModal = () => {
             )}
 
             <a
-              href={`tel:${partnerPhone || '+919876543210'}`}
+              href={partnerPhone ? `tel:${partnerPhone}` : undefined}
+              aria-disabled={!partnerPhone}
+              title={
+                partnerPhone
+                  ? `Call ${partnerName}`
+                  : 'The number is available once the booking is accepted'
+              }
               aria-label={`Call ${partnerName}`}
-              className="
+              className={`
                 w-9 h-9
                 rounded-full
                 bg-[#eff4ff]
                 text-[#a14000]
                 flex items-center justify-center
-                hover:bg-[#ffdbcc]
                 transition-colors
-              "
+                ${partnerPhone
+                  ? 'hover:bg-[#ffdbcc]'
+                  : 'opacity-40 cursor-not-allowed'}
+              `}
             >
               <span
                 className="

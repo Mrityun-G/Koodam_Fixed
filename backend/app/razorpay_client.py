@@ -17,7 +17,8 @@ def razorpay_request(
     path: str,
     payload: dict = None,
     version: str = "v1",
-    params: dict = None
+    params: dict = None,
+    headers: dict = None
 ) -> dict:
     if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
         raise HTTPException(
@@ -32,11 +33,13 @@ def razorpay_request(
             auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET),
             json=payload,
             params=params,
+            headers=headers,
             timeout=15
         )
     except requests.RequestException:
+        # 504: the request may or may not have reached Razorpay
         raise HTTPException(
-            status_code=502,
+            status_code=504,
             detail="Couldn't reach Razorpay. Please try again."
         )
 
@@ -47,12 +50,12 @@ def razorpay_request(
             message = response.text
 
         # Razorpay hasn't switched on Route (partner payouts) for the
-        # KOODAM account yet; this is on KOODAM's side, not the partner's
+        # GigEzee account yet; this is on GigEzee's side, not the partner's
         if "route feature not enabled" in str(message).lower():
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Bank payouts aren't switched on for KOODAM yet. Your "
+                    "Bank payouts aren't switched on for GigEzee yet. Your "
                     "earnings are recorded and will be paid once they are. "
                     "Please try adding your bank account again later."
                 )

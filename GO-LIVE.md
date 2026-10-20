@@ -1,4 +1,4 @@
-# KOODAM go-live checklist
+# GigEzee go-live checklist
 
 The code changes are done. These are the steps that can only be done in
 a dashboard or against the live database, so they are not in the repo.
@@ -66,7 +66,7 @@ should no longer warn that the database is public.
 On Render, **Environment** → add anything missing from
 `backend/.env.example`. Two that matter:
 
-- `KOODAM_ADMIN_EMAILS` — without it every `/admin/*` endpoint returns
+- `GIGEZEE_ADMIN_EMAILS` — without it every `/admin/*` endpoint returns
   403 to everyone, including you. The local `.env` had this under the
   old `GIGEZEE_` prefix, which `config.py` did not read.
 - `ALLOWED_ORIGINS` — the deployed frontend URL, or the browser blocks
@@ -120,7 +120,7 @@ arrive branded as a Firebase project and land in spam.
 - The store listing needs a link to a public privacy policy page. The
   in-app one is at Settings → Terms & Privacy Policy; it needs a web URL
   too.
-- Data safety form: KOODAM collects name, email, phone, address and
+- Data safety form: GigEzee collects name, email, phone, address and
   location; partners also submit identity documents. Account deletion is
   in Settings → Delete Account, which the form asks about.
 

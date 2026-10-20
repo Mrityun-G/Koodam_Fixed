@@ -229,7 +229,7 @@ export const BillingHistory = ({
                 {isPartnerView ? (
                   <div className="flex justify-between gap-3">
                     <span className="text-[#5a4136]">
-                      {`KOODAM commission (${bill.commission_percent}%)`}
+                      {`GigEzee commission (${bill.commission_percent}%)`}
                     </span>
                     <span className="font-bold text-red-500 shrink-0">
                       {`− ${formatRupees(bill.commission)}`}
@@ -254,7 +254,7 @@ export const BillingHistory = ({
                     <img
                       src={bill.repair_photo_url}
                       alt="Finished repair"
-                      className="w-full max-h-32 rounded-xl object-cover"
+                      className="w-full max-h-32 object-contain bg-slate-50"
                     />
                   </a>
                 )}
@@ -315,7 +315,7 @@ export const BillingHistory = ({
                     </div>
 
                     <p className="text-[10px] text-slate-400">
-                      {`Customer's total bill: ${formatRupees(bill.total_amount)} (includes ${formatRupees(bill.trust_fee)} trust fee paid to KOODAM). Extra parts are never commissioned.`}
+                      {`Customer's total bill: ${formatRupees(bill.total_amount)} (includes ${formatRupees(bill.trust_fee)} trust fee paid to GigEzee). Extra parts are never commissioned.`}
                     </p>
                   </>
                 ) : (

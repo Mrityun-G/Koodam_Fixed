@@ -4,7 +4,7 @@ import { BACKEND_URL } from './authorizedFetch';
 // Crash reporting.
 //
 // The app had none: a render error showed a white screen and nobody
-// found out. Reports go to KOODAM's own backend rather than a third
+// found out. Reports go to GigEzee's own backend rather than a third
 // party, so no customer data leaves our infrastructure. The backend
 // groups repeats and keeps them in client_errors, and the admin console
 // reads them at /admin/client-errors.

@@ -5,7 +5,7 @@ import { reportError } from '../lib/errorTracking';
 //
 // Without this, one thrown error unmounts the whole app and the person
 // is left looking at a blank white screen with no way forward. This
-// keeps them inside KOODAM, reports the fault, and offers the two things
+// keeps them inside GigEzee, reports the fault, and offers the two things
 // that usually help: try again, or go back to the start.
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -64,7 +64,7 @@ export class ErrorBoundary extends React.Component {
           </h1>
 
           <p className="mt-2 text-xs leading-relaxed text-[#4e5c92]">
-            Sorry — KOODAM hit a problem on this screen. Nothing you had
+            Sorry — GigEzee hit a problem on this screen. Nothing you had
             booked is affected, and our team has been told about it.
           </p>
 
@@ -85,7 +85,7 @@ export class ErrorBoundary extends React.Component {
           </button>
 
           <p className="mt-5 text-[11px] text-slate-400">
-            If it keeps happening, please contact KOODAM support.
+            If it keeps happening, please contact GigEzee support.
           </p>
         </div>
       </div>

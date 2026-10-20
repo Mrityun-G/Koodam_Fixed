@@ -2,7 +2,7 @@
 Who is allowed to see or change what.
 
 app.auth proves *which Firebase account* made a request. This module turns
-that into a KOODAM user and answers the next question: is this their own
+that into a GigEzee user and answers the next question: is this their own
 data? Every router depends on something here, so a new endpoint can't
 quietly ship without an owner check.
 """
@@ -37,12 +37,12 @@ def require_user(
     firebase_uid: str = Depends(current_firebase_uid),
     db: Session = Depends(get_db)
 ) -> User:
-    """FastAPI dependency: the KOODAM user behind the request."""
+    """FastAPI dependency: the GigEzee user behind the request."""
     return signed_in_user(db, firebase_uid)
 
 
 # =========================================================
-# KOODAM STAFF
+# GigEzee STAFF
 # =========================================================
 
 def is_admin(user: User) -> bool:
@@ -51,7 +51,7 @@ def is_admin(user: User) -> bool:
 
 def require_admin(user: User = Depends(require_user)) -> User:
     if not is_admin(user):
-        raise HTTPException(status_code=403, detail="KOODAM staff only")
+        raise HTTPException(status_code=403, detail="GigEzee staff only")
 
     return user
 
@@ -87,7 +87,7 @@ def require_own_partner(
 ) -> Partner:
     """
     The partner record at `identifier`, but only if the caller is that
-    partner (or KOODAM staff). Used for everything that changes a
+    partner (or GigEzee staff). Used for everything that changes a
     partner's own settings, money or documents.
     """
     partner = partner_or_404(db, identifier)
@@ -108,7 +108,7 @@ def require_own_partner(
 def require_booking_party(db: Session, user: User, booking) -> None:
     """
     Bookings are private to the customer, the assigned partner and
-    KOODAM staff. Anyone else gets a 403.
+    GigEzee staff. Anyone else gets a 403.
     """
     if is_admin(user):
         return

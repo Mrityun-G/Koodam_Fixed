@@ -62,7 +62,7 @@ class Partner(Base):
     # Hidden from customers until then, after too many strikes
     suspended_until = Column(DateTime, nullable=True)
 
-    # Set by KOODAM staff to remove the partner with no end date; cleared
+    # Set by GigEzee staff to remove the partner with no end date; cleared
     # when they're reactivated. Their record and past jobs are kept.
     deactivated_at = Column(DateTime, nullable=True)
 

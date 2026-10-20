@@ -2,7 +2,8 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 // What happens on a phone booking, in the order the customer hears it
-const STEPS = [
+// (used until the steps stored by GigEzee staff load)
+const DEFAULT_STEPS = [
   { icon: 'translate', title: 'Call and choose your language', desc: 'Tamil, Kannada or English. Your phone number is your account.' },
   { icon: 'handyman', title: 'Pick a service and enter your pincode', desc: 'Press the number for the service, then type your 6-digit area pincode.' },
   { icon: 'verified_user', title: 'Hear the price and confirm', desc: 'We find the nearest serviceman. Note down the 4-digit safety code we read out.' },
@@ -13,10 +14,11 @@ const STEPS = [
 
 /**
  * Offline mode: customers without a smartphone or internet book by
- * calling KOODAM. Servicemen keep using the app as usual.
+ * calling GigEzee. Servicemen keep using the app as usual.
  */
 export const OfflineModeScreen = () => {
-  const { navigateTo, phoneBookingNumber } = useApp();
+  const { navigateTo, phoneBookingNumber, appContent } = useApp();
+  const steps = appContent.offline_steps?.length ? appContent.offline_steps : DEFAULT_STEPS;
 
   return (
     <div className="flex-1 flex flex-col w-full bg-[#f8f9ff] min-h-screen">
@@ -43,7 +45,7 @@ export const OfflineModeScreen = () => {
           </span>
 
           <h1 className="text-xl font-extrabold leading-tight">
-            No smartphone or internet? Call KOODAM from any phone.
+            No smartphone or internet? Call GigEzee from any phone.
           </h1>
 
           {phoneBookingNumber ? (
@@ -68,7 +70,7 @@ export const OfflineModeScreen = () => {
         <section className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col gap-3.5">
           <h2 className="text-sm font-extrabold text-[#0b1c30]">How it works</h2>
 
-          {STEPS.map((step, index) => (
+          {steps.map((step, index) => (
             <div key={step.title} className="flex items-start gap-3">
               <div className="relative w-9 h-9 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">{step.icon}</span>
@@ -88,7 +90,7 @@ export const OfflineModeScreen = () => {
         <div className="rounded-2xl border border-[#6ffbbe]/50 bg-[#eafff4] p-4 text-[11px] text-[#006c49] flex items-start gap-2">
           <span className="material-symbols-outlined text-[16px] shrink-0">info</span>
           <span>
-            Offline mode is for customers only. Servicemen receive phone bookings in the KOODAM app like any other job.
+            Offline mode is for customers only. Servicemen receive phone bookings in the GigEzee app like any other job.
           </span>
         </div>
 

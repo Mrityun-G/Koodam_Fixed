@@ -6,16 +6,16 @@ LANGUAGES = ("ta", "kn", "en")
 # Said before a language is chosen, so each part in its own voice.
 # The digit for each language is its position in LANGUAGES.
 CHOOSE_LANGUAGE = [
-    ("ta", "கூடம். தமிழுக்கு 1 அழுத்தவும்."),
-    ("kn", "ಕನ್ನಡಕ್ಕಾಗಿ 2 ಒತ್ತಿರಿ."),
-    ("en", "For English, press 3."),
+    ("ta", "கிக்ஈஸி. தமிழுக்கு 1 அழுத்தவும் அல்லது சொல்லவும்."),
+    ("kn", "ಕನ್ನಡಕ್ಕಾಗಿ 2 ಒತ್ತಿರಿ ಅಥವಾ ಹೇಳಿ."),
+    ("en", "For English, press or say 3."),
 ]
 
 PROMPTS = {
     "welcome": {
-        "en": "Welcome to KOODAM.",
-        "ta": "கூடத்திற்கு வரவேற்கிறோம்.",
-        "kn": "ಕೂಡಮ್‌ಗೆ ಸ್ವಾಗತ.",
+        "en": "Welcome to GigEzee.",
+        "ta": "கிக்ஈஸிக்கு வரவேற்கிறோம்.",
+        "kn": "ಗಿಗ್‌ಈಸಿಗೆ ಸ್ವಾಗತ.",
     },
     "invalid": {
         "en": "Sorry, that is not an option.",
@@ -23,9 +23,9 @@ PROMPTS = {
         "kn": "ಕ್ಷಮಿಸಿ, ಅದು ಸರಿಯಾದ ಆಯ್ಕೆ ಅಲ್ಲ.",
     },
     "goodbye": {
-        "en": "Thank you for calling KOODAM. Goodbye.",
-        "ta": "கூடத்தை அழைத்ததற்கு நன்றி. வணக்கம்.",
-        "kn": "ಕೂಡಮ್‌ಗೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ. ನಮಸ್ಕಾರ.",
+        "en": "Thank you for calling GigEzee. Goodbye.",
+        "ta": "கிக்ஈஸியை அழைத்ததற்கு நன்றி. வணக்கம்.",
+        "kn": "ಗಿಗ್‌ಈಸಿಗೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ. ನಮಸ್ಕಾರ.",
     },
     "unavailable": {
         "en": "Phone booking is not available right now. Please try again later.",
@@ -171,14 +171,14 @@ PROMPTS = {
         "kn": "ಏನು ತಪ್ಪಾಯಿತು? ಸೇವಕರು ಬರದಿದ್ದರೆ 1. ತುಂಬಾ ತಡವಾದರೆ 2. ಕಳಪೆ ಅಥವಾ ಅಪೂರ್ಣ ಕೆಲಸಕ್ಕೆ 3. ಒಪ್ಪಿದ್ದಕ್ಕಿಂತ ಹೆಚ್ಚು ಶುಲ್ಕಕ್ಕೆ 4. ಅಸಭ್ಯ ಅಥವಾ ಅಸುರಕ್ಷಿತ ವರ್ತನೆಗೆ 5.",
     },
     "complaint_saved": {
-        "en": "Your complaint is registered. KOODAM will review it.",
-        "ta": "உங்கள் புகார் பதிவு செய்யப்பட்டது. கூடம் அதை ஆய்வு செய்யும்.",
-        "kn": "ನಿಮ್ಮ ದೂರು ದಾಖಲಾಗಿದೆ. ಕೂಡಮ್ ಅದನ್ನು ಪರಿಶೀಲಿಸುತ್ತದೆ.",
+        "en": "Your complaint is registered. GigEzee will review it.",
+        "ta": "உங்கள் புகார் பதிவு செய்யப்பட்டது. கிக்ஈஸி அதை ஆய்வு செய்யும்.",
+        "kn": "ನಿಮ್ಮ ದೂರು ದಾಖಲಾಗಿದೆ. ಗಿಗ್‌ಈಸಿ ಅದನ್ನು ಪರಿಶೀಲಿಸುತ್ತದೆ.",
     },
     "complaint_exists": {
-        "en": "You have already reported a problem with this job. KOODAM is reviewing it.",
-        "ta": "இந்த வேலை குறித்து நீங்கள் ஏற்கனவே புகாரளித்துள்ளீர்கள். கூடம் ஆய்வு செய்கிறது.",
-        "kn": "ಈ ಕೆಲಸದ ಬಗ್ಗೆ ನೀವು ಈಗಾಗಲೇ ದೂರು ನೀಡಿದ್ದೀರಿ. ಕೂಡಮ್ ಪರಿಶೀಲಿಸುತ್ತಿದೆ.",
+        "en": "You have already reported a problem with this job. GigEzee is reviewing it.",
+        "ta": "இந்த வேலை குறித்து நீங்கள் ஏற்கனவே புகாரளித்துள்ளீர்கள். கிக்ஈஸி ஆய்வு செய்கிறது.",
+        "kn": "ಈ ಕೆಲಸದ ಬಗ್ಗೆ ನೀವು ಈಗಾಗಲೇ ದೂರು ನೀಡಿದ್ದೀರಿ. ಗಿಗ್‌ಈಸಿ ಪರಿಶೀಲಿಸುತ್ತಿದೆ.",
     },
 }
 

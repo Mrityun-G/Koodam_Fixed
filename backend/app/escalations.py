@@ -60,7 +60,7 @@ def is_deactivated(partner: Partner) -> bool:
 
 
 def can_take_bookings(partner: Partner) -> bool:
-    # Neither suspended for strikes nor removed by KOODAM
+    # Neither suspended for strikes nor removed by GigEzee
     return not is_suspended(partner) and not is_deactivated(partner)
 
 

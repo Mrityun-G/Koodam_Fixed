@@ -71,12 +71,12 @@ export const PartnerReliability = () => {
         <div className="rounded-2xl bg-red-50 border border-red-100 p-3.5">
           <p className="text-xs font-extrabold text-red-600 flex items-center gap-1">
             <span className="material-symbols-outlined text-[16px]">block</span>
-            Account deactivated by KOODAM
+            Account deactivated by GigEzee
           </p>
           <p className="text-[11px] text-red-600/80 mt-0.5">
             {record.deactivation_reason
-              ? `Reason: ${record.deactivation_reason}. Customers can't book you until KOODAM reactivates your account.`
-              : "Customers can't book you until KOODAM reactivates your account."}
+              ? `Reason: ${record.deactivation_reason}. Customers can't book you until GigEzee reactivates your account.`
+              : "Customers can't book you until GigEzee reactivates your account."}
           </p>
         </div>
       )}
@@ -128,7 +128,7 @@ export const PartnerReliability = () => {
           <p className="text-[11px] text-slate-500">
             {activeEscalations.length === 0
               ? 'No escalations. Keep it up!'
-              : `${record.recent_strikes} of ${record.strikes_to_suspend} strikes in the last ${record.strike_window_days} days`}
+              : `${record.recent_strikes} ${record.recent_strikes === 1 ? 'strike' : 'strikes'} in the last ${record.strike_window_days} days (${record.strikes_to_suspend} means a suspension)`}
           </p>
         </div>
         <span className="material-symbols-outlined text-[18px] text-slate-300">
@@ -139,7 +139,7 @@ export const PartnerReliability = () => {
       {open && (
         <div className="bg-white rounded-2xl border border-slate-100 p-3.5 space-y-2 text-[11px]">
           <p className="text-slate-500">
-            {`Your score starts at 100 and drops when a job is escalated: not starting or finishing an accepted job on time, not replying to a complaint in time, or a complaint KOODAM upholds. Your first one in ${record.strike_window_days} days is a warning; after that each is a strike. ${record.strikes_to_suspend} strikes means a ${record.suspension_days}-day suspension. A lower score places you lower in search.`}
+            {`Your score starts at 100 and drops when a job is escalated: not starting or finishing an accepted job on time, not replying to a complaint in time, or a complaint GigEzee upholds. Your first one in ${record.strike_window_days} days is a warning; after that each is a strike. ${record.strikes_to_suspend} strikes means a ${record.suspension_days}-day suspension. A lower score places you lower in search.`}
           </p>
 
           {record.escalations.length === 0 ? (
@@ -156,7 +156,7 @@ export const PartnerReliability = () => {
                 <p className="text-slate-500">{`${formatDate(escalation.created_at)} • ${escalation.reason}`}</p>
                 {escalation.status === 'OVERTURNED' && (
                   <p className="text-[#006c49] font-semibold">
-                    {`Overturned by KOODAM${escalation.overturn_note ? `: ${escalation.overturn_note}` : ''}`}
+                    {`Overturned by GigEzee${escalation.overturn_note ? `: ${escalation.overturn_note}` : ''}`}
                   </p>
                 )}
               </div>

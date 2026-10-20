@@ -2,7 +2,7 @@
 Uploading files to Supabase Storage from the backend.
 
 The app used to upload avatars straight from the browser with the anon
-key. That could not be secured: people sign in to KOODAM with Firebase,
+key. That could not be secured: people sign in to GigEzee with Firebase,
 so Supabase sees no session, `auth.uid()` is null, and any storage policy
 tight enough to stop a stranger would also stop the real user. Uploading
 here instead means the Firebase token is checked first and the bucket can

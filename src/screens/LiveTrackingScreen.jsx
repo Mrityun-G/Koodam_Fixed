@@ -6,6 +6,7 @@ import { Avatar } from '../components/Avatar';
 import { LiveMap } from '../components/LiveMap';
 import { RepairBill } from '../components/RepairBill';
 import { useSecondsLeft } from '../lib/useSecondsLeft';
+import { relationLabel } from '../lib/bookFor';
 
 export const LiveTrackingScreen = () => {
   const {
@@ -286,7 +287,7 @@ export const LiveTrackingScreen = () => {
                         <img
                           src={charge.photoUrl}
                           alt={charge.item}
-                          className="w-full max-h-40 rounded-lg object-cover"
+                          className="w-full max-h-40 object-contain bg-slate-50"
                         />
                       </a>
                     )}
@@ -557,6 +558,26 @@ export const LiveTrackingScreen = () => {
                 <span>In-App Chat</span>
               </button>
             </div>
+
+            {activeOrder.bookedFor?.name && (
+              <div className="bg-[#eff4ff] rounded-2xl p-3 flex items-start gap-2 border border-slate-200/60">
+                <span className="material-symbols-outlined text-[18px] text-[#4e5c92] shrink-0">
+                  {activeOrder.bookedFor.relation === 'CHILD' ? 'child_care' : 'person'}
+                </span>
+                <p className="text-[11px] text-[#0b1c30] leading-relaxed">
+                  <span className="font-bold">
+                    {`For ${activeOrder.bookedFor.name} (${relationLabel(activeOrder.bookedFor.relation)})`}
+                  </span>
+                  {activeOrder.durationMinutes
+                    ? ` · ${Math.round(activeOrder.durationMinutes / 60)} hrs`
+                    : ''}
+                  <br />
+                  {activeOrder.currentStep >= 4
+                    ? 'The helper is with them now. Ask for the completion code when the job is done.'
+                    : 'The helper will call you on arrival. Share the code below only once you have confirmed they are at the door.'}
+                </p>
+              </div>
+            )}
 
             {/* Verification PIN Box */}
             <div className="bg-[#dce9ff]/70 rounded-2xl p-3 flex items-center justify-between gap-2 border border-slate-200/60">

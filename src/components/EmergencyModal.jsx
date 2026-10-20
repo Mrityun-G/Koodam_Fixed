@@ -31,7 +31,14 @@ export const EmergencyModal = () => {
     let isActive = true;
     setLoading(true);
 
-    authorizedFetch('/services/with-partners')
+    // An emergency is the one time the nearest helper matters most,
+    // so the member's position goes with the request and the backend
+    // answers with the partners who can actually reach them
+    const query = userCoords
+      ? `?lat=${userCoords.lat}&lng=${userCoords.lng}`
+      : '';
+
+    authorizedFetch(`/services/with-partners${query}`)
       .then((services) => {
         if (isActive) setHelpers(helpersFromServices(services));
       })
@@ -46,7 +53,7 @@ export const EmergencyModal = () => {
     return () => {
       isActive = false;
     };
-  }, [isEmergencyModalOpen]);
+  }, [isEmergencyModalOpen, userCoords]);
 
   // For each service, the nearest online helper who covers the member
   const emergencyServices = useMemo(() => {

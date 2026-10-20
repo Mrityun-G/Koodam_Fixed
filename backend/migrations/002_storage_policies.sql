@@ -2,7 +2,7 @@
 --
 -- The browser used to upload avatars itself using the anon key, which
 -- ships inside the app bundle and is therefore public. That could not be
--- made safe: KOODAM signs people in with Firebase, so Supabase sees no
+-- made safe: GigEzee signs people in with Firebase, so Supabase sees no
 -- session and auth.uid() is null - any policy strict enough to stop a
 -- stranger would also have stopped the real member.
 --

@@ -1,10 +1,10 @@
 """
-Take a backup of the KOODAM database.
+Take a backup of the GigEzee database.
 
 Supabase takes its own daily snapshots, but on the free and Pro plans
 those are the provider's copy on the provider's schedule: if the project
 is paused, deleted or loses access, they go with it. This writes a copy
-somewhere KOODAM controls, keeps a rolling window of them, and exits
+somewhere GigEzee controls, keeps a rolling window of them, and exits
 non-zero when something goes wrong so a scheduler can alert on it.
 
 Two formats:
@@ -169,13 +169,13 @@ def check() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Back up the KOODAM database.")
+    parser = argparse.ArgumentParser(description="Back up the GigEzee database.")
     parser.add_argument("--format", choices=("json", "sql"), default="json")
-    parser.add_argument("--out", default=os.getenv("KOODAM_BACKUP_DIR", str(DEFAULT_OUT)))
+    parser.add_argument("--out", default=os.getenv("GIGEZEE_BACKUP_DIR", str(DEFAULT_OUT)))
     parser.add_argument(
         "--keep",
         type=int,
-        default=int(os.getenv("KOODAM_BACKUP_KEEP", DEFAULT_KEEP)),
+        default=int(os.getenv("GIGEZEE_BACKUP_KEEP", DEFAULT_KEEP)),
         help=f"how many backups to keep (default {DEFAULT_KEEP})"
     )
     parser.add_argument("--check", action="store_true", help="test the connection only")
