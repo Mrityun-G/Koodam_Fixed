@@ -1,6 +1,8 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { AppProvider, useApp, PORTAL } from './context/AppContext';
 import { MobileFrame } from './components/MobileFrame';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { VerifyEmailBanner } from './components/VerifyEmailBanner';
 import { LandingScreen } from './screens/LandingScreen';
 import { OfflineModeScreen } from './screens/OfflineModeScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
@@ -17,6 +19,7 @@ import { startDomTranslator } from './lib/domTranslator';
 const screen = (load, name) =>
   lazy(() => load().then((module) => ({ default: module[name] })));
 
+const OnboardingScreen = screen(() => import('./screens/OnboardingScreen'), 'OnboardingScreen');
 const UserHomeScreen = screen(() => import('./screens/UserHomeScreen'), 'UserHomeScreen');
 const BookingScreen = screen(() => import('./screens/BookingScreen'), 'BookingScreen');
 const DiagnoseScreen = screen(() => import('./screens/DiagnoseScreen'), 'DiagnoseScreen');
@@ -32,6 +35,37 @@ const ResetPasswordScreen = screen(() => import('./screens/ResetPasswordScreen')
 const FAQScreen = screen(() => import('./screens/FAQScreen'), 'FAQScreen');
 const TermsScreen = screen(() => import('./screens/TermsScreen'), 'TermsScreen');
 const BillingScreen = screen(() => import('./screens/BillingScreen'), 'BillingScreen');
+const NotFoundScreen = screen(() => import('./screens/NotFoundScreen'), 'NotFoundScreen');
+
+// One screen per entry, so an unknown value falls through to the not-found
+// screen instead of rendering nothing. The chain of
+// `currentScreen === '…' && <Screen />` this replaces had no final branch,
+// which left a blank white page with no way back.
+const SCREENS = {
+  landing: LandingScreen,
+  offline: OfflineModeScreen,
+  welcome: WelcomeScreen,
+  memberLogin: AuthScreen,
+  memberSignup: AuthScreen,
+  partnerLogin: AuthScreen,
+  partnerSignup: AuthScreen,
+  onboarding: OnboardingScreen,
+  home: UserHomeScreen,
+  booking: BookingScreen,
+  diagnose: DiagnoseScreen,
+  payment: PaymentScreen,
+  tracking: LiveTrackingScreen,
+  nearbyMap: NearbyMapScreen,
+  partner: PartnerDashboard,
+  profile: ProfileScreen,
+  editProfile: EditProfileScreen,
+  settings: SettingsScreen,
+  resetPassword: ResetPasswordScreen,
+  faq: FAQScreen,
+  terms: TermsScreen,
+  billing: BillingScreen,
+  admin: AdminEscalationsScreen
+};
 
 // Shown while Firebase works out whether somebody is still logged in, and
 // while a Google sign-in is being finished. Both are asynchronous, so
@@ -96,35 +130,22 @@ const AppContent = () => {
     [language]
   );
 
+  const Screen = SCREENS[currentScreen] || NotFoundScreen;
+
   return (
     <MobileFrame overlay={<ChatModal />}>
-      {/* Dynamic Screen Routing */}
-      {isBooting && <BootSplash />}
+      {isBooting ? (
+        <BootSplash />
+      ) : (
+        <>
+          <VerifyEmailBanner />
 
-      <Suspense fallback={<ScreenLoading />}>
-        {!isBooting && currentScreen === 'landing' && <LandingScreen />}
-        {currentScreen === 'offline' && <OfflineModeScreen />}
-        {currentScreen === 'welcome' && <WelcomeScreen />}
-        {(currentScreen === 'memberLogin' ||
-          currentScreen === 'memberSignup' ||
-          currentScreen === 'partnerLogin' ||
-          currentScreen === 'partnerSignup') && <AuthScreen />}
-        {currentScreen === 'home' && <UserHomeScreen />}
-        {currentScreen === 'booking' && <BookingScreen />}
-        {currentScreen === 'diagnose' && <DiagnoseScreen />}
-        {currentScreen === 'payment' && <PaymentScreen />}
-        {currentScreen === 'tracking' && <LiveTrackingScreen />}
-        {currentScreen === 'nearbyMap' && <NearbyMapScreen />}
-        {currentScreen === 'partner' && <PartnerDashboard />}
-        {currentScreen === 'profile' && <ProfileScreen />}
-        {currentScreen === 'editProfile' && <EditProfileScreen />}
-        {currentScreen === 'settings' && <SettingsScreen />}
-        {currentScreen === 'resetPassword' && <ResetPasswordScreen />}
-        {currentScreen === 'faq' && <FAQScreen />}
-        {currentScreen === 'terms' && <TermsScreen />}
-        {currentScreen === 'billing' && <BillingScreen />}
-        {currentScreen === 'admin' && <AdminEscalationsScreen />}
-      </Suspense>
+          {/* Dynamic Screen Routing */}
+          <Suspense fallback={<ScreenLoading />}>
+            <Screen />
+          </Suspense>
+        </>
+      )}
 
       {/* Global Modals & Overlays */}
       <EmergencyModal />
@@ -149,8 +170,10 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

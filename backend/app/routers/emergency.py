@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
+from app.authz import is_admin, require_admin, require_user
 from app.database import get_db
 from app.models.emergency import EmergencyRequest
 from app.models.user import User
@@ -22,8 +23,14 @@ router = APIRouter(
 @router.post("/", response_model=EmergencyResponse)
 def create_emergency_request(
     emergency_data: EmergencyCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
+    if emergency_data.user_id != caller.id and not is_admin(caller):
+        raise HTTPException(
+            status_code=403,
+            detail="You can only raise an emergency for yourself."
+        )
 
     # Check user
     user = db.query(User).filter(
@@ -56,7 +63,8 @@ def create_emergency_request(
 
 @router.get("/", response_model=list[EmergencyResponse])
 def get_emergency_requests(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_admin)
 ):
     return db.query(EmergencyRequest).order_by(
         EmergencyRequest.created_at.desc()
@@ -66,7 +74,8 @@ def get_emergency_requests(
 @router.get("/{request_id}", response_model=EmergencyResponse)
 def get_emergency_request(
     request_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
 
     request = db.query(EmergencyRequest).filter(
@@ -79,6 +88,26 @@ def get_emergency_request(
             detail="Emergency request not found"
         )
 
+    # The person who raised it, the partner sent to it, or KOODAM staff
+    assigned = (
+        db.query(Partner)
+        .filter(Partner.id == request.assigned_partner_id)
+        .first()
+        if request.assigned_partner_id else None
+    )
+
+    allowed = (
+        request.user_id == caller.id
+        or is_admin(caller)
+        or (assigned is not None and assigned.user_id == caller.id)
+    )
+
+    if not allowed:
+        raise HTTPException(
+            status_code=403,
+            detail="This emergency request isn't yours."
+        )
+
     return request
 
 
@@ -87,7 +116,8 @@ def get_emergency_request(
 def assign_emergency_partner(
     request_id: UUID,
     partner_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_admin)
 ):
 
     request = db.query(EmergencyRequest).filter(

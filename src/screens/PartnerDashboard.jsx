@@ -17,6 +17,11 @@ import { PartnerPayouts } from '../components/PartnerPayouts';
 import { PartnerReliability } from '../components/PartnerReliability';
 import { Avatar } from '../components/Avatar';
 import { LiveMap } from '../components/LiveMap';
+import {
+  authorizedFetch,
+  authorizedFetchOrNull,
+  BACKEND_URL
+} from '../lib/authorizedFetch';
 
 // Marks a job the customer booked by phone call (offline mode): they have
 // no app and pay in cash
@@ -351,10 +356,6 @@ export const PartnerDashboard = () => {
   const [servicePrice, setServicePrice] = useState('');
   const [serviceSaving, setServiceSaving] = useState(false);
 
-  const BACKEND_URL =
-    import.meta.env.VITE_BACKEND_URL ||
-    'http://127.0.0.1:8000';
-
   // ================================
   // LOAD PARTNER SERVICES
   // ================================
@@ -367,28 +368,21 @@ export const PartnerDashboard = () => {
     try {
       setServicesLoading(true);
 
-      const [partnerResponse, servicesResponse] =
+      // The partner's own listings need a sign-in; the service
+      // catalogue is public, so it stays a plain fetch.
+      const [partnerServiceData, servicesResponse] =
         await Promise.all([
-          fetch(
-            `${BACKEND_URL}/partner-services/partner/${partnerProfile.id}`
+          authorizedFetch(
+            `/partner-services/partner/${partnerProfile.id}`
           ),
           fetch(`${BACKEND_URL}/services/`)
         ]);
-
-      if (!partnerResponse.ok) {
-        throw new Error(
-          'Failed to load partner services'
-        );
-      }
 
       if (!servicesResponse.ok) {
         throw new Error(
           'Failed to load available services'
         );
       }
-
-      const partnerServiceData =
-        await partnerResponse.json();
 
       const serviceData =
         await servicesResponse.json();
@@ -588,42 +582,23 @@ export const PartnerDashboard = () => {
     try {
       setServiceSaving(true);
 
-      let response;
-
       if (editingService) {
         // EDIT
-        response = await fetch(
-          `${BACKEND_URL}/partner-services/${editingService.id}`,
+        await authorizedFetch(
+          `/partner-services/${editingService.id}`,
           {
             method: 'PATCH',
-            headers: {
-              'Content-Type':
-                'application/json'
-            },
             body: JSON.stringify(payload)
           }
         );
       } else {
         // ADD
-        response = await fetch(
-          `${BACKEND_URL}/partner-services/`,
+        await authorizedFetch(
+          '/partner-services/',
           {
             method: 'POST',
-            headers: {
-              'Content-Type':
-                'application/json'
-            },
             body: JSON.stringify(payload)
           }
-        );
-      }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.detail ||
-          'Failed to save service'
         );
       }
 
@@ -673,21 +648,12 @@ export const PartnerDashboard = () => {
     }
 
     try {
-      const response = await fetch(
-        `${BACKEND_URL}/partner-services/${partnerService.id}`,
+      await authorizedFetch(
+        `/partner-services/${partnerService.id}`,
         {
           method: 'DELETE'
         }
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.detail ||
-          'Failed to remove service'
-        );
-      }
 
       showToast(
         'Service removed successfully'
@@ -812,8 +778,9 @@ export const PartnerDashboard = () => {
 
     let cancelled = false;
 
-    fetch(`${BACKEND_URL}/partners/${partnerProfile.id}/police-verification`)
-      .then((response) => (response.ok ? response.json() : null))
+    authorizedFetchOrNull(
+      `/partners/${partnerProfile.id}/police-verification`
+    )
       .then((data) => {
         if (data && !cancelled) {
           setPoliceVerification(data);
@@ -857,16 +824,10 @@ export const PartnerDashboard = () => {
     const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     try {
-      const response = await fetch(
-        `${BACKEND_URL}/partners/${partnerProfile.id}/police-verification`,
+      const data = await authorizedFetch(
+        `/partners/${partnerProfile.id}/police-verification`,
         { method: 'POST', body: formData, signal: controller.signal }
       );
-
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(data?.detail || 'Upload failed');
-      }
 
       // The backend parks the certificate at UNDER_REVIEW until an admin
       // approves it. Fall back to that if the body didn't come back.
@@ -2908,10 +2869,7 @@ export const PartnerDashboard = () => {
               )}
             </div>
 
-            <button
-              onClick={() => showToast('Document management is coming soon')}
-              className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
-            >
+            <div className="w-full flex items-center gap-3 p-3.5 text-left">
               <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   description
@@ -2923,15 +2881,13 @@ export const PartnerDashboard = () => {
                   Documents
                 </p>
 
-                <p className="text-[11px] text-slate-500 truncate">
-                  ID proof & certificates
+                <p className="text-[11px] text-slate-500">
+                  Your Aadhaar, PAN and Voter ID were received at sign-up.
+                  KOODAM staff check them and they are never shown to
+                  customers.
                 </p>
               </div>
-
-              <span className="material-symbols-outlined text-[18px] text-slate-300 shrink-0">
-                chevron_right
-              </span>
-            </button>
+            </div>
           </div>
         </section>
 

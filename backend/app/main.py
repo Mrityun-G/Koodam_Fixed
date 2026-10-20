@@ -21,6 +21,7 @@ from app.models.escalation import Complaint, PartnerEscalation
 from app.models.photo import Photo
 from app.models.notification import Notification
 from app.models.app_config import AppConfig
+from app.models.client_error import ClientError
 
 from app.routers.user import router as user_router
 from app.routers.partner import router as partner_router
@@ -40,8 +41,10 @@ from app.routers.me import router as me_router
 from app.routers.app_config import router as app_config_router
 
 from app.app_config import seed_app_config
+from app.routers.client_errors import router as client_errors_router
 
 from app.escalations import start_sweeper
+from app.rate_limit import RateLimitMiddleware
 from app.service_catalog import sync_service_catalog
 
 
@@ -56,6 +59,9 @@ if FAKE_AI:
         "and no photo is being analysed. Set ANTHROPIC_API_KEY (and drop "
         "GIGEZEE_FAKE_AI) for real diagnoses."
     )
+
+
+app.add_middleware(RateLimitMiddleware)
 
 
 app.add_middleware(
@@ -92,6 +98,7 @@ app.include_router(photo_router)
 app.include_router(diagnosis_router)
 app.include_router(me_router)
 app.include_router(app_config_router)
+app.include_router(client_errors_router)
 
 
 # Create database tables

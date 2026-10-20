@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Firebase Storage rules for KOODAM.
+//
+// Two kinds of file live here:
+//
+//   partnerDocuments/<firebase uid>/...  Aadhaar, PAN and Voter ID scans
+//   repairPhotos/<order id>/...          before/after photos of a job
+//
+// Without rules, Storage is either open to the whole internet (test
+// mode) or shut (locked mode). The KYC scans are the most sensitive
+// thing KOODAM holds, so they are readable only by the partner who
+// uploaded them. Staff never read them from here - the admin console
+// gets the police certificate from the backend, out of Postgres.
+//
+// Deploy:  firebase deploy --only storage
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isImageOrPdf() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp)')
+          || request.resource.contentType == 'application/pdf';
+    }
+
+    function under(megabytes) {
+      return request.resource.size < megabytes * 1024 * 1024;
+    }
+
+    // ---------------------------------------------------------------
+    // KYC documents - the owning partner only, nobody else, ever
+    // ---------------------------------------------------------------
+    match /partnerDocuments/{uid}/{document=**} {
+      allow read: if signedIn() && request.auth.uid == uid;
+
+      allow write: if signedIn()
+                   && request.auth.uid == uid
+                   && isImageOrPdf()
+                   && under(5);
+    }
+
+    // ---------------------------------------------------------------
+    // Job photos - the partner uploads them, the customer sees them on
+    // the bill. Both sides are signed in, so a sign-in is the gate.
+    // ---------------------------------------------------------------
+    match /repairPhotos/{orderId}/{photo=**} {
+      allow read: if signedIn();
+
+      allow write: if signedIn()
+                   && request.resource.contentType.matches('image/.*')
+                   && under(5);
+    }
+
+    // ---------------------------------------------------------------
+    // Nothing else is expected in this bucket
+    // ---------------------------------------------------------------
+    match /{allOther=**} {
+      allow read, write: if false;
+    }
+  }
+}

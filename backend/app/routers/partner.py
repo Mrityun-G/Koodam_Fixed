@@ -6,6 +6,12 @@ from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 
 from app.auth import current_firebase_uid
+from app.authz import (
+    is_admin,
+    require_admin,
+    require_own_partner,
+    require_user,
+)
 from app.database import get_db
 from app.escalations import is_deactivated, is_suspended
 from app.models.partner import Partner
@@ -29,8 +35,15 @@ router = APIRouter(
 @router.post("/", response_model=PartnerResponse)
 def create_partner(
     partner_data: PartnerCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
+    if partner_data.user_id != caller.id and not is_admin(caller):
+        raise HTTPException(
+            status_code=403,
+            detail="You can only create your own partner profile."
+        )
+
     user = db.query(User).filter(
         User.id == partner_data.user_id
     ).first()
@@ -70,7 +83,8 @@ def create_partner(
 
 @router.get("/", response_model=list[PartnerResponse])
 def get_partners(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_admin)
 ):
     return db.query(Partner).all()
 
@@ -78,9 +92,11 @@ def get_partners(
 @router.get("/{partner_id}", response_model=PartnerResponse)
 def get_partner(
     partner_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
-    # Accepts either partners.id or the partner's users.id
+    # Accepts either partners.id or the partner's users.id. Customers read
+    # this to see a helper's rate and experience before booking.
     return get_partner_or_404(db, partner_id)
 
 # =========================================================
@@ -128,9 +144,10 @@ def police_verification_response(partner: Partner, document):
 @router.get("/{identifier}/police-verification")
 def get_police_verification(
     identifier: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
-    partner = get_partner_or_404(db, identifier)
+    partner = require_own_partner(db, caller, identifier)
 
     document = db.query(PartnerDocument).filter(
         PartnerDocument.partner_id == partner.id,
@@ -144,9 +161,10 @@ def get_police_verification(
 async def upload_police_certificate(
     identifier: UUID,
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
-    partner = get_partner_or_404(db, identifier)
+    partner = require_own_partner(db, caller, identifier)
 
     if file.content_type not in ALLOWED_CERTIFICATE_TYPES:
         raise HTTPException(
@@ -203,7 +221,8 @@ def download_police_certificate(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    # For admins reviewing the certificate before approving it
+    # For admins reviewing the certificate before approving it. Nobody
+    # else may read it - not even the customers the partner works for.
     partner = get_partner_or_404(db, identifier)
 
     document = db.query(PartnerDocument).filter(
@@ -258,7 +277,8 @@ class ServiceRadiusUpdate(BaseModel):
 def update_service_radius(
     identifier: UUID,
     data: ServiceRadiusUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     if data.service_radius_km not in ALLOWED_SERVICE_RADII_KM:
         raise HTTPException(
@@ -266,7 +286,7 @@ def update_service_radius(
             detail="Service radius must be 3, 5, 10 or 15 km"
         )
 
-    partner = get_partner_or_404(db, identifier)
+    partner = require_own_partner(db, caller, identifier)
     partner.service_radius_km = data.service_radius_km
 
     db.commit()
@@ -393,6 +413,7 @@ def to_iso_utc(value: Optional[datetime]) -> Optional[str]:
 @router.get("/{identifier}/overview")
 def get_partner_overview(
     identifier: UUID,
+    caller: User = Depends(require_user),
     tz_offset_minutes: int = 0,
     db: Session = Depends(get_db)
 ):
@@ -400,7 +421,7 @@ def get_partner_overview(
     tz_offset_minutes is the browser's Date.getTimezoneOffset()
     (e.g. -330 for India), so "today" matches the partner's local day.
     """
-    partner = get_partner_or_404(db, identifier)
+    partner = require_own_partner(db, caller, identifier)
 
     offset = timedelta(minutes=tz_offset_minutes)
 
@@ -503,7 +524,8 @@ def get_partner_overview(
 @router.get("/{identifier}/busy-slots")
 def get_partner_busy_slots(
     identifier: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     partner = get_partner_or_404(db, identifier)
 

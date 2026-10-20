@@ -15,16 +15,19 @@ if (import.meta.env.PROD && /\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2
   );
 }
 
-// Measured 2026-10-20: koodam-api on Render's free plan answers in ~1.2s
-// warm, but takes 64s when it has slept (~15 min idle). The timeout has to
-// clear that, or the first call after a quiet spell is cancelled just before
-// it would have succeeded. It still bounds a request to an unreachable
+// Measured 2026-10-20: the API on Render's free plan answers in ~1.2s warm,
+// but takes 64s when it has slept (~15 min idle). The timeout has to clear
+// that, or the first call after a quiet spell is cancelled just before it
+// would have succeeded. It still bounds a request to an unreachable
 // address, which otherwise hangs for as long as the phone allows.
 const DEFAULT_TIMEOUT_MS = 90000;
 
 // Calls the backend as the signed-in user: it sends their Firebase ID
 // token, which the backend checks before showing or changing their data.
 // Returns the JSON body, or throws with the backend's message.
+//
+// Pass a FormData body to upload a file: the Content-Type header is left
+// off so the browser can set its own multipart boundary.
 export const authorizedFetch = async (path, options = {}) => {
   const user = auth?.currentUser;
 
@@ -35,6 +38,9 @@ export const authorizedFetch = async (path, options = {}) => {
   const token = await user.getIdToken();
 
   const { timeoutMs = DEFAULT_TIMEOUT_MS, signal, ...rest } = options;
+
+  const isFormData =
+    typeof FormData !== 'undefined' && rest.body instanceof FormData;
 
   // Give up on our own terms. Without this the request sits open for as
   // long as the platform allows, which on Android can be minutes.
@@ -59,7 +65,7 @@ export const authorizedFetch = async (path, options = {}) => {
         ...rest,
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json',
+          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           Authorization: `Bearer ${token}`,
           ...(options.headers || {})
         }
@@ -88,8 +94,25 @@ export const authorizedFetch = async (path, options = {}) => {
       ? body.detail.map((item) => String(item.msg).replace(/^Value error, /, '')).join(' · ')
       : body?.detail;
 
-    throw new Error(detail || `Request failed (${response.status})`);
+    const error = new Error(detail || `Request failed (${response.status})`);
+    error.status = response.status;
+
+    throw error;
   }
 
   return body;
+};
+
+// Same thing, but returns null instead of throwing when the record isn't
+// there yet — a 404 is a normal answer for "has this synced?" lookups.
+export const authorizedFetchOrNull = async (path, options = {}) => {
+  try {
+    return await authorizedFetch(path, options);
+  } catch (error) {
+    if (error.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
 };

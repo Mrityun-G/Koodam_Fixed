@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth import current_firebase_uid
+from app.authz import is_admin, require_user
 
 from app.config import (
     RAZORPAY_KEY_ID,
@@ -69,6 +70,19 @@ def get_booking_for_order(db: Session, firebase_order_id: str):
     return booking, detail
 
 
+def require_paying_customer(caller: User, booking) -> None:
+    """
+    Razorpay's signature already stops a forged payment, but the bill is
+    still the customer's private business - and nobody else should be
+    able to open orders against it.
+    """
+    if booking.user_id != caller.id and not is_admin(caller):
+        raise HTTPException(
+            status_code=403,
+            detail="This booking isn't yours to pay."
+        )
+
+
 def approved_extras_total(db: Session, booking_id) -> float:
     charges = db.query(BookingExtraCharge).filter(
         BookingExtraCharge.booking_id == booking_id,
@@ -106,9 +120,12 @@ def calculate_split(total: float, extras: float) -> dict:
 @router.post("/create-order")
 def create_payment_order(
     data: CreateOrderRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     booking, detail = get_booking_for_order(db, data.firebase_order_id)
+
+    require_paying_customer(caller, booking)
 
     if detail.payment_status == "PAID":
         raise HTTPException(
@@ -180,9 +197,12 @@ def create_payment_order(
 @router.post("/verify")
 def verify_payment(
     data: VerifyPaymentRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     booking, detail = get_booking_for_order(db, data.firebase_order_id)
+
+    require_paying_customer(caller, booking)
 
     # Already confirmed (e.g. the app retried): report the same result
     if (

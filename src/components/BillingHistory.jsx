@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ComplaintPanel } from './ComplaintPanel';
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 const formatRupees = (value) =>
   `₹${Number(value || 0).toLocaleString('en-IN', {
@@ -78,22 +76,17 @@ export const BillingHistory = ({
 
     let cancelled = false;
 
-    const url = isPartnerView
-      ? `${BACKEND_URL}/bookings/partner-billing/${encodeURIComponent(ownerId)}` +
+    const path = isPartnerView
+      ? `/bookings/partner-billing/${encodeURIComponent(ownerId)}` +
         (customerId ? `?customer_id=${encodeURIComponent(customerId)}` : '')
-      : `${BACKEND_URL}/bookings/billing/${encodeURIComponent(ownerId)}` +
+      : `/bookings/billing/${encodeURIComponent(ownerId)}` +
         (partnerId ? `?partner_id=${encodeURIComponent(partnerId)}` : '');
 
     setLoading(true);
     setError('');
 
-    fetch(url)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Billing request failed: ${response.status}`);
-        }
-        return response.json();
-      })
+    // Bills are private, so this goes out signed as the account asking
+    authorizedFetch(path)
       .then((data) => {
         if (cancelled) return;
         setBills(data);

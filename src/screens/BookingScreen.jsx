@@ -7,6 +7,7 @@ import {
   getSlotStart,
   toTimeRanges
 } from '../lib/schedule';
+import { authorizedFetch } from '../lib/authorizedFetch';
 import {
   CARE_TIME_SLOTS,
   MAX_CARE_HOURS,
@@ -17,9 +18,6 @@ import {
   isCareService,
   priceForHours
 } from '../lib/bookFor';
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 
 export const BookingScreen = () => {
   const {
@@ -561,8 +559,7 @@ export const BookingScreen = () => {
     let cancelled = false;
     setBusyLoaded(false);
 
-    fetch(`${BACKEND_URL}/partners/${partnerId}/busy-slots`)
-      .then(response => (response.ok ? response.json() : []))
+    authorizedFetch(`/partners/${partnerId}/busy-slots`)
       .then(slots => {
         if (!cancelled) {
           setBusyRanges(toTimeRanges(slots));

@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { RepairBill } from '../components/RepairBill';
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 export const PaymentScreen = () => {
   const {
@@ -54,23 +52,20 @@ export const PaymentScreen = () => {
       document.body.appendChild(script);
     });
 
-  // Calls the backend and turns its error into a message for the customer
+  // Calls the backend as the signed-in customer and turns its error into
+  // a message for them. Payments are tied to the account being billed,
+  // so an unsigned request can no longer open or settle an order.
   const postToBackend = async (path, body) => {
-    const response = await fetch(`${BACKEND_URL}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
+    try {
+      return await authorizedFetch(path, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+    } catch (error) {
       throw new Error(
-        data?.detail || `Payment server error (${response.status})`
+        error.message || 'Payment server error. Please try again.'
       );
     }
-
-    return data;
   };
 
   // Only marks the job paid once the backend has confirmed the payment

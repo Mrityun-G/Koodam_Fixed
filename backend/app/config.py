@@ -6,6 +6,44 @@ from dotenv import dotenv_values, load_dotenv
 
 load_dotenv()
 
+def _env(*names: str, default: Optional[str] = None) -> Optional[str]:
+    """The first of these environment variables that is set."""
+    for name in names:
+        value = os.getenv(name)
+
+        if value is not None and value.strip():
+            return value
+
+    return default
+
+
+def _setting(name: str, default: Optional[str] = None) -> Optional[str]:
+    """
+    A GigEzee setting, under whichever prefix the environment uses.
+
+    The app was renamed from KOODAM to GigEzee partway through, so live
+    environments carry a mix of GIGEZEE_* and KOODAM_* names. Reading
+    both means a deployment keeps working through the rename instead of
+    silently falling back to a default - which is exactly how
+    ADMIN_EMAILS once came out empty and locked every staff member out
+    of the escalations console.
+
+    `name` may be given with either prefix or with none.
+    """
+    suffix = name
+
+    for prefix in ("GIGEZEE_", "KOODAM_"):
+        if suffix.startswith(prefix):
+            suffix = suffix[len(prefix):]
+            break
+
+    return _env(f"GIGEZEE_{suffix}", f"KOODAM_{suffix}", default=default)
+
+
+# Kept so older call sites keep reading; _setting is the one to use.
+_env_legacy = _setting
+
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -58,11 +96,11 @@ if not RAZORPAYX_ACCOUNT_NUMBER.isdigit():
     RAZORPAYX_ACCOUNT_NUMBER = ""
 
 # Flat fee the customer pays GigEzee on every booking (rupees)
-TRUST_FEE = float(os.getenv("GIGEZEE_TRUST_FEE", "20"))
+TRUST_FEE = float(_setting("TRUST_FEE", "20"))
 
 # GigEzee's share of the service price; extra parts are never commissioned
 PLATFORM_COMMISSION_PERCENT = float(
-    os.getenv("GIGEZEE_PLATFORM_COMMISSION_PERCENT", "10")
+    _setting("PLATFORM_COMMISSION_PERCENT", "10")
 )
 
 # backend/.env and the frontend's .env in the project root
@@ -126,21 +164,21 @@ def env_setting(*names: str) -> Optional[str]:
 # =========================================================
 
 # The number customers call, as shown on the landing page
-IVR_PHONE_NUMBER = os.getenv("GIGEZEE_IVR_NUMBER", "")
+IVR_PHONE_NUMBER = _setting("IVR_NUMBER", "")
 
 # The public https address of this backend, used to check that a call
 # webhook really came from the phone provider (e.g. https://api.gigezee.in)
-IVR_PUBLIC_URL = os.getenv("GIGEZEE_IVR_PUBLIC_URL", "").rstrip("/")
+IVR_PUBLIC_URL = (_setting("IVR_PUBLIC_URL", "") or "").rstrip("/")
 
 # Twilio signs every webhook with the account's auth token
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 
 # Business category Razorpay files each partner's Route linked account
 # under (values from Razorpay's business category list)
-ROUTE_BUSINESS_CATEGORY = os.getenv("GIGEZEE_ROUTE_CATEGORY", "services")
+ROUTE_BUSINESS_CATEGORY = _setting("ROUTE_CATEGORY", "services")
 
-ROUTE_BUSINESS_SUBCATEGORY = os.getenv(
-    "GIGEZEE_ROUTE_SUBCATEGORY", "repair_and_cleaning"
+ROUTE_BUSINESS_SUBCATEGORY = _setting(
+    "ROUTE_SUBCATEGORY", "repair_and_cleaning"
 )
 
 
@@ -150,7 +188,7 @@ ROUTE_BUSINESS_SUBCATEGORY = os.getenv(
 
 def _env_number(name: str, default: float) -> float:
     try:
-        return float(os.getenv(name, default))
+        return float(_setting(name, str(default)))
     except (TypeError, ValueError):
         return float(default)
 
@@ -159,7 +197,7 @@ def _env_number(name: str, default: float) -> float:
 # themselves admins: the users.role column is set by the app itself.
 ADMIN_EMAILS = {
     email.strip().lower()
-    for email in os.getenv("GIGEZEE_ADMIN_EMAILS", "").split(",")
+    for email in (_setting("ADMIN_EMAILS", "") or "").split(",")
     if email.strip()
 }
 
@@ -173,7 +211,7 @@ JOB_FINISH_GRACE_HOURS = _env_number("GIGEZEE_JOB_FINISH_GRACE_HOURS", 12)
 
 # Jobs booked before this date are never escalated automatically, so
 # turning the feature on doesn't punish partners for old test bookings
-ESCALATIONS_FROM = os.getenv("GIGEZEE_ESCALATIONS_FROM", "2026-10-03")
+ESCALATIONS_FROM = _setting("ESCALATIONS_FROM", "2026-10-03")
 
 # A partner's first escalation in this window is a warning, the rest are
 # strikes; this many strikes in the window suspends them

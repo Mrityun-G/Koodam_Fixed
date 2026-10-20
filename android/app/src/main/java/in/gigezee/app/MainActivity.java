@@ -1,4 +1,4 @@
-package com.example.app;
+package in.gigezee.app;
 
 import com.getcapacitor.BridgeActivity;
 
