@@ -100,6 +100,14 @@ service = Service(id=uuid.uuid4(), title="Plumbing & Repair",
                   description="taps", category="Plumbing & Repair",
                   price=300.0, is_active=True, sort_order=1)
 db.add(service)
+
+# A tile nobody offers. It is still a tile: the member has to be able
+# to see Child Care exists and search it, even where no partner has
+# taken it up yet.
+unoffered = Service(id=uuid.uuid4(), title="Child Care",
+                    description="sitters", category="Child Care",
+                    price=500.0, is_active=True, sort_order=2)
+db.add(unoffered)
 db.commit()
 
 
@@ -189,6 +197,33 @@ check("a partner with no location is not offered to someone far off",
 # offered to every member in the country.
 check("...which is the no-location-shows-everywhere bug, closed",
       "No Location" not in names, names)
+
+
+# ---------- every tile survives, offered or not ----------
+# Narrowing partners by a box must not narrow the services. Written
+# after a release where the box was a WHERE on an outer-joined table,
+# which quietly made it an inner join: every service nobody nearby
+# offered vanished from the home screen, tile and all.
+def titles(**params):
+    response = client.get("/services/with-partners", params=params)
+    return {e["title"] for e in response.json()}
+
+
+ALL = {"Plumbing & Repair", "Child Care"}
+
+check("a service nobody offers is still a tile",
+      titles(lat=SALEM[0], lng=SALEM[1]) == ALL,
+      titles(lat=SALEM[0], lng=SALEM[1]))
+check("...in the middle of nowhere too, where no partner is near",
+      titles(lat=0.0, lng=0.0) == ALL, titles(lat=0.0, lng=0.0))
+check("...and with no position at all", titles() == ALL, titles())
+
+empty = [e for e in client.get(
+    "/services/with-partners",
+    params={"lat": SALEM[0], "lng": SALEM[1]}).json()
+    if e["title"] == "Child Care"][0]
+check("an unoffered service comes back with an empty partner list",
+      empty["partners"] == [], empty["partners"])
 
 
 # ---------- distance comes back, and is right ----------

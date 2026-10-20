@@ -186,19 +186,12 @@ def get_services_with_partners(
     """
     knows_where = lat is not None and lng is not None
 
-    # Services with no partners still come back (outer joins), so the
-    # whole screen is one query
-    query = (
-        db.query(Service, Partner, User, PartnerService)
-        .outerjoin(
-            PartnerService,
-            (PartnerService.service_id == Service.id)
-            & (PartnerService.is_active == True)
-        )
-        .outerjoin(Partner, Partner.id == PartnerService.partner_id)
-        .outerjoin(User, User.id == Partner.user_id)
-        .filter(Service.is_active == True)
-    )
+    # Every active service is a tile on the home screen, whether or not
+    # anyone nearby offers it, so the box below narrows which partners
+    # join - it is part of the ON clause, never a WHERE. As a WHERE it
+    # would drop the rows where the outer join produced no partner, and
+    # with them the tiles for every service nobody nearby offers.
+    partner_on = Partner.id == PartnerService.partner_id
 
     if knows_where:
         # The box has to be wide enough for the furthest-reaching
@@ -219,14 +212,29 @@ def get_services_with_partners(
         )
 
         # Indexed on (latitude, longitude) - see app/main.py
-        query = query.filter(
-            Partner.latitude.isnot(None),
-            Partner.longitude.isnot(None),
-            Partner.latitude.between(lat - d_lat, lat + d_lat),
-            Partner.longitude.between(lng - d_lng, lng + d_lng),
+        partner_on = (
+            partner_on
+            & Partner.latitude.isnot(None)
+            & Partner.longitude.isnot(None)
+            & Partner.latitude.between(lat - d_lat, lat + d_lat)
+            & Partner.longitude.between(lng - d_lng, lng + d_lng)
         )
 
-    rows = query.order_by(Service.sort_order, Service.title).all()
+    # Services with no partners still come back (outer joins), so the
+    # whole screen is one query
+    rows = (
+        db.query(Service, Partner, User, PartnerService)
+        .outerjoin(
+            PartnerService,
+            (PartnerService.service_id == Service.id)
+            & (PartnerService.is_active == True)
+        )
+        .outerjoin(Partner, partner_on)
+        .outerjoin(User, User.id == Partner.user_id)
+        .filter(Service.is_active == True)
+        .order_by(Service.sort_order, Service.title)
+        .all()
+    )
 
     services = {}
 
