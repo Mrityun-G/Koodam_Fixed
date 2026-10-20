@@ -37,15 +37,45 @@ const BillingScreen = screen(() => import('./screens/BillingScreen'), 'BillingSc
 // while a Google sign-in is being finished. Both are asynchronous, so
 // without it every reload flashes the landing page first.
 const BootSplash = () => (
-  <main className="flex-1 flex flex-col items-center justify-center gap-5 w-full bg-white h-full">
-    <div className="p-1.5 rounded-2xl bg-white shadow-md">
-      <img src="/logo.svg" alt="GigEzee" className="w-16 h-16 rounded-xl" />
+  <main className="flex-1 flex flex-col items-center justify-center gap-5 w-full bg-white h-full px-6">
+    {/* Rings travel outwards from behind the logo, a second apart, so the
+        screen reads as working rather than stuck. */}
+    <div className="relative flex items-center justify-center">
+      <span className="absolute w-16 h-16 rounded-2xl bg-[#ff6a00]/20 animate-ring-out motion-reduce:hidden" />
+      <span
+        className="absolute w-16 h-16 rounded-2xl bg-[#ff6a00]/20 animate-ring-out motion-reduce:hidden"
+        style={{ animationDelay: '1.1s' }}
+      />
+
+      <div className="relative p-1.5 rounded-2xl bg-white shadow-md animate-pop-in">
+        <img
+          src="/logo.svg"
+          alt="GigEzee"
+          width="64"
+          height="64"
+          className="w-16 h-16 rounded-xl"
+        />
+      </div>
     </div>
-    <h1 className="text-2xl font-extrabold tracking-tight text-[#0b1c30]">
+
+    <h1
+      className="text-2xl font-extrabold tracking-tight text-[#0b1c30] animate-fade-up"
+      style={{ animationDelay: '140ms' }}
+    >
       GigEzee
       {PORTAL === 'partner' && <span className="text-[#1b2a5e]"> Partner</span>}
     </h1>
-    <span className="w-6 h-6 rounded-full border-2 border-[#ffdbcc] border-t-[#ff6a00] animate-spin"></span>
+
+    {/* Indeterminate on purpose: we cannot know how long Firebase will take,
+        and a bar that pretends to measure progress would be a lie. */}
+    <div
+      className="w-36 h-1 rounded-full bg-[#ffdbcc] overflow-hidden animate-fade-in"
+      style={{ animationDelay: '260ms' }}
+      role="progressbar"
+      aria-label="Loading GigEzee"
+    >
+      <span className="block w-1/3 h-full rounded-full bg-[#ff6a00] animate-bar-slide" />
+    </div>
   </main>
 );
 
