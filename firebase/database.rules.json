@@ -1,0 +1,72 @@
+{
+  "//": [
+    "Realtime Database rules for KOODAM's live booking relay.",
+    "",
+    "Two trees are used:",
+    "  orders/<order id>           the one shared record of a job",
+    "  bookingRequests/<partner>/  offers waiting for a partner to accept",
+    "",
+    "A database left in test mode is readable and writable by the whole",
+    "internet, which would mean anyone could read every customer's",
+    "address and live GPS, or rewrite the safety PIN on a job in",
+    "progress. These rules require a Firebase sign-in for every read and",
+    "write, cap the size of what can be written, and keep the trees out",
+    "of one listable root.",
+    "",
+    "KNOWN GAP: a signed-in user can still read another user's order if",
+    "they know its id. Closing that needs customerUid and partnerUid",
+    "(Firebase uids) stored on each order so the rule can compare them",
+    "with auth.uid - today the order carries Supabase UUIDs, which auth",
+    "cannot be matched against. Tracked as the next step.",
+    "",
+    "Deploy:  firebase deploy --only database"
+  ],
+
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "orders": {
+      "$orderId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+
+        "orderId": { ".validate": "newData.isString() && newData.val().length <= 128" },
+        "customerId": { ".validate": "newData.isString() || newData.val() == null" },
+        "partnerId": { ".validate": "newData.isString() || newData.val() == null" },
+        "safetyPin": { ".validate": "newData.isString() && newData.val().length <= 8" },
+        "completionOtp": { ".validate": "newData.isString() || newData.val() == null" },
+        "totalAmount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "customerLat": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
+        "customerLng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
+        "partnerLat": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
+        "partnerLng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
+
+        "extraCharges": {
+          "$chargeId": {
+            "amount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "item": { ".validate": "newData.isString() && newData.val().length <= 200" }
+          }
+        },
+
+        "messages": {
+          "$messageId": {
+            "text": { ".validate": "newData.isString() && newData.val().length <= 2000" }
+          }
+        }
+      }
+    },
+
+    "bookingRequests": {
+      "$partnerId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+
+        "$requestId": {
+          "expiresIn": { ".validate": "newData.isNumber() && newData.val() <= 3600" },
+          "serviceTitle": { ".validate": "newData.isString() && newData.val().length <= 200" }
+        }
+      }
+    }
+  }
+}

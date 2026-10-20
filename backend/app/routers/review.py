@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
+from app.authz import is_admin, require_admin, require_user
 from app.database import get_db
 from app.models.review import Review
 from app.models.booking import Booking
@@ -19,8 +20,15 @@ router = APIRouter(
 @router.post("/", response_model=ReviewResponse)
 def create_review(
     review_data: ReviewCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
+    # Only the customer who had the work done can rate it
+    if review_data.user_id != caller.id and not is_admin(caller):
+        raise HTTPException(
+            status_code=403,
+            detail="You can only review your own booking."
+        )
 
     # Check booking
     booking = db.query(Booking).filter(
@@ -103,7 +111,8 @@ def create_review(
 
 @router.get("/", response_model=list[ReviewResponse])
 def get_reviews(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_admin)
 ):
     return db.query(Review).order_by(
         Review.created_at.desc()
@@ -113,7 +122,8 @@ def get_reviews(
 @router.get("/partner/{partner_id}", response_model=list[ReviewResponse])
 def get_partner_reviews(
     partner_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
 
     partner = db.query(Partner).filter(

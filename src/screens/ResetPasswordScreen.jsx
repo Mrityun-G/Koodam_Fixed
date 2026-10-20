@@ -1,20 +1,34 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { SubHeader } from '../components/SubHeader';
+import { passwordProblem } from '../lib/validators';
 
 export const ResetPasswordScreen = () => {
-  const { changePassword, navigateTo, showToast } = useApp();
+  const { changePassword, navigateTo, showToast, authLoading } = useApp();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSubmit = () => {
-    if (newPassword !== confirmPassword) {
+  const strengthProblem = newPassword ? passwordProblem(newPassword) : '';
+  const mismatch = Boolean(confirmPassword) && newPassword !== confirmPassword;
+
+  // changePassword talks to Firebase, so this has to wait for it: the old
+  // version read its return value synchronously and always saw a promise,
+  // which is truthy, so it reported success whatever happened.
+  const handleSubmit = async () => {
+    if (mismatch) {
       showToast("New password and confirmation don't match.");
       return;
     }
-    const success = changePassword(currentPassword, newPassword);
+
+    if (strengthProblem) {
+      showToast(strengthProblem);
+      return;
+    }
+
+    const success = await changePassword(currentPassword, newPassword);
+
     if (success) {
       setCurrentPassword('');
       setNewPassword('');
@@ -46,7 +60,7 @@ export const ResetPasswordScreen = () => {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters"
               className="mt-1 w-full rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-sm text-[#0b1c30] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
             />
           </label>
@@ -60,15 +74,33 @@ export const ResetPasswordScreen = () => {
               placeholder="Re-enter new password"
               className="mt-1 w-full rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-sm text-[#0b1c30] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
             />
+            {mismatch && (
+              <span className="mt-1 block text-[10px] font-semibold text-red-500">
+                Passwords do not match.
+              </span>
+            )}
           </label>
         </div>
 
+        {strengthProblem && (
+          <p className="text-center text-xs font-semibold text-red-500">
+            {strengthProblem}
+          </p>
+        )}
+
         <button
           onClick={handleSubmit}
-          disabled={!currentPassword || !newPassword || !confirmPassword}
+          disabled={
+            !currentPassword ||
+            !newPassword ||
+            !confirmPassword ||
+            mismatch ||
+            Boolean(strengthProblem) ||
+            authLoading
+          }
           className="w-full py-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm shadow-md active:scale-95 transition-all"
         >
-          Update Password
+          {authLoading ? 'Updating…' : 'Update Password'}
         </button>
       </main>
     </div>

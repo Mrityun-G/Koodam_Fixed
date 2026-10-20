@@ -6,6 +6,7 @@ from typing import Optional, Union
 from uuid import UUID
 from datetime import datetime
 
+from app.authz import is_admin, owns_partner, require_user
 from app.database import get_db
 from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail, BookingExtraCharge
@@ -328,7 +329,8 @@ BILLABLE_STATUSES = ("ACCEPTED", "IN_PROGRESS", "COMPLETED")
 def get_billing_history(
     customer_identifier: str,
     partner_id: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     user = resolve_customer(db, customer_identifier)
 
@@ -336,6 +338,12 @@ def get_billing_history(
         raise HTTPException(
             status_code=404,
             detail="Customer not found"
+        )
+
+    if user.id != caller.id and not is_admin(caller):
+        raise HTTPException(
+            status_code=403,
+            detail="You can only see your own bills."
         )
 
     filters = [Booking.user_id == user.id]
@@ -356,7 +364,8 @@ def get_billing_history(
 def get_partner_billing(
     partner_identifier: str,
     customer_id: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     """
     A partner's jobs with what they earned from each one. Pass customer_id
@@ -369,6 +378,12 @@ def get_partner_billing(
         raise HTTPException(
             status_code=404,
             detail="Partner not found"
+        )
+
+    if not owns_partner(caller, partner) and not is_admin(caller):
+        raise HTTPException(
+            status_code=403,
+            detail="You can only see your own earnings."
         )
 
     filters = [Booking.partner_id == partner.id]
@@ -472,11 +487,40 @@ def build_bills(db: Session, filters: list) -> list:
     return bills
 
 
+def require_order_party(db: Session, caller: User, data: BookingSync) -> None:
+    """
+    Both the customer's and the partner's device push the same order as it
+    moves along, so either may call this - but nobody else, or a stranger
+    could rewrite the status, the bill or the rating on someone's job.
+    """
+    if is_admin(caller):
+        return
+
+    customer = resolve_customer(db, data.customer_id)
+
+    if customer and customer.id == caller.id:
+        return
+
+    partner_uuid = parse_uuid(data.partner_id) if data.partner_id else None
+    partner = resolve_partner(db, partner_uuid) if partner_uuid else None
+
+    if partner and owns_partner(caller, partner):
+        return
+
+    raise HTTPException(
+        status_code=403,
+        detail="This booking isn't yours."
+    )
+
+
 @router.post("/sync")
 def sync_booking(
     data: BookingSync,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
+    require_order_party(db, caller, data)
+
     try:
         booking = apply_sync(db, data)
         db.commit()

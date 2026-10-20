@@ -7,9 +7,7 @@ import {
   getSlotStart,
   toTimeRanges
 } from '../lib/schedule';
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 export const BookingScreen = () => {
   const {
@@ -480,8 +478,7 @@ export const BookingScreen = () => {
 
     let cancelled = false;
 
-    fetch(`${BACKEND_URL}/partners/${partnerId}/busy-slots`)
-      .then(response => (response.ok ? response.json() : []))
+    authorizedFetch(`/partners/${partnerId}/busy-slots`)
       .then(slots => {
         if (!cancelled) {
           setBusyRanges(toTimeRanges(slots));

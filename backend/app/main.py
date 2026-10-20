@@ -21,6 +21,7 @@ from app.models.partner_document import PartnerDocument
 from app.models.booking_detail import BookingDetail, BookingExtraCharge
 from app.models.payout import PartnerPayoutAccount, BookingPayout
 from app.models.escalation import Complaint, PartnerEscalation
+from app.models.client_error import ClientError
 
 from app.routers.user import router as user_router
 from app.routers.partner import router as partner_router
@@ -34,12 +35,17 @@ from app.routers.payment import router as payment_router
 from app.routers.payouts import router as payouts_router
 from app.routers.escalations import router as escalations_router
 from app.routers.ivr import router as ivr_router
+from app.routers.client_errors import router as client_errors_router
 
 from app.escalations import start_sweeper
+from app.rate_limit import RateLimitMiddleware
 from app.service_catalog import sync_service_catalog
 
 
 app = FastAPI(title="KOODAM Backend")
+
+
+app.add_middleware(RateLimitMiddleware)
 
 
 app.add_middleware(
@@ -72,6 +78,7 @@ app.include_router(payment_router)
 app.include_router(payouts_router)
 app.include_router(escalations_router)
 app.include_router(ivr_router)
+app.include_router(client_errors_router)
 
 
 # Create database tables

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { SubHeader } from '../components/SubHeader';
+import { DeleteAccountDialog } from '../components/DeleteAccountDialog';
 
 export const SettingsScreen = () => {
   const {
@@ -12,6 +13,8 @@ export const SettingsScreen = () => {
     navigateTo,
     showToast
   } = useApp();
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const languages = [
     { code: 'en', label: 'English' },
@@ -82,7 +85,47 @@ export const SettingsScreen = () => {
             <span className="material-symbols-outlined text-[18px] text-slate-300 shrink-0">chevron_right</span>
           </button>
         </section>
+
+        {/* Legal */}
+        <section className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100">
+          <button
+            onClick={() => navigateTo('terms')}
+            className="w-full flex items-center justify-between gap-3"
+          >
+            <div className="min-w-0 text-left">
+              <p className="text-sm font-bold text-[#0b1c30]">Terms & Privacy Policy</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                How KOODAM works and what we do with your data
+              </p>
+            </div>
+            <span className="material-symbols-outlined text-[18px] text-slate-300 shrink-0">chevron_right</span>
+          </button>
+        </section>
+
+        {/* Delete account — promised in the Privacy Policy, and required
+            by both app stores. Kept last and in red so it is hard to hit
+            by accident, and confirmed in a dialog before anything goes. */}
+        <section className="bg-white rounded-2xl p-4 shadow-xs border border-red-100">
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            className="w-full flex items-center justify-between gap-3"
+          >
+            <div className="min-w-0 text-left">
+              <p className="text-sm font-bold text-red-500">Delete Account</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Permanently remove your profile and personal details
+              </p>
+            </div>
+            <span className="material-symbols-outlined text-[18px] text-red-300 shrink-0">
+              delete_forever
+            </span>
+          </button>
+        </section>
       </main>
+
+      {confirmingDelete && (
+        <DeleteAccountDialog onClose={() => setConfirmingDelete(false)} />
+      )}
     </div>
   );
 };

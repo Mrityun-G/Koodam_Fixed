@@ -8,8 +8,13 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, aliased
 
 from app.auth import current_firebase_uid
+from app.authz import (  # noqa: F401  (re-exported for older imports)
+    is_admin,
+    require_admin,
+    require_user,
+    signed_in_user,
+)
 from app.config import (
-    ADMIN_EMAILS,
     COMPLAINT_RESPONSE_HOURS,
     STRIKES_TO_SUSPEND,
     STRIKE_WINDOW_DAYS,
@@ -108,31 +113,6 @@ def complaints_by_booking(db: Session, booking_ids: list) -> dict:
             Complaint.booking_id.in_(booking_ids)
         )
     }
-
-
-def signed_in_user(db: Session, firebase_uid: str) -> User:
-    user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="Account not found")
-
-    return user
-
-
-def is_admin(user: User) -> bool:
-    return (user.email or "").strip().lower() in ADMIN_EMAILS
-
-
-def require_admin(
-    firebase_uid: str = Depends(current_firebase_uid),
-    db: Session = Depends(get_db)
-) -> User:
-    user = signed_in_user(db, firebase_uid)
-
-    if not is_admin(user):
-        raise HTTPException(status_code=403, detail="KOODAM staff only")
-
-    return user
 
 
 def get_complaint(db: Session, complaint_id: UUID) -> Complaint:

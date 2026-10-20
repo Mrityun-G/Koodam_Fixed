@@ -6,6 +6,30 @@ from dotenv import dotenv_values, load_dotenv
 
 load_dotenv()
 
+def _env(*names: str, default: Optional[str] = None) -> Optional[str]:
+    """
+    The first of these environment variables that is set.
+
+    KOODAM was called GigEzee while it was being built, and some
+    deployments still carry GIGEZEE_* names. Reading both means a stale
+    environment keeps working instead of silently falling back to a
+    default - which is how KOODAM_ADMIN_EMAILS ended up empty and locked
+    every staff member out of the escalations console.
+    """
+    for name in names:
+        value = os.getenv(name)
+
+        if value is not None and value.strip():
+            return value
+
+    return default
+
+
+def _env_legacy(suffix: str, default: Optional[str] = None) -> Optional[str]:
+    """A KOODAM_<suffix> setting, falling back to the old GIGEZEE_ name."""
+    return _env(f"KOODAM_{suffix}", f"GIGEZEE_{suffix}", default=default)
+
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -27,11 +51,11 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
 # Flat fee the customer pays KOODAM on every booking (rupees)
-TRUST_FEE = float(os.getenv("KOODAM_TRUST_FEE", "20"))
+TRUST_FEE = float(_env_legacy("TRUST_FEE", "20"))
 
 # KOODAM's share of the service price; extra parts are never commissioned
 PLATFORM_COMMISSION_PERCENT = float(
-    os.getenv("KOODAM_PLATFORM_COMMISSION_PERCENT", "10")
+    _env_legacy("PLATFORM_COMMISSION_PERCENT", "10")
 )
 
 # backend/.env and the frontend's .env in the project root
@@ -95,21 +119,21 @@ def env_setting(*names: str) -> Optional[str]:
 # =========================================================
 
 # The number customers call, as shown on the landing page
-IVR_PHONE_NUMBER = os.getenv("KOODAM_IVR_NUMBER", "")
+IVR_PHONE_NUMBER = _env_legacy("IVR_NUMBER", "")
 
 # The public https address of this backend, used to check that a call
 # webhook really came from the phone provider (e.g. https://api.koodam.in)
-IVR_PUBLIC_URL = os.getenv("KOODAM_IVR_PUBLIC_URL", "").rstrip("/")
+IVR_PUBLIC_URL = (_env_legacy("IVR_PUBLIC_URL", "") or "").rstrip("/")
 
 # Twilio signs every webhook with the account's auth token
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 
 # Business category Razorpay files each partner's Route linked account
 # under (values from Razorpay's business category list)
-ROUTE_BUSINESS_CATEGORY = os.getenv("KOODAM_ROUTE_CATEGORY", "services")
+ROUTE_BUSINESS_CATEGORY = _env_legacy("ROUTE_CATEGORY", "services")
 
-ROUTE_BUSINESS_SUBCATEGORY = os.getenv(
-    "KOODAM_ROUTE_SUBCATEGORY", "repair_and_cleaning"
+ROUTE_BUSINESS_SUBCATEGORY = _env_legacy(
+    "ROUTE_SUBCATEGORY", "repair_and_cleaning"
 )
 
 
@@ -118,8 +142,10 @@ ROUTE_BUSINESS_SUBCATEGORY = os.getenv(
 # ---------------------------------------------------------
 
 def _env_number(name: str, default: float) -> float:
+    suffix = name[len("KOODAM_"):] if name.startswith("KOODAM_") else name
+
     try:
-        return float(os.getenv(name, default))
+        return float(_env_legacy(suffix, str(default)))
     except (TypeError, ValueError):
         return float(default)
 
@@ -128,7 +154,7 @@ def _env_number(name: str, default: float) -> float:
 # themselves admins: the users.role column is set by the app itself.
 ADMIN_EMAILS = {
     email.strip().lower()
-    for email in os.getenv("KOODAM_ADMIN_EMAILS", "").split(",")
+    for email in (_env_legacy("ADMIN_EMAILS", "") or "").split(",")
     if email.strip()
 }
 
@@ -142,7 +168,7 @@ JOB_FINISH_GRACE_HOURS = _env_number("KOODAM_JOB_FINISH_GRACE_HOURS", 12)
 
 # Jobs booked before this date are never escalated automatically, so
 # turning the feature on doesn't punish partners for old test bookings
-ESCALATIONS_FROM = os.getenv("KOODAM_ESCALATIONS_FROM", "2026-10-03")
+ESCALATIONS_FROM = _env_legacy("ESCALATIONS_FROM", "2026-10-03")
 
 # A partner's first escalation in this window is a warning, the rest are
 # strikes; this many strikes in the window suspends them

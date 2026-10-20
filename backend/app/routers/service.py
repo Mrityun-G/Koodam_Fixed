@@ -7,8 +7,8 @@ from app.models.service import Service
 from app.models.partner_service import PartnerService
 from app.models.partner import Partner
 from app.models.user import User
+from app.authz import require_admin, require_user
 from app.escalations import can_take_bookings
-from app.routers.escalations import require_admin
 from app.schemas.service import ServiceCreate, ServiceResponse, ServiceUpdate
 
 
@@ -113,7 +113,8 @@ def partner_listing(partner, user, partner_service) -> dict:
 # Declared before /{service_id} so "with-partners" isn't read as an ID
 @router.get("/with-partners")
 def get_services_with_partners(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     """
     Every active service with the partners offering it, in one query,
@@ -173,7 +174,8 @@ def get_service(
 @router.get("/{service_id}/partners")
 def get_partners_for_service(
     service_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     # Check whether the service exists
     service = db.query(Service).filter(

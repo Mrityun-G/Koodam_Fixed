@@ -8,9 +8,7 @@ import { Avatar } from '../components/Avatar';
 import { MapTiles } from '../components/LiveMap';
 import { estimateEtaMinutes } from '../lib/geo';
 import { helpersFromServices, withDistance } from '../lib/helpers';
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 // Partners send their position while online; this picks it up
 const REFRESH_MS = 20000;
@@ -103,13 +101,7 @@ export const NearbyMapScreen = () => {
 
     const load = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/services/with-partners`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to load helpers (${response.status})`);
-        }
-
-        const data = await response.json();
+        const data = await authorizedFetch('/services/with-partners');
 
         if (!cancelled) {
           setServices(data);

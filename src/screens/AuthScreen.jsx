@@ -25,7 +25,16 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { SubHeader } from '../components/SubHeader';
-import { isValidDocumentFile, documentFileError } from '../lib/validators';
+import {
+  isValidDocumentFile,
+  documentFileError,
+  isValidEmail,
+  isValidPhone,
+  phoneProblem,
+  passwordProblem,
+  passwordStrength,
+  nameProblem
+} from '../lib/validators';
 
 const copy = {
   member: {
@@ -117,6 +126,40 @@ const GoogleLogo = () => (
     <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
     <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
   </svg>
+);
+
+// Four segments that fill as the password gets harder to guess. Gives
+// people a reason to go past the minimum instead of stopping at it.
+const STRENGTH_COLORS = ['bg-red-400', 'bg-red-400', 'bg-amber-400', 'bg-emerald-400', 'bg-emerald-500'];
+
+const PasswordStrength = ({ strength, isPartner }) => (
+  <div className="-mt-2 flex items-center gap-2" aria-live="polite">
+    <div className="flex flex-1 gap-1">
+      {[1, 2, 3, 4].map((step) => (
+        <span
+          key={step}
+          className={`h-1 flex-1 rounded-full transition-colors ${
+            strength.score >= step
+              ? STRENGTH_COLORS[strength.score]
+              : isPartner
+              ? 'bg-white/15'
+              : 'bg-slate-200'
+          }`}
+        />
+      ))}
+    </div>
+    <span
+      className={`text-[10px] font-bold ${
+        strength.score >= 3
+          ? 'text-emerald-500'
+          : strength.score === 2
+          ? 'text-amber-500'
+          : 'text-red-400'
+      }`}
+    >
+      {strength.label}
+    </span>
+  </div>
 );
 
 const formatFileSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -247,7 +290,14 @@ export const AuthScreen = () => {
   // Optional at sign-up; it can also be uploaded later from the partner Profile
   const [policeFile, setPoliceFile] = useState(null);
 
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const emailValid = isValidEmail(email);
+
+  // Shown under each field once there is something to correct, so the
+  // person isn't told what is wrong only when they press the button
+  const nameError = name ? nameProblem(name) : '';
+  const phoneError = phone ? phoneProblem(phone) : '';
+  const passwordError = isSignup && password ? passwordProblem(password) : '';
+  const strength = isSignup ? passwordStrength(password) : { score: 0, label: '' };
 
   const aadhaarError = documentFileError(aadhaarFile);
   const panError = documentFileError(panFile);
@@ -263,9 +313,10 @@ export const AuthScreen = () => {
 
   const canSubmit = isSignup
     ? Boolean(name.trim()) &&
+      !nameProblem(name) &&
       emailValid &&
-      Boolean(phone.trim()) &&
-      password.length >= 6 &&
+      isValidPhone(phone) &&
+      !passwordProblem(password) &&
       password === confirmPassword &&
       agreedToTerms &&
       kycValid
@@ -275,10 +326,10 @@ export const AuthScreen = () => {
   // isn't left staring at a greyed-out button with no idea what to fix.
   const blockingReason = (() => {
     if (!isSignup) return null;
-    if (!name.trim()) return 'Enter your full name.';
+    if (nameProblem(name)) return nameProblem(name);
     if (!emailValid) return 'Enter a valid email address.';
-    if (!phone.trim()) return 'Enter your phone number.';
-    if (password.length < 6) return 'Password must be at least 6 characters.';
+    if (phoneProblem(phone)) return phoneProblem(phone);
+    if (passwordProblem(password)) return passwordProblem(password);
     if (password !== confirmPassword) return 'Passwords do not match.';
     if (!agreedToTerms) return 'Please agree to the Terms & Policy.';
     if (!kycValid) return policeError
@@ -417,6 +468,8 @@ export const AuthScreen = () => {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your full name"
                 isPartner={isPartner}
+                error={nameError || undefined}
+                valid={Boolean(name) && !nameError}
               />
             )}
 
@@ -428,6 +481,12 @@ export const AuthScreen = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               isPartner={isPartner}
+              error={
+                isSignup && email && !emailValid
+                  ? 'Enter a valid email address.'
+                  : undefined
+              }
+              valid={isSignup && emailValid}
             />
 
             {isSignup && (
@@ -439,6 +498,8 @@ export const AuthScreen = () => {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+91 98765 43210"
                 isPartner={isPartner}
+                error={phoneError || undefined}
+                valid={Boolean(phone) && !phoneError}
               />
             )}
 
@@ -509,12 +570,19 @@ export const AuthScreen = () => {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={isSignup ? 'At least 6 characters' : 'Enter your password'}
+              placeholder={
+                isSignup ? '8+ characters, with a number' : 'Enter your password'
+              }
               isPartner={isPartner}
+              error={passwordError || undefined}
               endAdornment={
                 <PasswordToggle shown={showPassword} onToggle={() => setShowPassword((s) => !s)} isPartner={isPartner} />
               }
             />
+
+            {isSignup && password && (
+              <PasswordStrength strength={strength} isPartner={isPartner} />
+            )}
 
             {isSignup && (
               <FieldInput

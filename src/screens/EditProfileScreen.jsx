@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { SubHeader } from '../components/SubHeader';
-import { supabase } from '../lib/supabase';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 export const EditProfileScreen = () => {
   const {
@@ -83,29 +83,9 @@ export const EditProfileScreen = () => {
       );
     }
 
-    const BACKEND_URL =
-      import.meta.env.VITE_BACKEND_URL ||
-      'http://127.0.0.1:8000';
-
-    const response = await fetch(
-      `${BACKEND_URL}/users/firebase/${authUser.uid}`
+    const backendUser = await authorizedFetch(
+      `/users/firebase/${authUser.uid}`
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      console.error(
-        'Could not load backend profile:',
-        response.status,
-        errorText
-      );
-
-      throw new Error(
-        'User profile could not be loaded from the server.'
-      );
-    }
-
-    const backendUser = await response.json();
 
     if (!backendUser?.id) {
       throw new Error(
@@ -125,45 +105,25 @@ export const EditProfileScreen = () => {
   // UPLOAD PHOTO
   // -------------------------------------------------------
 
+  // Goes through the API rather than straight into the storage bucket:
+  // the server checks the sign-in and the file, and the bucket can then
+  // refuse every write that doesn't come from it. Uploading from here
+  // with the anon key could not be secured, because KOODAM signs people
+  // in with Firebase and Supabase sees no session to match against.
   const uploadPhoto = async (file) => {
     if (!file) {
       return profile.avatar || null;
     }
 
-    // Get existing ID or recover it from backend
-    const profileId = await getProfileId();
+    const formData = new FormData();
+    formData.append('file', file);
 
-    const fileExtension =
-      file.name.split('.').pop() || 'jpg';
+    const { avatar } = await authorizedFetch('/users/me/avatar', {
+      method: 'POST',
+      body: formData
+    });
 
-    const fileName =
-      `${profileId}-${Date.now()}.${fileExtension}`;
-
-    const filePath =
-      `profiles/${profileId}/${fileName}`;
-
-    const { error: uploadError } =
-      await supabase.storage
-        .from('profile-photos')
-        .upload(
-          filePath,
-          file,
-          {
-            cacheControl: '3600',
-            upsert: false
-          }
-        );
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data } =
-      supabase.storage
-        .from('profile-photos')
-        .getPublicUrl(filePath);
-
-    return data.publicUrl;
+    return avatar;
   };
 
   // -------------------------------------------------------

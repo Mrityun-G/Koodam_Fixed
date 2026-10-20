@@ -23,7 +23,12 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  deleteUser,
   GoogleAuthProvider,
   signInWithCredential
 } from 'firebase/auth';
@@ -42,7 +47,10 @@ import {
   isStorageConfigured
 } from '../lib/firebase';
 
-import { authorizedFetch } from '../lib/authorizedFetch';
+import { authorizedFetch, authorizedFetchOrNull } from '../lib/authorizedFetch';
+import { detectPlaceName } from '../lib/geo';
+import { EVENTS, startAnalytics, track, trackScreen } from '../lib/analytics';
+import { setErrorScreen, startErrorTracking } from '../lib/errorTracking';
 
 import { useRoute } from '../lib/route';
 
@@ -77,6 +85,10 @@ const LAST_ROLE_KEY = 'koodam-last-role';
 // tracking screen and rating card ({ uid, orderId } only; the order
 // itself is read from Firebase)
 const ACTIVE_ORDER_KEY = 'koodam-active-order';
+
+// Accounts that have been through the getting-started steps. Stored by
+// uid so two people using one phone each see it once.
+const ONBOARDED_KEY = 'koodam-onboarded';
 
 // Where the two keys above are kept: per tab during local development,
 // to match the per-tab sign-in in lib/firebase.js
@@ -370,6 +382,14 @@ export const AppProvider = ({ children }) => {
 
   const [authUser, setAuthUser] = useState(null);
 
+  // False until Firebase has told us whether anyone is signed in. Without
+  // it the Welcome screen flashes up for a moment on every reload before
+  // the saved session loads, which reads as having been logged out.
+  const [authResolved, setAuthResolved] = useState(!isFirebaseConfigured);
+
+  // True between signing up and finishing (or skipping) onboarding
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
   const [authLoading, setAuthLoading] =
     useState(false);
 
@@ -379,6 +399,24 @@ export const AppProvider = ({ children }) => {
   // =========================================================
 
   const [partnerKyc, setPartnerKyc] = useState(null);
+
+
+  // =========================================================
+  // Analytics and crash reporting
+  // =========================================================
+
+  useEffect(() => {
+    startAnalytics();
+    startErrorTracking();
+  }, []);
+
+
+  // Every screen change is reported once, so the booking funnel can be
+  // followed even though the whole app lives at one URL.
+  useEffect(() => {
+    setErrorScreen(currentScreen);
+    trackScreen(currentScreen, role);
+  }, [currentScreen, role]);
 
 
   // =========================================================
@@ -394,15 +432,25 @@ useEffect(() => {
 
       setAuthUser(user);
 
+      // Google accounts arrive already verified; an email/password one
+      // only becomes verified once they follow the link we sent.
+      setEmailVerified(!user || user.emailVerified);
+
       // No logged-in Firebase user
       if (!user) {
+        setAuthResolved(true);
         return;
       }
 
       try {
 
+        // Signed with this user's own token: the backend only hands back
+        // the profile belonging to the account that asked for it.
+        const idToken = await user.getIdToken();
+
         const response = await fetch(
-          `${BACKEND_URL}/users/firebase/${user.uid}`
+          `${BACKEND_URL}/users/firebase/${user.uid}`,
+          { headers: { Authorization: `Bearer ${idToken}` } }
         );
 
         if (!response.ok) {
@@ -498,17 +546,32 @@ useEffect(() => {
           'Failed to load user profile:',
           error
         );
+
+      } finally {
+        setAuthResolved(true);
       }
     }
   );
 
-  return () => unsubscribe();
+  // If Firebase never answers (offline, or a blocked network), stop
+  // showing the splash rather than leaving people on it for good.
+  const bailOut = setTimeout(() => setAuthResolved(true), 8000);
+
+  return () => {
+    clearTimeout(bailOut);
+    unsubscribe();
+  };
 
 }, []);
 
 // =========================================================
 // Member Profile
 // =========================================================
+
+// Whether the signed-in account has confirmed its email address, and
+// whether we have just sent them a fresh link
+const [emailVerified, setEmailVerified] = useState(true);
+const [verificationSent, setVerificationSent] = useState(false);
 
 const [userProfile, setUserProfile] = useState(EMPTY_MEMBER_PROFILE);
 
@@ -773,23 +836,11 @@ useEffect(() => {
 
     lastSyncedOrderRef.current = serialized;
 
-    fetch(`${BACKEND_URL}/bookings/sync`, {
+    authorizedFetch('/bookings/sync', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: serialized
     })
-      .then(async (response) => {
-        if (!response.ok) {
-          const error = await response.json().catch(() => null);
-          console.warn(
-            'Booking sync to backend failed:',
-            error?.detail || response.status
-          );
-          // Allow the same data to be retried on the next change
-          lastSyncedOrderRef.current = null;
-          return;
-        }
-
+      .then(() => {
         // Let the partner overview reload the new numbers
         setBackendSyncVersion((version) => version + 1);
       })
@@ -1387,16 +1438,10 @@ const refreshPartnerOverview = async () => {
   }
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/partners/${partnerProfile.id}/overview` +
+    const overview = await authorizedFetch(
+      `/partners/${partnerProfile.id}/overview` +
       `?tz_offset_minutes=${new Date().getTimezoneOffset()}`
     );
-
-    if (!response.ok) {
-      throw new Error(`Overview request failed: ${response.status}`);
-    }
-
-    const overview = await response.json();
 
     setPartnerStats((prev) => ({
       ...prev,
@@ -1430,18 +1475,13 @@ const cycleServiceRadius = async () => {
     SERVICE_RADIUS_OPTIONS_KM[(index + 1) % SERVICE_RADIUS_OPTIONS_KM.length];
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/partners/${partnerProfile.id}/service-radius`,
+    await authorizedFetch(
+      `/partners/${partnerProfile.id}/service-radius`,
       {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ service_radius_km: next })
       }
     );
-
-    if (!response.ok) {
-      throw new Error(`Radius update failed: ${response.status}`);
-    }
 
     setPartnerStats((prev) => ({ ...prev, serviceRadiusKm: next }));
     showToast(`Service radius set to ${next} km`);
@@ -1647,17 +1687,9 @@ useEffect(() => {
       // Every partner account has one, even before adding a service, so a
       // new partner starts listening right away and gets requests as soon
       // as they add their first service (no page reload needed).
-const response = await fetch(
-  `${BACKEND_URL}/partners/${partnerProfile.id}`
-);
-
-if (!response.ok) {
-  throw new Error(
-    `Partner lookup failed: ${response.status}`
-  );
-}
-
-const partnerId = (await response.json()).id;
+const partnerId = (
+  await authorizedFetch(`/partners/${partnerProfile.id}`)
+).id;
 
 if (cancelled) return;
 
@@ -1981,6 +2013,62 @@ const requestsRef = ref(db, requestPath);
   // Role
   // =========================================================
 
+  const onboardedAccounts = () => {
+    try {
+      return JSON.parse(localStorage.getItem(ONBOARDED_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  };
+
+
+  const hasOnboarded = (uid) => !uid || onboardedAccounts().includes(uid);
+
+
+  const completeOnboarding = () => {
+    const uid = auth?.currentUser?.uid;
+
+    setNeedsOnboarding(false);
+
+    if (!uid) return;
+
+    try {
+      const done = onboardedAccounts();
+
+      if (!done.includes(uid)) {
+        // Keep the list short; only the recent few matter on one device
+        localStorage.setItem(
+          ONBOARDED_KEY,
+          JSON.stringify([...done, uid].slice(-10))
+        );
+      }
+    } catch {
+      // Without storage they see the steps again, which is harmless
+    }
+
+    track(EVENTS.onboardingCompleted, { role });
+  };
+
+
+  // Where the device is, as an area name, for the onboarding step and
+  // anywhere else that wants it without the picker UI.
+  const detectLocation = async () => {
+    const place = await detectPlaceName();
+
+    if (!place) return null;
+
+    if (place.coords) {
+      setUserCoords(place.coords);
+    }
+
+    if (place.label) {
+      setLocation(place.label);
+    }
+
+    return place.label || null;
+  };
+
+
   const enterRole = (targetRole) => {
     setRole(targetRole);
 
@@ -2122,6 +2210,16 @@ const signUp = async (
           );
         }
 
+        // Confirms the address is really theirs, so password resets and
+        // booking receipts can actually reach them. Not a hard gate:
+        // failing to send must not lose them the account they just made.
+        try {
+          await sendEmailVerification(cred.user);
+          setVerificationSent(true);
+        } catch (verifyError) {
+          console.warn('Could not send the verification email:', verifyError);
+        }
+
         // Sync Firebase user with KOODAM backend
         backendUser =
           await syncUserWithBackend(
@@ -2209,14 +2307,10 @@ const signUp = async (
         const formData = new FormData();
         formData.append('file', policeFile);
 
-        const response = await fetch(
-          `${BACKEND_URL}/partners/${backendUser.id}/police-verification`,
+        await authorizedFetch(
+          `/partners/${backendUser.id}/police-verification`,
           { method: 'POST', body: formData }
         );
-
-        if (!response.ok) {
-          throw new Error(`Police certificate upload failed: ${response.status}`);
-        }
       } catch (error) {
         // The account is still created; the partner can re-upload from Profile
         console.error('Police certificate upload failed:', error);
@@ -2228,7 +2322,15 @@ const signUp = async (
     // Existing KOODAM navigation
     // -------------------------------------------------------
 
+    track(EVENTS.signUpCompleted, { role: targetRole });
+
     enterRole(targetRole);
+
+    // A brand new account goes through the getting-started steps: a
+    // member with no area saved and a partner with no services listed
+    // both land on a screen that cannot do anything useful yet.
+    setNeedsOnboarding(true);
+    setCurrentScreen('onboarding');
 
     showToast(
       policeUploadFailed
@@ -2703,6 +2805,139 @@ const signIn = async (
 
 
   // =========================================================
+  // Delete Account
+  // The Terms promise this and both app stores require it. The server
+  // erases the personal details and removes the KYC scans; the Firebase
+  // login is deleted here so the email can be used again.
+  // =========================================================
+
+  const deleteAccount = async () => {
+    const user = auth?.currentUser;
+
+    if (!isFirebaseConfigured || !user) {
+      showToast('Please sign in again to delete your account.');
+      return false;
+    }
+
+    setAuthLoading(true);
+
+    try {
+
+      // The server refuses while a job is in progress or a bill is
+      // unpaid, and says which, so that message is worth showing as-is.
+      await authorizedFetch('/users/me', { method: 'DELETE' });
+
+      try {
+        await deleteUser(user);
+      } catch (err) {
+        // Firebase wants a recent sign-in before it will delete a login.
+        // The data is already gone at this point, so sign them out and
+        // tell them plainly rather than failing the whole thing.
+        if (err?.code?.includes('requires-recent-login')) {
+          showToast(
+            'Your data has been removed. Please log in once more to finish closing the account.'
+          );
+          await logout();
+          return true;
+        }
+
+        throw err;
+      }
+
+      await supabase.auth.signOut().catch(() => {});
+
+      try {
+        loginStorage().removeItem(LAST_ROLE_KEY);
+        loginStorage().removeItem(ACTIVE_ORDER_KEY);
+      } catch {
+        // Nothing to clear
+      }
+
+      setUserProfile(EMPTY_MEMBER_PROFILE);
+      setPartnerProfile(EMPTY_PARTNER_PROFILE);
+      setActiveOrder(EMPTY_ORDER);
+      setMessages([]);
+      setIsChatOpen(false);
+      setReviews([]);
+      setRole('welcome');
+
+      navigateTo('welcome');
+
+      track(EVENTS.accountDeleted, { role });
+
+      showToast('Your account has been deleted.');
+
+      return true;
+
+    } catch (err) {
+      console.error('Account deletion failed:', err);
+      showToast(err.message || 'Could not delete your account. Please try again.');
+      return false;
+
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+
+  // =========================================================
+  // Email Verification
+  // =========================================================
+
+  const resendVerificationEmail = async () => {
+    const user = auth?.currentUser;
+
+    if (!isFirebaseConfigured || !user) {
+      showToast('Please sign in again first.');
+      return false;
+    }
+
+    if (user.emailVerified) {
+      setEmailVerified(true);
+      showToast('Your email is already confirmed.');
+      return true;
+    }
+
+    try {
+      await sendEmailVerification(user);
+      setVerificationSent(true);
+      showToast(`Confirmation link sent to ${user.email}.`);
+      return true;
+    } catch (err) {
+      showToast(authErrorMessage(err));
+      return false;
+    }
+  };
+
+
+  // Called when they come back from their inbox. Firebase caches the
+  // flag on the token, so it has to be refreshed to see the change.
+  const refreshEmailVerified = async () => {
+    const user = auth?.currentUser;
+
+    if (!user) return false;
+
+    try {
+      await user.reload();
+      await user.getIdToken(true);
+
+      setEmailVerified(user.emailVerified);
+
+      if (user.emailVerified) {
+        showToast('Email confirmed — thanks!');
+      } else {
+        showToast("That link hasn't been opened yet. Please check your inbox.");
+      }
+
+      return user.emailVerified;
+    } catch (err) {
+      showToast(authErrorMessage(err));
+      return false;
+    }
+  };
+
+
+  // =========================================================
 // Password Reset
 // =========================================================
 
@@ -2735,28 +2970,28 @@ const requestPasswordReset = async (email) => {
 
       console.error(
         'Password reset error:',
-        err
-      );
-
-      console.error(
-        'Firebase error code:',
-        err.code
-      );
-
-      console.error(
-        'Firebase error message:',
+        err.code,
         err.message
       );
 
-      showToast(
-        `${err.code}: ${err.message}`
-      );
+      // Never show a raw Firebase code to the person. "user-not-found"
+      // would also tell a stranger which emails have accounts here, so
+      // a missing address gets the same answer as a real one.
+      if (err?.code?.includes('user-not-found')) {
+        showToast(
+          'If that email has an account, a reset link is on its way.'
+        );
+      } else {
+        showToast(authErrorMessage(err));
+      }
     }
 
   } else {
 
+    // Firebase isn't configured in this build, so no email can go out.
+    // Say so plainly instead of implying one was sent.
     showToast(
-      `Demo mode: a password reset link would be sent to ${email}.`
+      "Password reset isn't available right now. Please contact KOODAM support."
     );
   }
 };
@@ -2779,14 +3014,11 @@ const requestPasswordReset = async (email) => {
 // using the Firebase UID.
 if (!userId && authUser?.uid) {
   try {
-    const profileResponse = await fetch(
-      `${BACKEND_URL}/users/firebase/${authUser.uid}`
+    const backendUser = await authorizedFetchOrNull(
+      `/users/firebase/${authUser.uid}`
     );
 
-    if (profileResponse.ok) {
-      const backendUser =
-        await profileResponse.json();
-
+    if (backendUser) {
       userId = backendUser?.id;
 
       if (backendUser?.id) {
@@ -2811,13 +3043,10 @@ if (!userId) {
   return false;
 }
 
-    const response = await fetch(
-      `${BACKEND_URL}/users/${userId}`,
+    const updatedUser = await authorizedFetch(
+      `/users/${userId}`,
       {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: updates.name,
           phone: updates.phone,
@@ -2825,21 +3054,6 @@ if (!userId) {
         }),
       }
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      console.error(
-        'Profile update failed:',
-        response.status,
-        errorText
-      );
-
-      showToast('Failed to update profile');
-      return false;
-    }
-
-    const updatedUser = await response.json();
 
     setUserProfile((previous) => ({
       ...previous,
@@ -2859,7 +3073,7 @@ if (!userId) {
     );
 
     showToast(
-      'Unable to update profile'
+      error.message || 'Unable to update profile'
     );
 
     return false;
@@ -2884,13 +3098,10 @@ const updatePartnerProfile = async (
       return false;
     }
 
-    const response = await fetch(
-      `${BACKEND_URL}/users/${userId}`,
+    const updatedUser = await authorizedFetch(
+      `/users/${userId}`,
       {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: updates.name,
           phone: updates.phone,
@@ -2898,25 +3109,6 @@ const updatePartnerProfile = async (
         }),
       }
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      console.error(
-        'Partner profile update failed:',
-        response.status,
-        errorText
-      );
-
-      showToast(
-        'Failed to update partner profile'
-      );
-
-      return false;
-    }
-
-    const updatedUser =
-      await response.json();
 
     setPartnerProfile((previous) => ({
       ...previous,
@@ -2936,7 +3128,7 @@ const updatePartnerProfile = async (
     );
 
     showToast(
-      'Unable to update partner profile'
+      error.message || 'Unable to update partner profile'
     );
 
     return false;
@@ -2948,7 +3140,11 @@ const updatePartnerProfile = async (
   // Change Password
   // =========================================================
 
-  const changePassword = (
+  // Actually changes the password with Firebase. This used to only check
+  // the length and then say "Password updated successfully!" without
+  // changing anything, so people believed their password had been
+  // changed when their old one still worked.
+  const changePassword = async (
     currentPassword,
     newPassword
   ) => {
@@ -2966,21 +3162,95 @@ const updatePartnerProfile = async (
     }
 
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
 
       showToast(
-        'New password must be at least 6 characters.'
+        'New password must be at least 8 characters.'
       );
 
       return false;
     }
 
 
-    showToast(
-      'Password updated successfully!'
+    if (newPassword === currentPassword) {
+
+      showToast(
+        'Please choose a password different from your current one.'
+      );
+
+      return false;
+    }
+
+
+    const user = auth?.currentUser;
+
+    if (!isFirebaseConfigured || !user) {
+
+      showToast(
+        'Please sign in again to change your password.'
+      );
+
+      return false;
+    }
+
+
+    // Google accounts have no KOODAM password to change
+    const hasPassword = user.providerData.some(
+      (provider) => provider.providerId === 'password'
     );
 
-    return true;
+    if (!hasPassword) {
+
+      showToast(
+        'You sign in with Google, so there is no password to change.'
+      );
+
+      return false;
+    }
+
+
+    setAuthLoading(true);
+
+    try {
+
+      // Firebase requires a recent sign-in before a password change;
+      // this also proves the person knows the current one.
+      await reauthenticateWithCredential(
+        user,
+        EmailAuthProvider.credential(user.email, currentPassword)
+      );
+
+      await updatePassword(user, newPassword);
+
+      showToast(
+        'Password changed. Use your new password next time you log in.'
+      );
+
+      return true;
+
+    } catch (err) {
+
+      if (
+        err?.code?.includes('wrong-password') ||
+        err?.code?.includes('invalid-credential')
+      ) {
+
+        showToast(
+          'That current password is not right.'
+        );
+
+      } else {
+
+        showToast(
+          authErrorMessage(err)
+        );
+      }
+
+      return false;
+
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
 
@@ -3037,11 +3307,11 @@ const handleConfirmBooking = async () => {
   // The helper list can be minutes old; don't book a partner who has
   // since gone offline. A failed check doesn't block the booking.
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/partners/${targetPartnerId}`
+    const partner = await authorizedFetchOrNull(
+      `/partners/${targetPartnerId}`
     );
 
-    if (response.ok && !(await response.json()).is_online) {
+    if (partner && !partner.is_online) {
       showToast(
         `${selectedHelper.name || 'This partner'} just went offline. Please choose another helper.`
       );
@@ -4008,13 +4278,9 @@ const acceptIncomingJob = async () => {
     let bookedRanges = jobsToTimeRanges(partnerUpcomingJobs);
 
     try {
-      const response = await fetch(
-        `${BACKEND_URL}/partners/${partnerId}/busy-slots`
+      bookedRanges = toTimeRanges(
+        await authorizedFetch(`/partners/${partnerId}/busy-slots`)
       );
-
-      if (response.ok) {
-        bookedRanges = toTimeRanges(await response.json());
-      }
     } catch (error) {
       console.error('Failed to check partner schedule:', error);
     }
@@ -4334,6 +4600,15 @@ return (
       signInWithGoogle,
       logout,
       requestPasswordReset,
+      resendVerificationEmail,
+      refreshEmailVerified,
+      deleteAccount,
+      needsOnboarding,
+      completeOnboarding,
+      detectLocation,
+      emailVerified,
+      verificationSent,
+      authResolved,
 
       userProfile,
       updateUserProfile,

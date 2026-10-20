@@ -6,6 +6,7 @@ import { Avatar } from '../components/Avatar';
 import { VoiceAssistant } from '../components/VoiceAssistant';
 import { detectService, pickBestHelper, reliabilityPenalty } from '../lib/voiceIntent';
 import { helpersFromServices, withDistance } from '../lib/helpers';
+import { authorizedFetch } from '../lib/authorizedFetch';
 
 export const UserHomeScreen = () => {
   const {
@@ -48,10 +49,6 @@ export const UserHomeScreen = () => {
   // How often the helper list refreshes while Home is open
   const HELPERS_REFRESH_MS = 2 * 60 * 1000;
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  'http://127.0.0.1:8000';
-
 
 useEffect(() => {
 
@@ -63,18 +60,11 @@ useEffect(() => {
         setHelpersLoading(true);
       }
 
-      // Every service with its partners in one request
-      const response = await fetch(
-        `${BACKEND_URL}/services/with-partners`
+      // Every service with its partners in one request. Partner
+      // locations are behind a sign-in, so this is sent authorized.
+      const services = await authorizedFetch(
+        '/services/with-partners'
       );
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load helpers (${response.status})`
-        );
-      }
-
-      const services = await response.json();
 
       const allHelpers = helpersFromServices(services);
 

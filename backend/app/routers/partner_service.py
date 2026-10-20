@@ -3,6 +3,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from uuid import UUID
 
+from app.authz import is_admin, owns_partner, require_user
 from app.database import get_db
 from app.models.partner import Partner
 from app.models.user import User
@@ -39,6 +40,15 @@ def resolve_partner(
     return partner
 
 
+def require_service_owner(caller: User, partner: Partner) -> None:
+    """Only a partner (or KOODAM staff) may change that partner's listings."""
+    if not owns_partner(caller, partner) and not is_admin(caller):
+        raise HTTPException(
+            status_code=403,
+            detail="You can only change your own services."
+        )
+
+
 # =========================================================
 # ADD SERVICE TO PARTNER
 # =========================================================
@@ -49,7 +59,8 @@ def resolve_partner(
 )
 def assign_service_to_partner(
     data: PartnerServiceCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     partner = resolve_partner(
         db,
@@ -61,6 +72,8 @@ def assign_service_to_partner(
             status_code=404,
             detail="Partner profile not found"
         )
+
+    require_service_owner(caller, partner)
 
     service = db.query(Service).filter(
         Service.id == data.service_id
@@ -107,7 +120,8 @@ def assign_service_to_partner(
     response_model=list[PartnerServiceResponse]
 )
 def get_partner_services(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     return db.query(PartnerService).filter(
         PartnerService.is_active == True
@@ -125,7 +139,8 @@ def get_partner_services(
 )
 def get_services_for_partner(
     partner_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     partner = resolve_partner(
         db,
@@ -154,7 +169,8 @@ def get_services_for_partner(
 )
 def get_services_for_partner_user(
     user_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     partner = (
         db.query(Partner)
@@ -185,7 +201,8 @@ def get_services_for_partner_user(
 def update_partner_service(
     partner_service_id: UUID,
     data: PartnerServiceCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     partner_service = db.query(
         PartnerService
@@ -216,6 +233,10 @@ def update_partner_service(
             detail="Partner does not own this service"
         )
 
+    # The body names which partner owns the listing; this checks that the
+    # person calling is actually that partner.
+    require_service_owner(caller, partner)
+
     partner_service.experience_years = (
         data.experience_years
     )
@@ -240,7 +261,8 @@ def update_partner_service(
 )
 def deactivate_partner_service(
     partner_service_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
     partner_service = db.query(
         PartnerService
@@ -253,6 +275,13 @@ def deactivate_partner_service(
             status_code=404,
             detail="Partner service not found"
         )
+
+    owner = db.query(Partner).filter(
+        Partner.id == partner_service.partner_id
+    ).first()
+
+    if owner:
+        require_service_owner(caller, owner)
 
     partner_service.is_active = False
 

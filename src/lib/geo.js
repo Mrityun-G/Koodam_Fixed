@@ -20,3 +20,70 @@ export const estimateEtaMinutes = (distanceKm, avgSpeedKmh = 22) => {
   if (distanceKm == null) return null;
   return Math.max(1, Math.round((distanceKm / avgSpeedKmh) * 60));
 };
+
+
+// =========================================================
+// PLACE NAMES
+// Shared by the Header's location picker and the onboarding step, which
+// each used to carry their own copy of this.
+// =========================================================
+
+// Area name for a point, e.g. "Sholinganallur, Chennai"
+export const describePlace = (address = {}) => {
+  const area =
+    address.neighbourhood ||
+    address.suburb ||
+    address.residential ||
+    address.city_district ||
+    address.quarter;
+
+  const city =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.municipality ||
+    address.county;
+
+  return [area, city].filter(Boolean).join(', ');
+};
+
+// Where the device is, as a place name. Resolves to '' when the person
+// refuses the permission or the lookup fails — the caller decides what
+// to say about it.
+export const detectPlaceName = () =>
+  new Promise((resolve) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+            { headers: { Accept: 'application/json', 'Accept-Language': 'en' } }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Location lookup failed: ${response.status}`);
+          }
+
+          resolve({
+            label: describePlace((await response.json()).address) || '',
+            coords: { lat: latitude, lng: longitude }
+          });
+        } catch (error) {
+          console.error('Location lookup failed:', error);
+          resolve({ label: '', coords: { lat: latitude, lng: longitude } });
+        }
+      },
+      (error) => {
+        console.warn('Could not read location:', error?.message);
+        resolve(null);
+      },
+      { timeout: 10000 }
+    );
+  });

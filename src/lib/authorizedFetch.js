@@ -6,6 +6,9 @@ export const BACKEND_URL =
 // Calls the backend as the signed-in user: it sends their Firebase ID
 // token, which the backend checks before showing or changing their data.
 // Returns the JSON body, or throws with the backend's message.
+//
+// Pass a FormData body to upload a file: the Content-Type header is left
+// off so the browser can set its own multipart boundary.
 export const authorizedFetch = async (path, options = {}) => {
   const user = auth?.currentUser;
 
@@ -14,13 +17,15 @@ export const authorizedFetch = async (path, options = {}) => {
   }
 
   const token = await user.getIdToken();
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData;
 
   const response = await fetch(
     path.startsWith('http') ? path : `${BACKEND_URL}${path}`,
     {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         Authorization: `Bearer ${token}`,
         ...(options.headers || {})
       }
@@ -35,8 +40,25 @@ export const authorizedFetch = async (path, options = {}) => {
       ? body.detail.map((item) => String(item.msg).replace(/^Value error, /, '')).join(' · ')
       : body?.detail;
 
-    throw new Error(detail || `Request failed (${response.status})`);
+    const error = new Error(detail || `Request failed (${response.status})`);
+    error.status = response.status;
+
+    throw error;
   }
 
   return body;
+};
+
+// Same thing, but returns null instead of throwing when the record isn't
+// there yet — a 404 is a normal answer for "has this synced?" lookups.
+export const authorizedFetchOrNull = async (path, options = {}) => {
+  try {
+    return await authorizedFetch(path, options);
+  } catch (error) {
+    if (error.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
 };

@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from uuid import UUID
 import random
 
+from app.authz import is_admin, require_booking_party, require_user
 from app.database import get_db
 from app.models.booking import Booking
 from app.models.user import User
@@ -22,8 +24,15 @@ router = APIRouter(
 @router.post("/", response_model=BookingResponse)
 def create_booking(
     booking_data: BookingCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
+    # A booking is made by the customer it belongs to
+    if booking_data.user_id != caller.id and not is_admin(caller):
+        raise HTTPException(
+            status_code=403,
+            detail="You can only book for yourself."
+        )
 
     # Check user
     user = db.query(User).filter(
@@ -103,17 +112,33 @@ def create_booking(
 
 @router.get("/", response_model=list[BookingResponse])
 def get_bookings(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
-    return db.query(Booking).order_by(
-        Booking.created_at.desc()
-    ).all()
+    """The caller's own bookings - as the customer, or as the partner who
+    was given the job. This used to return every booking in the database."""
+    query = db.query(Booking)
+
+    if not is_admin(caller):
+        partner = db.query(Partner).filter(
+            Partner.user_id == caller.id
+        ).first()
+
+        owned = [Booking.user_id == caller.id]
+
+        if partner:
+            owned.append(Booking.partner_id == partner.id)
+
+        query = query.filter(or_(*owned))
+
+    return query.order_by(Booking.created_at.desc()).all()
 
 
 @router.get("/{booking_id}", response_model=BookingResponse)
 def get_booking(
     booking_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
 ):
 
     booking = db.query(Booking).filter(
@@ -125,5 +150,7 @@ def get_booking(
             status_code=404,
             detail="Booking not found"
         )
+
+    require_booking_party(db, caller, booking)
 
     return booking
