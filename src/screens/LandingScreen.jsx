@@ -90,26 +90,37 @@ export const LandingScreen = () => {
         />
       </div>
 
-      {/* Hero Image. min-h keeps it from collapsing on short screens; flex-1
-          lets it take the slack on tall ones. */}
+      {/* Hero Image. The photo is 862x1600, far taller than the box it sits
+          in, so object-cover always discards a third of it. min-h keeps the
+          surviving slice tall enough to read on short screens; flex-1 lets it
+          take the slack on tall ones. */}
       <div
-        className="relative flex-1 min-h-[190px] w-full rounded-t-[40px] overflow-hidden shadow-[0_-10px_30px_rgba(0,0,0,0.08)] bg-gradient-to-br from-[#ffdbcc] via-[#ffb694] to-[#ff9a62] animate-fade-in"
+        className="relative flex-1 min-h-[240px] w-full rounded-t-[40px] overflow-hidden shadow-[0_-10px_30px_rgba(0,0,0,0.08)] bg-gradient-to-br from-[#ffdbcc] via-[#ffb694] to-[#ff9a62] animate-fade-in"
         style={step(420)}
       >
-        <img
-          className={`absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-700 motion-reduce:animate-none ${
-            heroLoaded ? 'opacity-100 animate-ken-burns' : 'opacity-0'
-          }`}
-          alt="Neighbors helping each other"
-          src="/hero-gigezee.jpeg"
-          width="862"
-          height="1600"
-          decoding="async"
-          onLoad={() => setHeroLoaded(true)}
-        />
+        <picture>
+          {/* WebP is ~47% of the JPEG here, and this is the first screen
+              anyone sees. Browsers without it fall through to the img. */}
+          <source srcSet="/hero-gigezee.webp" type="image/webp" />
+          <img
+            /* The two women and the bouquet sit at 36-64% of the photo's
+               height. Anchoring the crop there instead of at the top keeps
+               them in frame at every box height, and clear of the fade. */
+            className={`absolute inset-0 w-full h-full object-cover object-[50%_58%] transition-opacity duration-700 motion-reduce:animate-none ${
+              heroLoaded ? 'opacity-100 animate-ken-burns' : 'opacity-0'
+            }`}
+            alt="Neighbors helping each other"
+            src="/hero-gigezee.jpeg"
+            width="862"
+            height="1240"
+            decoding="async"
+            fetchPriority="high"
+            onLoad={() => setHeroLoaded(true)}
+          />
+        </picture>
 
         {/* Blends the photo into the white panel holding the buttons */}
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white/90 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/80 to-transparent pointer-events-none" />
       </div>
 
       {/* CTA below the image */}
