@@ -42,6 +42,7 @@ from app.routers.app_config import router as app_config_router
 
 from app.app_config import seed_app_config
 from app.routers.client_errors import router as client_errors_router
+from app.routers.speech import router as speech_router
 
 from app.escalations import start_sweeper
 from app.rate_limit import RateLimitMiddleware
@@ -99,6 +100,7 @@ app.include_router(diagnosis_router)
 app.include_router(me_router)
 app.include_router(app_config_router)
 app.include_router(client_errors_router)
+app.include_router(speech_router)
 
 
 # Create database tables

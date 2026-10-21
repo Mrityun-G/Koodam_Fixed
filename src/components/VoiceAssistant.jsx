@@ -1,78 +1,80 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-
-// Browser speech recognition language for each app language
-const SPEECH_LANGUAGES = {
-  en: 'en-IN',
-  ta: 'ta-IN',
-  kn: 'kn-IN'
-};
+import { useSpeechInput } from '../lib/useSpeechInput';
 
 /**
  * Mic button. Listens once and hands the final transcript to onResult;
  * what to do with it (e.g. open the best matching helper) is up to the
- * screen. Uses the browser's built-in speech recognition, so it costs
- * nothing per request.
+ * screen.
+ *
+ * Listening goes through useSpeechInput, which uses the browser's own
+ * recognition where there is any — free, with words appearing as they
+ * are spoken — and records a clip for the backend to transcribe where
+ * there is none. That second path is what the Android app uses: WebView
+ * has no SpeechRecognition, so this button used to do nothing there but
+ * tell people to "use Chrome or Edge" inside their own app.
  */
 export const VoiceAssistant = ({ onResult }) => {
   const { showToast, language } = useApp();
-  const recognitionRef = useRef(null);
-  const [isListening, setIsListening] = useState(false);
+
   const [transcript, setTranscript] = useState('');
 
-  useEffect(() => () => recognitionRef.current?.stop(), []);
+  const { listening, interim, transcribing, mode, start, supported } =
+    useSpeechInput({
+      language,
+      onFinal: (phrase) => {
+        setTranscript(phrase);
+        onResult?.(phrase);
+      },
+      onError: (message) => {
+        setTranscript('');
+        showToast(message);
+      }
+    });
 
-  const startListening = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      showToast('Voice commands need Chrome or Edge on this device.');
-      return;
-    }
+  // No microphone by either route: don't show a button that can't work
+  if (!supported) {
+    return null;
+  }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = SPEECH_LANGUAGES[language] || 'en-IN';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognition.onstart = () => {
-      setTranscript('');
-      setIsListening(true);
-    };
-    recognition.onresult = (event) => {
-      const text = Array.from(event.results).map(result => result[0].transcript).join('');
-      setTranscript(text);
-      if (event.results[event.results.length - 1].isFinal) onResult?.(text);
-    };
-    recognition.onerror = (event) => {
-      setIsListening(false);
-      showToast(
-        event.error === 'not-allowed'
-          ? 'Allow microphone access to use voice search.'
-          : 'I could not hear that. Please try again.'
-      );
-    };
-    recognition.onend = () => setIsListening(false);
-    recognitionRef.current = recognition;
-    recognition.start();
+  const handleClick = () => {
+    setTranscript('');
+    start();
   };
+
+  const label = transcribing
+    ? 'Getting your words…'
+    : interim || transcript ||
+      (mode === 'recorded'
+        ? 'Listening… tap again when you finish'
+        : 'Listening… say what you need');
 
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={startListening}
-        disabled={isListening}
-        aria-label={isListening ? 'Listening' : 'Search by voice'}
+        onClick={handleClick}
+        disabled={transcribing}
+        aria-label={listening ? 'Listening' : 'Search by voice'}
         title="Search by voice"
         className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-          isListening ? 'bg-[#ff6a00] text-white' : 'bg-[#eff4ff] text-[#0b1c30] hover:bg-[#d3e4fe]'
+          listening || transcribing
+            ? 'bg-[#ff6a00] text-white'
+            : 'bg-[#eff4ff] text-[#0b1c30] hover:bg-[#d3e4fe]'
         } disabled:cursor-wait`}
       >
-        <span className="material-symbols-outlined text-[19px]">{isListening ? 'graphic_eq' : 'mic'}</span>
+        <span
+          className={`material-symbols-outlined text-[19px] ${
+            transcribing ? 'animate-pulse' : ''
+          }`}
+        >
+          {listening || transcribing ? 'graphic_eq' : 'mic'}
+        </span>
       </button>
 
-      {isListening && (
+      {(listening || transcribing) && (
         <p className="absolute right-0 top-full mt-1.5 w-56 truncate rounded-xl bg-[#0b1c30] px-3 py-2 text-[11px] text-white shadow-lg z-10">
-          {transcript || 'Listening… say what you need'}
+          {label}
         </p>
       )}
     </div>

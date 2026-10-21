@@ -40,4 +40,15 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Voice typing. WebView has no SpeechRecognition, so the app records
+         a clip with MediaRecorder and the backend transcribes it. Without
+         this the recorder fails and the mic looks broken. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- The app works fine without a microphone; it just hides the mic
+         button, so a device lacking one must still be able to install. -->
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
 </manifest>

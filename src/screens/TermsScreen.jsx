@@ -19,7 +19,8 @@ const DEFAULT_SECTIONS = [
       'We collect only the information needed to facilitate bookings: name, contact details, location and service history.',
       'Your phone number and address are shared with a service partner only after a booking is confirmed.',
       'We do not sell personal data to third parties. Data may be used internally to improve safety, matching and support.',
-      'You may request an update or deletion of your profile data at any time from the Edit Profile screen.'
+      'Voice typing is optional. On most devices your speech is recognised by the phone itself and never leaves it. Where the device cannot do that, the recording is sent to our speech provider to be turned into text, used only for that, and not kept afterwards.',
+      'You may update your details any time from Edit Profile, and delete your account and personal details from Settings.'
     ]
   },
   {
@@ -41,7 +42,7 @@ export const TermsScreen = () => {
       <SubHeader title="Terms & Policy" />
 
       <main className="flex-1 flex flex-col relative w-full pb-10 px-4 space-y-3.5 pt-4">
-        <p className="text-[11px] text-slate-400">Last updated: September 2026</p>
+        <p className="text-[11px] text-slate-400">Last updated: October 2026</p>
 
         {sections.map((section, idx) => (
           <section key={idx} className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100">
