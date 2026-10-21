@@ -223,6 +223,11 @@ const EMPTY_ORDER = {
   feedback: ''
 };
 
+// A booking in one of these is over; nothing about it is still actionable.
+// (COMPLETED is deliberately absent: the member still owes a payment and a
+// rating after the work is done, so the request stays open to them.)
+const CLOSED_BOOKING_STATUSES = ['DECLINED', 'EXPIRED', 'CANCELLED', 'WITHDRAWN'];
+
 // Screens shown before login; a restored login moves past these
 const SIGNED_OUT_SCREENS = [
   'landing',
@@ -790,7 +795,7 @@ useEffect(() => {
 
   const finished =
     (activeOrder.paymentStatus === 'PAID' && activeOrder.rating) ||
-    ['DECLINED', 'EXPIRED', 'CANCELLED', 'WITHDRAWN'].includes(activeOrder.bookingStatus);
+    CLOSED_BOOKING_STATUSES.includes(activeOrder.bookingStatus);
 
   try {
     if (finished) {
@@ -812,6 +817,17 @@ useEffect(() => {
   activeOrder.rating,
   activeOrder.bookingStatus
 ]);
+
+// Drives the dot on the Requests tab. activeOrder is always an object (it
+// starts as EMPTY_ORDER), so testing it for truthiness pins the dot on
+// forever; it has to follow the booking instead. Lit while a request is
+// genuinely open, dark the moment it closes -- which is the same rule the
+// effect above uses to decide whether the booking is still worth remembering.
+const hasLiveRequest = Boolean(
+  activeOrder.orderId &&
+    !(activeOrder.paymentStatus === 'PAID' && activeOrder.rating) &&
+    !CLOSED_BOOKING_STATUSES.includes(activeOrder.bookingStatus)
+);
 
   // =========================================================
   // Firebase Active Order Listener
@@ -4987,6 +5003,7 @@ return (
 
       activeOrder,
       setActiveOrder,
+      hasLiveRequest,
 
       partnerLocation,
       isSharingLocation,

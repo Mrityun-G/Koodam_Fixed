@@ -2,12 +2,12 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export const NavigationBar = () => {
-  const { activeTab, setActiveTab, navigateTo, activeOrder, setIsChatOpen } = useApp();
+  const { activeTab, setActiveTab, navigateTo, hasLiveRequest, setIsChatOpen } = useApp();
 
   const navItems = [
     { id: 'home', label: 'Home', icon: 'home', screen: 'home' },
     { id: 'search', label: 'Search', icon: 'search', screen: 'home' },
-    { id: 'requests', label: 'Requests', icon: 'fact_check', screen: 'tracking', badge: activeOrder ? true : false },
+    { id: 'requests', label: 'Requests', icon: 'fact_check', screen: 'tracking', badge: hasLiveRequest },
     { id: 'chat', label: 'Chat', icon: 'chat_bubble', action: () => setIsChatOpen(true) },
     { id: 'profile', label: 'Profile', icon: 'person', screen: 'profile' }
   ];
