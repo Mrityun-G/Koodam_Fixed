@@ -1,5 +1,169 @@
 import React from 'react';
+import {
+  ArrowRight,
+  Briefcase,
+  HandCoins,
+  HeartHandshake,
+  ShieldCheck,
+  UserRound,
+  Users,
+  Wrench
+} from 'lucide-react';
 import { useApp, PORTAL } from '../context/AppContext';
+
+// Navy and gold. GOLD_TEXT is a darker gold for text on white, where the
+// bright gold would be too faint to read.
+const NAVY = '#0b1a45';
+const GOLD = '#f5b301';
+const GOLD_TEXT = '#9a6700';
+
+// Paints the "Ezee" of the brand name gold wherever it appears in a title,
+// so every language keeps the two-tone wordmark.
+const BrandTitle = ({ text, accent }) => {
+  const at = text.indexOf('Ezee');
+
+  if (at === -1) {
+    return text;
+  }
+
+  return (
+    <>
+      {text.slice(0, at)}
+      <span className={`bg-gradient-to-r ${accent} bg-clip-text text-transparent`}>
+        Ezee
+      </span>
+      {text.slice(at + 4)}
+    </>
+  );
+};
+
+// What each app's card shows. Customers at /, partners at /partner; only
+// the copy, icons and destinations differ.
+const CARDS = {
+  member: {
+    icon: 'home',
+    accent: 'from-[#ff8a00] to-[#ff6a00]',
+    featureIcons: [Wrench, ShieldCheck, Users, HeartHandshake],
+    loginIcon: Users,
+    keys: { titleLead: 'card1TitleLead', titleAccent: 'card1TitleAccent', desc: 'card1Desc', features: 'card1Features', btn: 'card1Btn', signupLead: 'card1SignupLead' },
+    login: 'memberLogin',
+    signup: 'memberSignup'
+  },
+  partner: {
+    icon: 'construction',
+    accent: 'from-[#f5a300] to-[#c98a00]',
+    featureIcons: [Briefcase, Users, HandCoins, ShieldCheck],
+    loginIcon: UserRound,
+    keys: { titleLead: 'card2TitleLead', titleAccent: 'card2TitleAccent', desc: 'card2Desc', features: 'card2Features', btn: 'card2Btn', signupLead: 'card2SignupLead' },
+    login: 'partnerLogin',
+    signup: 'partnerSignup'
+  }
+};
+
+// The login card: the four reasons to use GigEzee in a row, and a navy
+// login bar.
+const ServiceCard = ({ kind, t, compact, navigateTo }) => {
+  const card = CARDS[kind];
+  const copy = Object.fromEntries(
+    Object.entries(card.keys).map(([field, key]) => [field, t[key]])
+  );
+  const LoginIcon = card.loginIcon;
+
+  return (
+  <div className="relative mt-4 bg-gradient-to-br from-white via-white to-[#fff7e0] rounded-3xl shadow-xl shadow-[#0b1a45]/10 border border-[#e6e9f4] overflow-hidden">
+    {/* Gold edge along the top of the card */}
+    <div className="absolute z-10 inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0b1a45] via-[#f5b301] to-[#0b1a45]" />
+    <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-[#fff4cc] pointer-events-none" />
+
+    <div className="relative">
+      <div className="relative px-5 pt-5">
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-md shadow-[#0b1a45]/30"
+          style={{ background: `linear-gradient(145deg, #1b3380, ${NAVY})` }}
+        >
+          <span
+            className="material-symbols-outlined text-[30px]"
+            style={{ color: GOLD, fontVariationSettings: "'FILL' 1" }}
+          >
+            {card.icon}
+          </span>
+        </div>
+
+        <h2 className="mt-4 text-[22px] leading-tight font-extrabold tracking-tight" style={{ color: NAVY }}>
+          {copy.titleLead}{' '}
+          <span className={`bg-gradient-to-r ${card.accent} bg-clip-text text-transparent`}>
+            {copy.titleAccent}
+          </span>
+        </h2>
+        <p className="mt-2 text-[13px] text-[#4e5c92] leading-relaxed">
+          {copy.desc}
+        </p>
+      </div>
+    </div>
+
+    <div className="relative px-5 pb-5">
+      <ul className="mt-3 grid grid-cols-4 divide-x divide-[#e6e9f4]">
+        {copy.features.map((label, index) => {
+          const Icon = card.featureIcons[index];
+
+          return (
+            <li key={label} className="flex flex-col items-center text-center px-1">
+              <span className="w-11 h-11 rounded-2xl bg-[#fff4d6] flex items-center justify-center">
+                {/* Outline-only icons (hands, wrench) turn to blobs when filled */}
+                <Icon
+                  size={22}
+                  color={NAVY}
+                  fill={[HandCoins, Wrench, HeartHandshake].includes(Icon) ? 'none' : GOLD}
+                  strokeWidth={2}
+                />
+              </span>
+              <span
+                className={`mt-1.5 w-full leading-tight font-bold [overflow-wrap:anywhere] ${compact ? 'text-[9px]' : 'text-[10.5px]'}`}
+                style={{ color: NAVY }}
+              >
+                {label}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      <button
+        onClick={() => navigateTo(card.login)}
+        className="group mt-5 w-full py-2 pl-3 pr-2 rounded-full text-white text-[15px] font-bold flex items-center gap-2 shadow-lg shadow-[#0b1a45]/30 border border-[#f5b301]/40 active:scale-98 transition-all"
+        style={{ background: `linear-gradient(90deg, ${NAVY}, #1b3380)` }}
+        type="button"
+      >
+        <span className="w-9 h-9 rounded-full flex items-center justify-center">
+          <LoginIcon size={22} color={GOLD} fill={GOLD} />
+        </span>
+        <span className="flex-1 text-center">{copy.btn}</span>
+        <span className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-[#ffd65a] to-[#f5b301] transition-transform group-hover:translate-x-0.5">
+          <ArrowRight size={20} color={NAVY} strokeWidth={2.5} />
+        </span>
+      </button>
+
+      <button
+        onClick={() => navigateTo(card.signup)}
+        className="w-full mt-3 py-1 text-center text-[13px] font-bold"
+        style={{ color: NAVY }}
+        type="button"
+      >
+        {copy.signupLead}{' '}
+        <span className="underline decoration-2 underline-offset-4 decoration-[#f5b301]" style={{ color: GOLD_TEXT }}>
+          {t.signupAction}
+        </span>
+      </button>
+    </div>
+  </div>
+  );
+};
+
+const LANGUAGES = [
+  { code: 'en', label: 'English', toast: 'Language changed to English' },
+  { code: 'ta', label: 'தமிழ்', toast: 'மொழி தமிழாக மாற்றப்பட்டது' },
+  { code: 'kn', label: 'ಕನ್ನಡ', toast: 'ಭಾಷೆಯನ್ನು ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ' }
+];
 
 export const WelcomeScreen = () => {
   const { language, setLanguage, navigateTo, showToast } = useApp();
@@ -13,16 +177,24 @@ export const WelcomeScreen = () => {
       partnerCommunity: 'GigEzee Partner',
       partnerTitle: 'Welcome to GigEzee Partner',
       partnerSubtitle: 'Manage your jobs, earnings and payouts.',
+      aidTag: 'Mutual Aid & Care',
+      aidTitle: 'People Together. Stronger Communities.',
+      aidBody: 'More than an app… it’s a neighborhood family.',
       card1Role: 'Seek Help',
-      card1Title: 'I Need Help / Book Services',
+      card1TitleLead: 'I Need Help /',
+      card1TitleAccent: 'Book Services',
+      card1Features: ['Trusted Helpers', 'Safe & Reliable', 'Local Community', 'Support Each Other'],
       card1Desc: 'Find trusted local helpers, handymen, electricians, and community volunteers.',
       card1Btn: 'Community Member Login',
       card2Role: 'Provide Service',
-      card2Title: 'I Want to Help / Provide Services',
+      card2TitleLead: 'I Want to Help /',
+      card2TitleAccent: 'Provide Services',
+      card2Features: ['Get Jobs Near You', 'Grow Your Clients', 'Track Earnings', 'Build Trust'],
       card2Desc: 'Offer your skills, grow your local client base, and earn with neighborhood trust.',
       card2Btn: 'Service Partner Login',
-      card1SignupLink: 'New here? Create an account',
-      card2SignupLink: 'New Service Partner? Create an account'
+      card1SignupLead: 'New here?',
+      card2SignupLead: 'New Service Partner?',
+      signupAction: 'Create an account'
     },
     ta: {
       community: 'GigEzee சமூக சேவை',
@@ -31,16 +203,24 @@ export const WelcomeScreen = () => {
       partnerCommunity: 'GigEzee Partner',
       partnerTitle: 'GigEzee Partner-க்கு வரவேற்கிறோம்',
       partnerSubtitle: 'உங்கள் வேலைகள், வருமானம் மற்றும் பணப்பரிமாற்றங்களை நிர்வகிக்கவும்.',
+      aidTag: 'பரஸ்பர உதவி & அக்கறை',
+      aidTitle: 'மக்கள் ஒன்றாக. வலுவான சமூகங்கள்.',
+      aidBody: 'இது ஒரு செயலி மட்டுமல்ல… ஒரு அக்கம்பக்கக் குடும்பம்.',
       card1Role: 'உதவி பெற',
-      card1Title: 'எனக்கு உதவி தேவை / சேவைகளை பதிவு செய்',
+      card1TitleLead: 'எனக்கு உதவி தேவை /',
+      card1TitleAccent: 'சேவைகளை பதிவு செய்',
+      card1Features: ['நம்பகமான உதவியாளர்கள்', 'பாதுகாப்பானது & நம்பகமானது', 'உள்ளூர் சமூகம்', 'ஒருவருக்கொருவர் உதவி'],
       card1Desc: 'நம்பகமான உள்ளூர் கைவினைஞர்கள், எலக்ட்ரீஷியன்கள் மற்றும் தன்னார்வலர்களைக் கண்டறியவும்.',
       card1Btn: 'சமூக உறுப்பினர் உள்நுழைவு',
       card2Role: 'சேவை வழங்க',
-      card2Title: 'நான் உதவ விரும்புகிறேன் / சேவை கூட்டாளர்',
+      card2TitleLead: 'நான் உதவ விரும்புகிறேன் /',
+      card2TitleAccent: 'சேவை கூட்டாளர்',
+      card2Features: ['அருகில் வேலைகள்', 'வாடிக்கையாளர்களை வளர்க்க', 'வருமானத்தைக் கண்காணிக்க', 'நம்பிக்கையை வளர்க்க'],
       card2Desc: 'உங்கள் திறமைகளை வழங்கி, உள்ளூர் வாடிக்கையாளர்களைப் பெற்று, நம்பிக்கையுடன் சம்பாதிக்கவும்.',
       card2Btn: 'சேவைக் கூட்டாளர் உள்நுழைவு',
-      card1SignupLink: 'புதியவரா? கணக்கு உருவாக்கவும்',
-      card2SignupLink: 'புதிய சேவை கூட்டாளரா? கணக்கு உருவாக்கவும்'
+      card1SignupLead: 'புதியவரா?',
+      card2SignupLead: 'புதிய சேவை கூட்டாளரா?',
+      signupAction: 'கணக்கு உருவாக்கவும்'
     },
     kn: {
       community: 'GigEzee ಸಮುದಾಯ ಸೇವೆ',
@@ -49,202 +229,173 @@ export const WelcomeScreen = () => {
       partnerCommunity: 'GigEzee Partner',
       partnerTitle: 'GigEzee Partner-ಗೆ ಸುಸ್ವಾಗತ',
       partnerSubtitle: 'ನಿಮ್ಮ ಕೆಲಸಗಳು, ಗಳಿಕೆ ಮತ್ತು ಪಾವತಿಗಳನ್ನು ನಿರ್ವಹಿಸಿ.',
+      aidTag: 'ಪರಸ್ಪರ ನೆರವು & ಕಾಳಜಿ',
+      aidTitle: 'ಜನರು ಒಟ್ಟಾಗಿ. ಬಲಿಷ್ಠ ಸಮುದಾಯಗಳು.',
+      aidBody: 'ಇದು ಕೇವಲ ಆ್ಯಪ್ ಅಲ್ಲ… ಇದು ನೆರೆಹೊರೆಯ ಕುಟುಂಬ.',
       card1Role: 'ಸಹಾಯ ಪಡೆಯಿರಿ',
-      card1Title: 'ನನಗೆ ಸಹಾಯ ಬೇಕು / ಸೇವೆಗಳನ್ನು ಬುಕ್ ಮಾಡಿ',
+      card1TitleLead: 'ನನಗೆ ಸಹಾಯ ಬೇಕು /',
+      card1TitleAccent: 'ಸೇವೆಗಳನ್ನು ಬುಕ್ ಮಾಡಿ',
+      card1Features: ['ವಿಶ್ವಾಸಾರ್ಹ ಸಹಾಯಕರು', 'ಸುರಕ್ಷಿತ & ವಿಶ್ವಾಸಾರ್ಹ', 'ಸ್ಥಳೀಯ ಸಮುದಾಯ', 'ಪರಸ್ಪರ ಬೆಂಬಲ'],
       card1Desc: 'ವಿಶ್ವಾಸಾರ್ಹ ಸ್ಥಳೀಯ ಸಹಾಯಕರು ಮತ್ತು ಎಲೆಕ್ಟ್ರಿಷಿಯನ್ ಗಳನ್ನು ಹುಡುಕಿ.',
       card1Btn: 'ಸಮುದಾಯ ಸದಸ್ಯ ಲಾಗಿನ್',
       card2Role: 'ಸೇವೆ ಒದಗಿಸಿ',
-      card2Title: 'ನಾನು ಸೇವೆಗಳನ್ನು ಒದಗಿಸಲು ಬಯಸುತ್ತೇನೆ',
+      card2TitleLead: 'ನಾನು ಸಹಾಯ ಮಾಡಲು ಬಯಸುತ್ತೇನೆ /',
+      card2TitleAccent: 'ಸೇವೆ ಒದಗಿಸಿ',
+      card2Features: ['ಹತ್ತಿರದ ಕೆಲಸಗಳು', 'ಗ್ರಾಹಕರನ್ನು ಬೆಳೆಸಿ', 'ಗಳಿಕೆ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ', 'ನಂಬಿಕೆ ಗಳಿಸಿ'],
       card2Desc: 'ನಿಮ್ಮ ಕೌಶಲ್ಯಗಳನ್ನು ನೀಡಿ ಮತ್ತು ನೆರೆಹೊರೆಯ ನಂಬಿಕೆಯೊಂದಿಗೆ ಗಳಿಸಿ.',
       card2Btn: 'ಸೇವಾ ಪಾಲುದಾರ ಲಾಗಿನ್',
-      card1SignupLink: 'ಹೊಸಬರೇ? ಖಾತೆ ರಚಿಸಿ',
-      card2SignupLink: 'ಹೊಸ ಸೇವಾ ಪಾಲುದಾರರೇ? ಖಾತೆ ರಚಿಸಿ'
+      card1SignupLead: 'ಹೊಸಬರೇ?',
+      card2SignupLead: 'ಹೊಸ ಸೇವಾ ಪಾಲುದಾರರೇ?',
+      signupAction: 'ಖಾತೆ ರಚಿಸಿ'
     }
   };
 
   const t = strings[language] || strings.en;
   const isPartnerApp = PORTAL === 'partner';
+  const isLatin = !strings[language] || language === 'en';
 
   return (
-    <main className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
-      <div className="flex flex-col w-full pb-10">
-        {/* Top Hero Brand Area */}
-        <div className="relative px-4 pt-6 pb-2 flex flex-col items-center text-center">
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#ffdbcc]/40 rounded-full blur-3xl pointer-events-none -z-10"></div>
-          
+    <main className="flex-1 flex flex-col relative w-full min-h-screen overflow-hidden bg-[#f6f7fb]">
+      {/* Hero: the brand on the left, the person this app is for on the right.
+          Customers get a light, warm hero; partners a navy one. The photo's
+          lower edge tucks behind the Mutual Aid card that overlaps the hero. */}
+      <section
+        className="relative shrink-0 px-5 pt-7 pb-24 text-left overflow-hidden"
+        style={{
+          background: isPartnerApp
+            ? `linear-gradient(160deg, #13286b 0%, ${NAVY} 55%, #071233 100%)`
+            : 'linear-gradient(160deg, #ffffff 0%, #fff8ea 55%, #ffeec8 100%)'
+        }}
+      >
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className={`absolute -top-10 right-0 w-64 h-64 rounded-full blur-3xl ${isPartnerApp ? 'bg-[#f5b301]/25' : 'bg-[#ffd65a]/45'}`} />
+          <div className={`absolute top-28 -left-20 w-48 h-48 rounded-full blur-3xl ${isPartnerApp ? 'bg-[#3c5bc4]/40' : 'bg-[#ffe7b0]/70'}`} />
+          {/* Thin gold rings, a quiet nod to "coming together" */}
+          <div className="absolute -top-24 -left-24 w-60 h-60 rounded-full border border-[#f5b301]/30" />
+          <div className="absolute -top-16 -left-16 w-44 h-44 rounded-full border border-[#f5b301]/20" />
+        </div>
+
+        <img
+          className="absolute bottom-0 -right-6 h-[270px] w-auto pointer-events-none select-none drop-shadow-xl"
+          src={isPartnerApp ? '/welcome-partner.png' : '/welcome-member.png'}
+          alt=""
+          width={isPartnerApp ? 455 : 445}
+          height="600"
+          decoding="async"
+          fetchPriority="high"
+        />
+
+        {/* Curved base, so the hero melts into the page instead of ending in a line */}
+        <svg
+          className="absolute bottom-0 left-0 w-full h-16 pointer-events-none"
+          viewBox="0 0 400 64"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0 40 C 120 72, 280 8, 400 36 L400 64 L0 64 Z" fill="#f5b301" opacity="0.9" />
+          <path d="M0 48 C 120 80, 280 18, 400 46 L400 64 L0 64 Z" fill="#f6f7fb" />
+        </svg>
+
+        {/* Tamil and Kannada words run much longer than English ones and
+            cannot break, so those get a smaller title and a wider column. */}
+        <div className={`relative flex flex-col items-start ${isLatin ? 'w-[52%]' : 'w-[60%]'}`}>
           {/* Logo Pill */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ffdbcc] text-[#7b2f00] text-[11px] font-bold uppercase tracking-wider mb-3 shadow-xs">
-            <img src="/logo.svg" alt="GigEzee" className="w-4 h-4 object-contain" />
+          <div
+            className={`inline-flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-4 whitespace-nowrap ${
+              isPartnerApp
+                ? 'bg-white/10 border border-[#f5b301]/40 text-[#ffd65a] backdrop-blur'
+                : 'bg-[#ffe7a8] border border-[#f5b301]/50 text-[#7a4e00]'
+            }`}
+          >
+            <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
+              <img src="/logo.svg" alt="" className="w-4 h-4 rounded-full object-contain" />
+            </span>
             <span>{isPartnerApp ? t.partnerCommunity : t.community}</span>
           </div>
 
-          <h1 className="text-2xl font-extrabold text-[#0b1c30] tracking-tight mb-1">
-            {isPartnerApp ? t.partnerTitle : t.title}
+          <h1
+            className={`${isLatin ? 'text-[30px]' : 'text-[21px]'} leading-[1.15] font-extrabold tracking-tight`}
+            style={{ color: isPartnerApp ? '#ffffff' : NAVY }}
+          >
+            <BrandTitle
+              text={isPartnerApp ? t.partnerTitle : t.title}
+              accent={isPartnerApp ? 'from-[#ffd65a] to-[#f5b301]' : 'from-[#f5a300] to-[#e07b00]'}
+            />
           </h1>
-          <p className="text-sm text-[#4e5c92] font-medium max-w-xs">
+
+          <span className="w-12 h-1 rounded-full mt-3 bg-gradient-to-r from-[#ffd65a] to-[#f5b301]" />
+
+          <p
+            className="text-[13px] font-medium mt-3 leading-relaxed"
+            style={{ color: isPartnerApp ? '#c9d3f5' : '#4e5c92' }}
+          >
             {isPartnerApp ? t.partnerSubtitle : t.subtitle}
           </p>
+        </div>
+      </section>
 
-          {/* Social Proof Card */}
-          <div className="w-full mt-4 mb-2 rounded-2xl overflow-hidden shadow-xs bg-[#eff4ff] p-3 flex items-center gap-3.5 text-left border border-slate-100">
-            <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-[#d3e4fe]">
-              <img
-                className="w-full h-full object-cover"
-                alt="Community Gathering"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnDV0CZCF2_gbatjjMaZx9IeGkTOV0CjVhq2ZgoS0398QUdBhkAGGrdXujvFGSiHI4wzD9mjnlYIYMka0dw7K-WKPnTbE8CBgc1rRjLhfKyQdIMaJUsCPKkyP_MXM6RmeeIMCFZc5DyOVuAFo_MgQvjJtlvX2qvYQBhLSr4oJQjCtCOHw_mMALqVttwuVAsNzVTePpqUCdg97RavBTH5yqw7RJEPgP9EUaUGMxR0mUWEWezI2mcOKEAA"
-              />
+      <div className="relative z-10 flex flex-col w-full px-4 -mt-16 pb-10">
+        {/* Social Proof Card */}
+        <div className="w-full rounded-2xl overflow-hidden bg-white border border-[#f5b301]/40 shadow-lg shadow-[#0b1a45]/10 flex items-stretch text-left">
+          <div className="relative w-[44%] shrink-0 min-h-[124px]">
+            <img
+              className="absolute inset-0 w-full h-full object-cover object-left"
+              alt="A GigEzee helper chatting with a neighbour"
+              src="/welcome-community.jpg"
+              width="350"
+              height="258"
+              decoding="async"
+            />
+            {/* Lets the illustration dissolve into the card instead of ending in a hard edge */}
+            <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
+          </div>
+
+          <div className="flex-1 min-w-0 py-3 pr-3 pl-2.5">
+            <div className="inline-flex items-center gap-1 text-[11px] font-bold" style={{ color: GOLD_TEXT }}>
+              <span
+                className="material-symbols-outlined text-[15px]"
+                style={{ color: GOLD, fontVariationSettings: "'FILL' 1" }}
+              >
+                favorite
+              </span>
+              <span>{t.aidTag}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="inline-flex items-center gap-1 text-[#a14000] text-[11px] font-bold">
-                <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  favorite
-                </span>
-                <span>Mutual Aid & Care</span>
-              </div>
-              <p className="text-xs text-[#0b1c30] truncate font-bold">
-                People Together. Stronger Communities.
-              </p>
-              <p className="text-[11px] text-[#4e5c92] truncate">
-                More than an app... it's a neighborhood family.
-              </p>
-            </div>
+            <p className="text-[13px] leading-snug font-extrabold mt-1" style={{ color: NAVY }}>
+              {t.aidTitle}
+            </p>
+            <p className="text-[11px] leading-snug text-[#4e5c92] mt-1">
+              {t.aidBody}
+            </p>
           </div>
         </div>
 
         {/* Only this app's card: customers at /, partners at /partner */}
-        <div className="px-4 flex flex-col gap-4 mt-2">
-          {!isPartnerApp && (
-          <div className="relative bg-white rounded-2xl p-4 shadow-md flex flex-col transition-all duration-200 hover:shadow-lg border border-slate-100 overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#ffdbcc]/30 rounded-bl-full pointer-events-none -z-0"></div>
-            
-            <div className="relative z-10 flex items-start justify-between mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#ff6a00]/15 flex items-center justify-center text-[#ff6a00] shadow-xs">
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  roofing
-                </span>
-              </div>
-              <span className="px-2.5 py-1 rounded-full bg-[#ff6a00] text-white text-[11px] font-bold shadow-xs">
-                {t.card1Role}
-              </span>
-            </div>
+        <ServiceCard kind={isPartnerApp ? 'partner' : 'member'} t={t} compact={!isLatin} navigateTo={navigateTo} />
 
-            <div className="relative z-10">
-              <h2 className="text-lg font-bold text-[#0b1c30] mb-1">
-                {t.card1Title}
-              </h2>
-              <p className="text-xs text-[#5a4136] mb-4 leading-relaxed">
-                {t.card1Desc}
-              </p>
-
+        {/* Language Selector Pill Tray */}
+        <div className="mt-7 flex justify-center">
+          <div
+            className="inline-flex items-center p-1 rounded-full shadow-lg shadow-[#0b1a45]/20"
+            style={{ background: NAVY }}
+          >
+            {LANGUAGES.map((option) => (
               <button
-                onClick={() => navigateTo('memberLogin')}
-                className="w-full py-3.5 px-4 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all"
+                key={option.code}
+                onClick={() => {
+                  setLanguage(option.code);
+                  showToast(option.toast);
+                }}
+                aria-pressed={language === option.code}
+                className={`px-5 py-2 rounded-full text-sm transition-all ${
+                  language === option.code
+                    ? 'bg-gradient-to-r from-[#ffd65a] to-[#f5b301] text-[#0b1a45] font-extrabold shadow-sm'
+                    : 'text-[#c9d3f5] font-semibold hover:text-white'
+                }`}
                 type="button"
               >
-                <span>{t.card1Btn}</span>
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                {option.label}
               </button>
-
-              <button
-                onClick={() => navigateTo('memberSignup')}
-                className="w-full mt-2 text-center text-xs text-[#a14000] font-bold hover:underline"
-                type="button"
-              >
-                {t.card1SignupLink}
-              </button>
-            </div>
-          </div>
-          )}
-
-          {isPartnerApp && (
-          <div className="relative bg-[#1b2a5e] text-white rounded-2xl p-4 shadow-md flex flex-col transition-all duration-200 hover:shadow-lg overflow-hidden border border-slate-700">
-            <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-[#b3c1ff]/20 rounded-full pointer-events-none"></div>
-            
-            <div className="relative z-10 flex items-start justify-between mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center text-[#dce1ff] shadow-xs">
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  handyman
-                </span>
-              </div>
-              <span className="px-2.5 py-1 rounded-full bg-[#b3c1ff] text-[#404e83] text-[11px] font-bold">
-                {t.card2Role}
-              </span>
-            </div>
-
-            <div className="relative z-10">
-              <h2 className="text-lg font-bold text-white mb-1">
-                {t.card2Title}
-              </h2>
-              <p className="text-xs text-[#dce1ff] mb-4 leading-relaxed opacity-90">
-                {t.card2Desc}
-              </p>
-
-              <button
-                onClick={() => navigateTo('partnerLogin')}
-                className="w-full py-3.5 px-4 rounded-full bg-white hover:bg-slate-100 text-[#05164b] text-sm font-bold flex items-center justify-center gap-2 shadow-xs active:scale-98 transition-all"
-                type="button"
-              >
-                <span>{t.card2Btn}</span>
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </button>
-
-              <button
-                onClick={() => navigateTo('partnerSignup')}
-                className="w-full mt-2 text-center text-xs text-[#dce1ff] font-bold hover:underline"
-                type="button"
-              >
-                {t.card2SignupLink}
-              </button>
-            </div>
-          </div>
-          )}
-        </div>
-
-        <div className="px-4 mt-6 flex flex-col items-center gap-4 text-center">
-          {/* Language Selector Pill Tray */}
-          <div className="inline-flex items-center p-1 rounded-full bg-[#eff4ff] shadow-xs border border-slate-200">
-            <button
-              onClick={() => {
-                setLanguage('en');
-                showToast('Language changed to English');
-              }}
-              className={`px-3 py-1 rounded-full text-xs transition-all ${
-                language === 'en'
-                  ? 'bg-white text-[#0b1c30] font-bold shadow-xs'
-                  : 'text-[#4e5c92] font-medium hover:text-[#0b1c30]'
-              }`}
-              type="button"
-            >
-              English
-            </button>
-            <button
-              onClick={() => {
-                setLanguage('ta');
-                showToast('மொழி தமிழாக மாற்றப்பட்டது');
-              }}
-              className={`px-3 py-1 rounded-full text-xs transition-all ${
-                language === 'ta'
-                  ? 'bg-white text-[#0b1c30] font-bold shadow-xs'
-                  : 'text-[#4e5c92] font-medium hover:text-[#0b1c30]'
-              }`}
-              type="button"
-            >
-              தமிழ்
-            </button>
-            <button
-              onClick={() => {
-                setLanguage('kn');
-                showToast('ಭಾಷೆಯನ್ನು ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ');
-              }}
-              className={`px-3 py-1 rounded-full text-xs transition-all ${
-                language === 'kn'
-                  ? 'bg-white text-[#0b1c30] font-bold shadow-xs'
-                  : 'text-[#4e5c92] font-medium hover:text-[#0b1c30]'
-              }`}
-              type="button"
-            >
-              ಕನ್ನಡ
-            </button>
+            ))}
           </div>
         </div>
       </div>
