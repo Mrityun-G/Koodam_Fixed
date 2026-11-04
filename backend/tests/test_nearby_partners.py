@@ -6,7 +6,7 @@ Throwaway in-memory SQLite; never connects to Supabase.
 Run with: npm test (from the project folder)
 """
 import sys, uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Lets "import app..." work wherever the script is started from
@@ -58,10 +58,11 @@ TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from app.routers import service as service_r
+from app.routers import service as service_r, partner as partner_r
 
 api = FastAPI()
 api.include_router(service_r.router)
+api.include_router(partner_r.router)
 
 
 def _db():
@@ -121,6 +122,8 @@ def add_partner(name, coords, radius_km, rating=0.0, online=True):
 
     partner = Partner(
         id=uuid.uuid4(), user_id=user.id, is_online=online,
+        # Online with the app open: it checked in just now
+        last_seen_at=datetime.utcnow() if online else None,
         rating=rating, reviews_count=0, completion_rate=100.0,
         reliability_score=100.0, service_radius_km=radius_km,
         latitude=coords[0] if coords else None,
@@ -286,6 +289,68 @@ db.close()
 _, names_offline = listing(lat=SALEM[0], lng=SALEM[1])
 check("an offline partner is not offered", "Near Neighbour" not in names_offline,
       names_offline)
+
+
+# ---------- online, but the app was closed ----------
+# Written after partners who went online and then closed the app stayed
+# on every member's home screen for weeks: nothing ever told the server
+# they'd left.
+def set_partner(partner_id, **fields):
+    db = TestSession()
+    partner = db.get(Partner, partner_id)
+    for name, value in fields.items():
+        setattr(partner, name, value)
+    db.commit()
+    db.close()
+
+
+def stored(partner_id):
+    db = TestSession()
+    partner = db.get(Partner, partner_id)
+    values = (partner.is_online, partner.latitude, partner.longitude)
+    db.close()
+    return values
+
+
+set_partner(near, is_online=True,
+            last_seen_at=datetime.utcnow() - timedelta(minutes=30))
+
+_, names_away = listing(lat=SALEM[0], lng=SALEM[1])
+check("an online partner whose app went quiet is not offered",
+      "Near Neighbour" not in names_away, names_away)
+
+is_online, lat, lng = stored(near)
+check("...but they are still online in the database", is_online is True)
+check("...and their saved location is kept",
+      (lat, lng) == NEXT_STREET, (lat, lng))
+
+set_partner(near, last_seen_at=None)
+_, names_never = listing(lat=SALEM[0], lng=SALEM[1])
+check("online from before check-ins existed, never checked in: not offered",
+      "Near Neighbour" not in names_never, names_never)
+
+# Opening the app again: it checks in, and they're back
+api.dependency_overrides[current_firebase_uid] = lambda: "uid-Near Neighbour"
+beat = client.post(f"/partners/{near}/heartbeat")
+check("the partner's app can check in", beat.status_code == 200, beat.text)
+
+api.dependency_overrides[current_firebase_uid] = lambda: "member-uid"
+_, names_back = listing(lat=SALEM[0], lng=SALEM[1])
+check("...and they are offered again straight away",
+      "Near Neighbour" in names_back, names_back)
+
+api.dependency_overrides[current_firebase_uid] = lambda: "uid-Far Wide Radius"
+check("nobody can check in for another partner",
+      client.post(f"/partners/{near}/heartbeat").status_code == 403)
+
+# An offline partner's check-in doesn't list them: going offline still
+# means offline, whatever the app sends
+set_partner(far_wide, is_online=False, last_seen_at=None)
+client.post(f"/partners/{far_wide}/heartbeat")
+api.dependency_overrides[current_firebase_uid] = lambda: "member-uid"
+_, names_off = listing(lat=SALEM[0], lng=SALEM[1])
+check("a check-in doesn't list a partner who went offline",
+      "Far Wide Radius" not in names_off, names_off)
 
 print()
 print(f"{passed} passed, {failed} failed")

@@ -13,7 +13,8 @@ export const MobileFrame = ({ children, overlay = null }) => {
         {/* id: pop-ups portal here so they cover the phone screen only */}
         <div id="phone-screen" className="w-full bg-[#f8f9ff] text-[#0b1c30] relative overflow-hidden transition-all duration-300 h-[100dvh] sm:h-[min(920px,calc(100dvh-3rem))] sm:rounded-[48px] sm:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_0_12px_#1e293b,0_0_0_14px_#334155] sm:border-4 sm:border-[#0f172a] pt-safe pb-safe sm:pt-0 sm:pb-0 flex flex-col">
           {/* Screen Content Container with Smooth Scroll */}
-          <div className="flex-1 w-full overflow-y-auto overflow-x-hidden flex flex-col relative bg-[#f8f9ff] overscroll-contain">
+          {/* data-scroll-root: the header watches this to hide on scroll */}
+          <div data-scroll-root className="flex-1 w-full overflow-y-auto overflow-x-hidden flex flex-col relative bg-[#f8f9ff] overscroll-contain">
             {children}
           </div>
 

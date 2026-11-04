@@ -39,6 +39,11 @@ class Partner(Base):
 
     is_online = Column(Boolean, default=False)
 
+    # Last time the partner's app checked in while online. is_online is
+    # what the partner chose and is kept as is; this says whether the
+    # app is actually still open (see app/presence.py).
+    last_seen_at = Column(DateTime, nullable=True)
+
     is_verified = Column(Boolean, default=False)
 
     # NOT_SUBMITTED -> UNDER_REVIEW -> VERIFIED / REJECTED

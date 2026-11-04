@@ -186,6 +186,7 @@ def make_user(name, role="MEMBER"):
 member = make_user("parent")
 p_user = make_user("sitter", "PARTNER")
 partner = Partner(id=uuid.uuid4(), user_id=p_user.id, is_online=True,
+                  last_seen_at=datetime.utcnow(),
                   is_verified=True, police_verification_status="NOT_SUBMITTED",
                   latitude=13.08, longitude=80.27)
 db.add(partner)

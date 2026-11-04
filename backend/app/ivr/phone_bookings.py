@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.app_config import setting
 from app.config import COMPLAINT_RESPONSE_HOURS
 from app.escalations import can_take_bookings
+from app.presence import presence_cutoff
 from app.firebase_rtdb import rtdb, to_db_key
 from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail
@@ -178,6 +179,8 @@ def nearest_partner(
             PartnerService.service_id == service.id,
             PartnerService.is_active == True,
             Partner.is_online == True,
+            # The job reaches them in the app, so it has to be open
+            Partner.last_seen_at > presence_cutoff(),
             Partner.latitude.isnot(None),
             Partner.longitude.isnot(None)
         )
@@ -252,6 +255,8 @@ def explain_no_partner(db: Session, service: Service, lat: float, lng: float) ->
     for partner, user in rows:
         if not partner.is_online:
             reason = "offline"
+        elif not partner.last_seen_at or partner.last_seen_at <= presence_cutoff():
+            reason = "online, but their app is closed"
         elif not can_take_bookings(partner):
             reason = "suspended or deactivated"
         elif partner.latitude is None or partner.longitude is None:

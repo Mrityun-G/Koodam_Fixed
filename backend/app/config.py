@@ -231,3 +231,8 @@ STRIKE_POINTS = _env_number("GIGEZEE_STRIKE_POINTS", 20)
 
 # How often the server looks for overdue jobs and unanswered complaints
 ESCALATION_SWEEP_MINUTES = _env_number("GIGEZEE_ESCALATION_SWEEP_MINUTES", 10)
+
+# An online partner whose app hasn't checked in for this long (closed,
+# phone off, out of signal) is hidden from customers until it does. The
+# app checks in every minute while open, so this allows for a few misses.
+PARTNER_PRESENCE_MINUTES = _env_number("GIGEZEE_PARTNER_PRESENCE_MINUTES", 5)

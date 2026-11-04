@@ -14,6 +14,7 @@ from app.authz import (
 )
 from app.database import get_db
 from app.escalations import is_deactivated, is_suspended
+from app.presence import mark_seen
 from app.models.partner import Partner
 from app.models.user import User
 from app.models.partner_document import PartnerDocument
@@ -335,6 +336,10 @@ def update_online_status(
 
     partner.is_online = data.is_online
 
+    # Listed straight away, rather than after the app's first check-in
+    if data.is_online:
+        mark_seen(partner)
+
     if data.latitude is not None and data.longitude is not None:
         partner.latitude = data.latitude
         partner.longitude = data.longitude
@@ -374,11 +379,41 @@ def update_location(
     if partner.is_online:
         partner.latitude = data.latitude
         partner.longitude = data.longitude
+        mark_seen(partner)
         db.commit()
 
     return {
         "partner_id": partner.id,
         "updated": bool(partner.is_online)
+    }
+
+
+# Sent by the partner's app every minute while online, whether or not
+# they've moved. A partner whose app stops sending it (closed, phone off)
+# drops off customers' lists after PARTNER_PRESENCE_MINUTES and comes
+# back with the next one; their online choice is left as it is.
+@router.post("/{identifier}/heartbeat")
+def heartbeat(
+    identifier: UUID,
+    firebase_uid: str = Depends(current_firebase_uid),
+    db: Session = Depends(get_db)
+):
+    partner = get_partner_or_404(db, identifier)
+    owner = db.get(User, partner.user_id)
+
+    if not owner or owner.firebase_uid != firebase_uid:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only check in for yourself"
+        )
+
+    if partner.is_online:
+        mark_seen(partner)
+        db.commit()
+
+    return {
+        "partner_id": partner.id,
+        "is_online": bool(partner.is_online)
     }
 
 

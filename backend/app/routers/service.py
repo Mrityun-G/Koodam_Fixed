@@ -14,6 +14,7 @@ from app.models.partner import Partner
 from app.models.user import User
 from app.authz import require_admin, require_user
 from app.escalations import can_take_bookings
+from app.presence import is_present
 from app.schemas.service import ServiceCreate, ServiceResponse, ServiceUpdate
 
 
@@ -121,7 +122,8 @@ def is_bookable(partner, service=None) -> bool:
     ):
         return False
 
-    return bool(partner.is_online) and can_take_bookings(partner)
+    # Online and with the app still open; see app/presence.py
+    return is_present(partner) and can_take_bookings(partner)
 
 
 def partner_listing(
@@ -244,7 +246,8 @@ def get_services_with_partners(
             "partners": []
         })
 
-        # Offline or suspended partners aren't offered to customers
+        # Offline, away (app closed) or suspended partners aren't offered
+        # to customers
         if not (partner and user and is_bookable(partner, service)):
             continue
 
