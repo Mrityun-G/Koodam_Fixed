@@ -49,6 +49,7 @@ import {
 } from '../lib/firebase';
 
 import { authorizedFetch, authorizedFetchOrNull } from '../lib/authorizedFetch';
+import { PORTAL } from '../lib/portal';
 import { detectPlaceName } from '../lib/geo';
 import { EVENTS, startAnalytics, track, trackScreen } from '../lib/analytics';
 import { setErrorScreen, startErrorTracking } from '../lib/errorTracking';
@@ -150,14 +151,8 @@ const clearGoogleLogin = () => {
   }
 };
 
-// Customers use the app at /, service partners a separate app at /partner.
-// An Android build has no path to read, so each APK is built with
-// VITE_PORTAL set to the app it is; on the web the path still decides.
-export const PORTAL =
-  import.meta.env.VITE_PORTAL === 'partner' ||
-  /^\/partner(\/|$)/.test(window.location.pathname)
-    ? 'partner'
-    : 'member';
+// Which app this is, customer or partner (see lib/portal.js)
+export { PORTAL };
 
 const LOGIN_LINK_SCREENS = {
   member: 'memberLogin',
