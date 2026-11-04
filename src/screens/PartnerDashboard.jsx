@@ -153,6 +153,24 @@ export const PartnerDashboard = () => {
     }
   };
 
+  // Going online waits for a location fix first, which can take several
+  // seconds indoors; show the switch working and ignore repeat taps
+  const [switchingDuty, setSwitchingDuty] = useState(false);
+
+  const handleDutySwitch = async () => {
+    if (switchingDuty) {
+      return;
+    }
+
+    setSwitchingDuty(true);
+
+    try {
+      await togglePartnerDuty();
+    } finally {
+      setSwitchingDuty(false);
+    }
+  };
+
   const [payoutSetupOpen, setPayoutSetupOpen] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -1097,26 +1115,41 @@ export const PartnerDashboard = () => {
               </h1>
             </div>
 
+            {/* On/off switch: knob right and green = online */}
             <button
-              aria-label="Toggle Online Status"
-              onClick={togglePartnerDuty}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-xs transition-all active:scale-95 shrink-0 shadow-sm ${
-                isPartnerOnline
-                  ? 'bg-white text-[#006c49]'
-                  : 'bg-white/20 text-white border border-white/40'
-              }`}
+              type="button"
+              role="switch"
+              aria-checked={isPartnerOnline}
+              aria-label="Online"
+              onClick={handleDutySwitch}
+              disabled={switchingDuty}
+              className="flex items-center gap-2 shrink-0 disabled:cursor-wait"
             >
-              <span
-                className={`w-2.5 h-2.5 rounded-full ${
-                  isPartnerOnline
-                    ? 'bg-[#00ae78] animate-pulse'
-                    : 'bg-white/70'
-                }`}
-              />
+              <span className="text-xs font-bold">
+                {switchingDuty
+                  ? isPartnerOnline ? 'Going offline…' : 'Going online…'
+                  : isPartnerOnline ? 'Online' : 'Offline'}
+              </span>
 
-              {isPartnerOnline
-                ? 'ONLINE'
-                : 'OFFLINE'}
+              <span
+                className={`relative w-12 h-7 rounded-full transition-colors duration-200 shadow-inner ${
+                  isPartnerOnline
+                    ? 'bg-[#00ae78]'
+                    : 'bg-white/30 ring-1 ring-white/50'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-200 motion-reduce:transition-none ${
+                    isPartnerOnline ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                >
+                  {switchingDuty && (
+                    <span className="material-symbols-outlined animate-spin text-[13px] text-slate-500">
+                      progress_activity
+                    </span>
+                  )}
+                </span>
+              </span>
             </button>
           </div>
 
