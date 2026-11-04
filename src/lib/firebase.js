@@ -7,6 +7,7 @@ import {
   browserPopupRedirectResolver
 } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
+import { PORTAL } from './portal';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -24,14 +25,26 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey && firebaseConfig.databaseURL && firebaseConfig.projectId
 );
 
+// The customer app and the partner app keep separate logins, even in
+// one browser: Firebase saves one login per named app. With one shared
+// login, signing in as a partner in one window quietly turned the
+// customer's window into that partner too, and everything it sent was
+// refused ("This booking isn't yours to pay"). Customers keep the
+// default name, so nobody already logged in there is signed out.
+const FIREBASE_APP_NAME =
+  PORTAL === 'partner' ? 'gigezee-partner' : '[DEFAULT]';
+
 export const firebaseApp = isFirebaseConfigured
-  ? getApps()[0] || initializeApp(firebaseConfig)
+  ? getApps().find((app) => app.name === FIREBASE_APP_NAME) ||
+    initializeApp(firebaseConfig, FIREBASE_APP_NAME)
   : null;
 
 export const db = isFirebaseConfigured ? getDatabase(firebaseApp) : null;
 // During local development (npm run dev) each tab keeps its own sign-in,
-// so a customer and a partner can be tested side by side in one browser.
-// Built apps keep the normal sign-in shared by every tab.
+// so two customers (or two partners) can be tested side by side in one
+// browser. Built apps keep the normal sign-in, shared by every tab of the
+// same app and kept after the browser closes; the customer and partner
+// apps each have their own (see FIREBASE_APP_NAME above).
 const createAuth = () => {
   if (!import.meta.env.DEV) {
     return getAuth(firebaseApp);
