@@ -818,6 +818,29 @@ useEffect(() => {
   activeOrder.bookingStatus
 ]);
 
+// A request the member cancelled, or the partner declined or never
+// answered, is over: clear it so Requests goes back to its fresh "No
+// active booking" page. The member has already been told why (a toast,
+// and a notification for a decline or no answer), and the order
+// listener has already sent the closed status to the backend.
+useEffect(() => {
+  if (
+    role !== 'member' ||
+    !activeOrder.orderId ||
+    !CLOSED_BOOKING_STATUSES.includes(activeOrder.bookingStatus)
+  ) {
+    return;
+  }
+
+  try {
+    loginStorage().removeItem(ACTIVE_ORDER_KEY);
+  } catch {
+    // Storage unavailable (private mode)
+  }
+
+  setActiveOrder(EMPTY_ORDER);
+}, [role, activeOrder.orderId, activeOrder.bookingStatus]);
+
 // Drives the dot on the Requests tab. activeOrder is always an object (it
 // starts as EMPTY_ORDER), so testing it for truthiness pins the dot on
 // forever; it has to follow the booking instead. Lit while a request is
