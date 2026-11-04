@@ -1,12 +1,16 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.auth import current_firebase_uid
+from app.config import JOB_FINISH_GRACE_HOURS
 from app.database import get_db
+from app.models.booking import Booking
+from app.models.booking_detail import BookingDetail
 from app.models.notification import Notification
 from app.models.user import User
 from app.routers.escalations import signed_in_user
@@ -14,8 +18,9 @@ from app.routers.escalations import signed_in_user
 
 # =========================================================
 # THE SIGNED-IN USER'S OWN DATA
-# Their settings and bell-icon notifications, so both follow them to
-# any device and survive a reload.
+# Their settings, bell-icon notifications and the booking they still
+# have to follow or pay, so all three follow them to any device and
+# survive a reload.
 # =========================================================
 
 router = APIRouter(
@@ -172,3 +177,63 @@ def mark_read(
     db.commit()
 
     return {"ok": True}
+
+
+# ---------------------------------------------------------
+# Open booking
+# ---------------------------------------------------------
+
+@router.get("/open-booking")
+def get_open_booking(
+    firebase_uid: str = Depends(current_firebase_uid),
+    db: Session = Depends(get_db)
+):
+    """
+    The member's booking that still needs them, or null: a finished job
+    that isn't paid yet, or one under way. The app remembers its booking
+    only on the device, so after a logout, a cleared browser or on
+    another phone it asks here - otherwise a completed job could no
+    longer be paid once that memory was gone.
+
+    An unpaid bill always counts. A job under way counts until
+    JOB_FINISH_GRACE_HOURS after its booked time; past that it's overdue
+    and escalated (app/escalations.py), not reopened on every login.
+    The newest one wins when there are several.
+    """
+    user = signed_in_user(db, firebase_uid)
+
+    overdue_before = datetime.utcnow() - timedelta(hours=JOB_FINISH_GRACE_HOURS)
+
+    row = (
+        db.query(Booking, BookingDetail)
+        .join(BookingDetail, BookingDetail.booking_id == Booking.id)
+        .filter(
+            Booking.user_id == user.id,
+            BookingDetail.firebase_order_id.isnot(None),
+            # Phone bookings are settled on the call, not in the app
+            or_(BookingDetail.source.is_(None), BookingDetail.source != "PHONE"),
+            or_(
+                and_(
+                    Booking.status == "COMPLETED",
+                    BookingDetail.payment_status != "PAID"
+                ),
+                and_(
+                    Booking.status.in_(("ACCEPTED", "IN_PROGRESS")),
+                    Booking.booking_time > overdue_before
+                )
+            )
+        )
+        .order_by(Booking.created_at.desc())
+        .first()
+    )
+
+    if not row:
+        return None
+
+    booking, detail = row
+
+    return {
+        "firebase_order_id": detail.firebase_order_id,
+        "status": booking.status,
+        "payment_status": detail.payment_status
+    }

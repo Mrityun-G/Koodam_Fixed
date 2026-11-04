@@ -21,6 +21,7 @@ const screen = (load, name) =>
 
 const OnboardingScreen = screen(() => import('./screens/OnboardingScreen'), 'OnboardingScreen');
 const UserHomeScreen = screen(() => import('./screens/UserHomeScreen'), 'UserHomeScreen');
+const SearchScreen = screen(() => import('./screens/SearchScreen'), 'SearchScreen');
 const BookingScreen = screen(() => import('./screens/BookingScreen'), 'BookingScreen');
 const DiagnoseScreen = screen(() => import('./screens/DiagnoseScreen'), 'DiagnoseScreen');
 const PaymentScreen = screen(() => import('./screens/PaymentScreen'), 'PaymentScreen');
@@ -51,6 +52,7 @@ const SCREENS = {
   partnerSignup: AuthScreen,
   onboarding: OnboardingScreen,
   home: UserHomeScreen,
+  search: SearchScreen,
   booking: BookingScreen,
   diagnose: DiagnoseScreen,
   payment: PaymentScreen,

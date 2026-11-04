@@ -27,7 +27,8 @@ const steps = [
   ['3. Server tests', python, ['-W', 'ignore', 'tests/test_booking_for.py'], join(root, 'backend')],
   ['4. AI diagnosis tests', python, ['-W', 'ignore', 'tests/test_diagnosis.py'], join(root, 'backend')],
   ['5. Job photo tests', python, ['-W', 'ignore', 'tests/test_photo.py'], join(root, 'backend')],
-  ['6. Nearby partner tests', python, ['-W', 'ignore', 'tests/test_nearby_partners.py'], join(root, 'backend')]
+  ['6. Nearby partner tests', python, ['-W', 'ignore', 'tests/test_nearby_partners.py'], join(root, 'backend')],
+  ['7. Open booking tests', python, ['-W', 'ignore', 'tests/test_open_booking.py'], join(root, 'backend')]
 ];
 
 let failed = 0;

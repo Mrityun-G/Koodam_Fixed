@@ -6,7 +6,7 @@ export const NavigationBar = () => {
 
   const navItems = [
     { id: 'home', label: 'Home', icon: 'home', screen: 'home' },
-    { id: 'search', label: 'Search', icon: 'search', screen: 'home' },
+    { id: 'search', label: 'Search', icon: 'search', screen: 'search' },
     { id: 'requests', label: 'Requests', icon: 'fact_check', screen: 'tracking', badge: hasLiveRequest },
     { id: 'chat', label: 'Chat', icon: 'chat_bubble', action: () => setIsChatOpen(true) },
     { id: 'profile', label: 'Profile', icon: 'person', screen: 'profile' }
