@@ -1462,6 +1462,45 @@ const hasLiveRequest = Boolean(
   }, [role, isPartnerOnline, partnerProfile?.id]);
 
 
+  // While online, check in every minute whether or not the partner has
+  // moved (the GPS watcher above only sends on movement, and not at all
+  // with location blocked). Customers are only shown partners whose app
+  // checked in lately, so closing the app takes them off customers'
+  // lists and opening it again puts them back.
+  useEffect(() => {
+    if (role !== 'partner' || !isPartnerOnline || !partnerProfile?.id) {
+      return;
+    }
+
+    const HEARTBEAT_MS = 60 * 1000;
+
+    const checkIn = () => {
+      authorizedFetch(`/partners/${partnerProfile.id}/heartbeat`, {
+        method: 'POST'
+      }).catch((error) => {
+        console.warn('Could not check in:', error.message);
+      });
+    };
+
+    // Back from another app or a locked screen: listed again at once
+    // rather than at the next minute
+    const checkInIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        checkIn();
+      }
+    };
+
+    checkIn();
+    const timer = setInterval(checkIn, HEARTBEAT_MS);
+    document.addEventListener('visibilitychange', checkInIfVisible);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', checkInIfVisible);
+    };
+  }, [role, isPartnerOnline, partnerProfile?.id]);
+
+
   const [partnerStats, setPartnerStats] =
     useState({
       // Loaded from Supabase via GET /partners/{id}/overview

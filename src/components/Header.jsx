@@ -176,9 +176,50 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
 
   const hasUnread = notifications.some(n => n.unread);
 
+  // Slides away while the page scrolls down, so the content gets the
+  // whole screen, and comes back on any scroll up
+  const headerRef = useRef(null);
+  const [scrolledAway, setScrolledAway] = useState(false);
+
+  useEffect(() => {
+    const scroller = headerRef.current?.closest('[data-scroll-root]');
+
+    if (!scroller) return undefined;
+
+    let lastY = scroller.scrollTop;
+
+    const onScroll = () => {
+      const y = scroller.scrollTop;
+      const delta = y - lastY;
+
+      // Small movements add up until they count, so a finger resting
+      // on the screen doesn't make the bar flicker
+      if (Math.abs(delta) < 8) return;
+
+      // Always shown in its own 64px at the top of the page
+      setScrolledAway(delta > 0 && y > 64);
+      lastY = y;
+    };
+
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Stays put while one of its menus is open
+  const headerHidden =
+    scrolledAway && !showNotificationMenu && !showLocationMenu;
+
   return (
     <>
-      <header className="sticky top-0 inset-x-0 z-40 bg-[#f8f9ff]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-slate-100">
+      <header
+        ref={headerRef}
+        className={`sticky top-0 inset-x-0 z-40 bg-[#f8f9ff]/90 backdrop-blur-xl border-b border-slate-100 transition-transform duration-300 motion-reduce:transition-none focus-within:translate-y-0 ${
+          headerHidden
+            ? '-translate-y-full'
+            : 'translate-y-0 shadow-[0_1px_8px_rgba(0,0,0,0.04)]'
+        }`}
+      >
         <div className="h-16 px-4 flex items-center justify-between gap-2">
 
           {/* Logo & Location Cluster */}
