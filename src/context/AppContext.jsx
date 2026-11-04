@@ -616,20 +616,45 @@ useEffect(() => {
 
           // Pick the member's booking back up; the order listener then
           // loads it from Firebase
+          const restoreOrder = (orderId) =>
+            setActiveOrder((previous) =>
+              previous.orderId
+                ? previous
+                : { ...EMPTY_ORDER, orderId }
+            );
+
+          let savedOrderId = null;
+
           try {
             const saved = JSON.parse(
               loginStorage().getItem(ACTIVE_ORDER_KEY) || 'null'
             );
 
             if (saved?.orderId && saved.uid === user.uid) {
-              setActiveOrder((previous) =>
-                previous.orderId
-                  ? previous
-                  : { ...EMPTY_ORDER, orderId: saved.orderId }
-              );
+              savedOrderId = saved.orderId;
+              restoreOrder(savedOrderId);
             }
           } catch {
             // Nothing saved
+          }
+
+          // Nothing remembered on this device (logged out since, storage
+          // cleared, another phone): ask the server, so a finished job
+          // can still be paid and one under way still followed. Not
+          // awaited, so the splash screen doesn't wait on it.
+          if (!savedOrderId) {
+            authorizedFetchOrNull('/me/open-booking')
+              .then((open) => {
+                if (
+                  open?.firebase_order_id &&
+                  auth.currentUser?.uid === user.uid
+                ) {
+                  restoreOrder(open.firebase_order_id);
+                }
+              })
+              .catch((error) => {
+                console.warn('Could not check for an open booking:', error.message);
+              });
           }
         }
 
