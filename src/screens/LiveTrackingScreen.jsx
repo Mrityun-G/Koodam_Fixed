@@ -24,6 +24,7 @@ export const LiveTrackingScreen = () => {
     liveRoute,
     respondToExtraCharge,
     cancelBookingRequest,
+    finishActiveOrder,
     trustFee
   } = useApp();
 
@@ -462,6 +463,16 @@ export const LiveTrackingScreen = () => {
                     className="w-full py-2.5 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all shadow-md"
                   >
                     Submit Rating
+                  </button>
+
+                  {/* Paid, so nothing else is owed: the member can close the
+                      booking without rating it */}
+                  <button
+                    type="button"
+                    onClick={finishActiveOrder}
+                    className="w-full py-1.5 text-xs font-bold text-slate-500 hover:text-[#0b1c30] transition-colors"
+                  >
+                    Not now
                   </button>
                 </>
               )}
