@@ -1,12 +1,52 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Avatar } from './Avatar';
+import { VerifiedTag } from './VerifiedTag';
+import {
+  availabilityNow,
+  formatTime,
+  hoursOnDate,
+  hoursSummary,
+  todayIso
+} from '../lib/workingHours';
 
 // One helper offering one service, as listed on Home and Search: who
 // they are, how they're verified, how far away, the price, and buttons
 // to chat or book.
 export const HelperCard = ({ helper }) => {
   const { handleBookHelper, setIsChatOpen, setChatPartner } = useApp();
+
+  // The days and times they work, as the partner set them
+  const hoursText = hoursSummary(helper.workingHours);
+  const offToday = hoursOnDate(
+    todayIso(),
+    helper.workingHours,
+    helper.daysOff
+  ).off;
+
+  // Whether they can come now, so the member knows at a glance
+  const now = availabilityNow(helper.workingHours, helper.daysOff);
+  const status =
+    now?.state === 'now'
+      ? {
+          tone: 'bg-[#c8f7e1] text-[#006c49]',
+          text: `Working now · till ${formatTime(now.until)}`
+        }
+      : now?.state === 'later'
+        ? {
+            tone: 'bg-amber-50 text-amber-700',
+            text: `Starts today at ${formatTime(now.from)}`
+          }
+        : now?.state === 'next'
+          ? {
+              tone: now.offToday
+                ? 'bg-red-50 text-red-600'
+                : 'bg-slate-100 text-slate-600',
+              text: `${now.offToday ? 'Off today' : 'Done for today'} · next ${now.day} ${formatTime(now.from)}`
+            }
+          : offToday
+            ? { tone: 'bg-red-50 text-red-600', text: 'Off today' }
+            : null;
 
   return (
     <div className="bg-white rounded-2xl p-3.5 shadow-2xs hover:shadow-md transition-shadow flex flex-col gap-2 border border-slate-100">
@@ -43,12 +83,15 @@ export const HelperCard = ({ helper }) => {
           <p className="text-xs text-[#5a4136] truncate mt-0.5">{helper.title}</p>
 
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
-            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${helper.badgeColor}`}>
-              <span className="material-symbols-outlined text-[12px]">
-                {helper.isVerified ? 'verified' : 'handshake'}
+            {/* Staff approved all their ID documents */}
+            {helper.isVerified ? (
+              <VerifiedTag size="sm" />
+            ) : (
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${helper.badgeColor}`}>
+                <span className="material-symbols-outlined text-[12px]">handshake</span>
+                <span>{helper.badge}</span>
               </span>
-              <span>{helper.badge}</span>
-            </span>
+            )}
             {helper.policeVerified && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#6ffbbe] text-[#002113]">
                 <span className="material-symbols-outlined text-[12px]">local_police</span>
@@ -60,6 +103,22 @@ export const HelperCard = ({ helper }) => {
               {helper.distance}
             </span>
           </div>
+
+          {(status || hoursText) && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 min-w-0">
+              {status && (
+                <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${status.tone}`}>
+                  {status.text}
+                </span>
+              )}
+              {hoursText && (
+                <span className="flex items-center gap-1 text-[11px] font-medium text-[#4e5c92] min-w-0 max-w-full">
+                  <span className="material-symbols-outlined text-[14px] shrink-0">schedule</span>
+                  <span className="truncate">{hoursText}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -82,7 +141,8 @@ export const HelperCard = ({ helper }) => {
               setChatPartner({
                 name: helper.name,
                 avatar: helper.avatar || '',
-                partnerId: helper.partnerId
+                partnerId: helper.partnerId,
+                isVerified: Boolean(helper.isVerified)
               });
               setIsChatOpen(true);
             }}

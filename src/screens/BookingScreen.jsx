@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Avatar } from '../components/Avatar';
+import { VerifiedTag } from '../components/VerifiedTag';
 import {
   DEFAULT_TIME_SLOTS,
   findClash,
@@ -8,6 +9,13 @@ import {
   toTimeRanges
 } from '../lib/schedule';
 import { authorizedFetch } from '../lib/authorizedFetch';
+import {
+  fitsWorkingHours,
+  formatDayOff,
+  formatRange,
+  groupHours,
+  hoursOnDate
+} from '../lib/workingHours';
 import { formatRupees, gstLines, halfRate } from '../lib/tax';
 import {
   CARE_TIME_SLOTS,
@@ -535,6 +543,17 @@ export const BookingScreen = () => {
   // How long the partner will be busy with this booking
   const jobMinutes = bookedHours ? bookedHours * 60 : 60;
 
+  // The days and times the partner works, as they set them; times
+  // outside these aren't offered at all
+  const workingHours = helper.workingHours || null;
+  const daysOff = helper.daysOff || [];
+  const hourGroups = groupHours(workingHours);
+  const selectedDay = hoursOnDate(
+    selectedDateEntry?.isoDate,
+    workingHours,
+    daysOff
+  );
+
   // Times this partner already has a job, so they can't be double booked
   const partnerId = helper.partnerId || helper.partner_id;
   const [busyRanges, setBusyRanges] = useState([]);
@@ -588,20 +607,33 @@ export const BookingScreen = () => {
     const isPast = start !== null && start <= Date.now();
     const isBooked =
       start !== null && Boolean(findClash(start, jobMinutes, busyRanges));
+    const isOutsideHours =
+      start !== null &&
+      !fitsWorkingHours(
+        selectedDateEntry?.isoDate,
+        start,
+        jobMinutes,
+        workingHours,
+        daysOff
+      );
 
     return {
       time,
       start,
       isPast,
       isBooked,
-      isAvailable: busyLoaded && !isPast && !isBooked
+      isOutsideHours,
+      isAvailable: busyLoaded && !isPast && !isBooked && !isOutsideHours
     };
   });
 
   const availableSlotCount = slotOptions.filter(slot => slot.isAvailable).length;
 
-  // Times that have already gone by today aren't shown at all
-  const upcomingSlots = slotOptions.filter(slot => !slot.isPast);
+  // Times that have already gone by today, or fall outside the
+  // partner's working hours, aren't shown at all
+  const upcomingSlots = slotOptions.filter(
+    slot => !slot.isPast && !slot.isOutsideHours
+  );
 
   const isSelectedTimeAvailable = slotOptions.some(
     slot => slot.time === selectedTime && slot.isAvailable
@@ -613,6 +645,39 @@ export const BookingScreen = () => {
       setSelectedTime('');
     }
   }, [selectedTime, isSelectedTimeAvailable, setSelectedTime]);
+
+  // Open on a day the partner can actually be booked: when they're off
+  // on the chosen day, or their hours there are already over, move to
+  // their next working day. Once per partner, so it never fights a date
+  // the member picks themselves.
+  const jumpedForRef = useRef(null);
+
+  useEffect(() => {
+    if (!partnerId || jumpedForRef.current === partnerId) return;
+    if (!workingHours && daysOff.length === 0) return;
+
+    jumpedForRef.current = partnerId;
+
+    const hasTimeOn = isoDate =>
+      times.some(time => {
+        const start = getSlotStart(isoDate, time);
+
+        return (
+          start !== null &&
+          start > Date.now() &&
+          fitsWorkingHours(isoDate, start, jobMinutes, workingHours, daysOff)
+        );
+      });
+
+    if (selectedDateEntry && hasTimeOn(selectedDateEntry.isoDate)) return;
+
+    const firstOpen = dates.find(date => hasTimeOn(date.isoDate));
+
+    if (firstOpen) {
+      setSelectedDate(firstOpen.value);
+      setSelectedTime('');
+    }
+  }, [partnerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const numericTrustFee = Number(trustFee) || 0;
   const servicePrice = priceForHours(activeService, bookedHours);
@@ -692,7 +757,7 @@ export const BookingScreen = () => {
             </span>
 
             <span className="text-xs font-semibold text-[#0b1c30]">
-              {isVerified ? 'Verified Helper' : helperTitle}
+              {isVerified ? 'Verified Partner' : helperTitle}
               {helperLocation ? ` · ${helperLocation}` : ''}
             </span>
           </div>
@@ -734,7 +799,7 @@ export const BookingScreen = () => {
 
                   <span className="text-[10px] font-bold">
                     {isVerified
-                      ? 'GigEzee Verified'
+                      ? 'ID checked by GigEzee'
                       : 'Service Partner'}
                   </span>
                 </div>
@@ -757,9 +822,12 @@ export const BookingScreen = () => {
             </div>
 
             <div className="flex flex-col">
-              <h2 className="text-xl font-extrabold text-[#0b1c30] tracking-tight">
-                {helperName}
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl font-extrabold text-[#0b1c30] tracking-tight">
+                  {helperName}
+                </h2>
+                {isVerified && <VerifiedTag />}
+              </div>
 
               <p className="text-xs text-[#4e5c92] font-semibold">
                 {helperTitle}
@@ -1273,12 +1341,55 @@ export const BookingScreen = () => {
 <div className="text-[11px] text-[#006c49] font-bold">
   {!selectedDateEntry
     ? 'Select a date to see free slots'
+    : selectedDay.off
+      ? `${helperName} is not working on this date`
     : !busyLoaded
       ? 'Checking availability…'
       : availableSlotCount > 0
       ? `${availableSlotCount} slot${availableSlotCount === 1 ? '' : 's'} free`
       : 'Fully booked on this date'}
 </div>
+
+            {/* The partner's own working days and hours */}
+            {(hourGroups.length > 0 || daysOff.length > 0) && (
+              <div className="rounded-xl bg-[#eff4ff] p-3 flex flex-col gap-1.5">
+                <p className="text-xs font-bold text-[#0b1c30] flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px] text-[#4e5c92]">
+                    schedule
+                  </span>
+                  {helperName}'s working hours
+                </p>
+
+                {hourGroups.length > 0 && (
+                  <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
+                    {hourGroups.map(group => (
+                      <React.Fragment key={group.days}>
+                        <span className="font-semibold text-[#5a4136]">
+                          {group.days}
+                        </span>
+                        <span
+                          className={
+                            group.hours
+                              ? 'font-bold text-[#0b1c30]'
+                              : 'font-semibold text-slate-400'
+                          }
+                        >
+                          {group.hours ? formatRange(group.hours) : 'Not working'}
+                        </span>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                )}
+
+                {daysOff.length > 0 && (
+                  <p className="text-[11px] text-[#5a4136]">
+                    <span className="font-semibold">Days off: </span>
+                    {daysOff.slice(0, 6).map(formatDayOff).join(', ')}
+                    {daysOff.length > 6 ? ` and ${daysOff.length - 6} more` : ''}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Dynamic Date Pills */}
             <div
@@ -1291,6 +1402,11 @@ export const BookingScreen = () => {
 >
               {dates.map(date => {
                 const isSelected = selectedDate === date.value;
+                const isDayOff = hoursOnDate(
+                  date.isoDate,
+                  workingHours,
+                  daysOff
+                ).off;
 
                 return (
                   <button
@@ -1299,18 +1415,29 @@ export const BookingScreen = () => {
                       setSelectedDate(date.value);
                       setSelectedTime('');
                     }}
+                    aria-label={
+                      isDayOff
+                        ? `${date.label} ${date.day}, ${helperName} is not working`
+                        : undefined
+                    }
                     className={`flex flex-col items-center justify-center py-2 px-3.5 rounded-2xl shrink-0 min-w-[68px] transition-all border ${
                       isSelected
-                        ? 'bg-[#ff6a00] text-white border-[#ff6a00] shadow-sm'
-                        : 'bg-[#eff4ff] text-[#0b1c30] border-transparent hover:bg-slate-100'
+                        ? isDayOff
+                          ? 'bg-slate-200 text-slate-500 border-slate-300'
+                          : 'bg-[#ff6a00] text-white border-[#ff6a00] shadow-sm'
+                        : isDayOff
+                          ? 'bg-slate-50 text-slate-300 border-dashed border-slate-200'
+                          : 'bg-[#eff4ff] text-[#0b1c30] border-transparent hover:bg-slate-100'
                     }`}
                     type="button"
                   >
                     <span
                       className={`text-[10px] uppercase font-bold ${
-                        isSelected
-                          ? 'text-white'
-                          : 'text-[#5a4136]'
+                        isDayOff
+                          ? 'text-slate-400'
+                          : isSelected
+                            ? 'text-white'
+                            : 'text-[#5a4136]'
                       }`}
                     >
                       {date.label}
@@ -1319,6 +1446,12 @@ export const BookingScreen = () => {
                     <span className="text-base font-extrabold">
                       {date.day}
                     </span>
+
+                    {isDayOff && (
+                      <span className="text-[9px] font-bold uppercase text-red-400 leading-none mt-0.5">
+                        Off
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -1334,9 +1467,20 @@ export const BookingScreen = () => {
                 <div className="rounded-xl bg-[#eff4ff] p-3 text-xs text-slate-600">
                   Pick a date above to see this helper's free time slots.
                 </div>
+              ) : selectedDay.off ? (
+                <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 flex items-start gap-2">
+                  <span className="material-symbols-outlined text-[16px] shrink-0">
+                    event_busy
+                  </span>
+                  {selectedDay.reason === 'day_off'
+                    ? `${helperName} has taken this day off. Please pick another date.`
+                    : `${helperName} doesn't work on this day. Please pick another date.`}
+                </div>
               ) : upcomingSlots.length === 0 ? (
                 <div className="rounded-xl bg-[#eff4ff] p-3 text-xs text-slate-600">
-                  No more time slots today. Please pick another date.
+                  {selectedDay.hours
+                    ? `No more times left in ${helperName}'s working hours on this date. Please pick another date.`
+                    : 'No more time slots today. Please pick another date.'}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-1.5">

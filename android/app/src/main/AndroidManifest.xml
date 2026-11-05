@@ -46,6 +46,14 @@
          this the recorder fails and the mic looks broken. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- Video calls in the booking chat: the camera for the picture, and
+         audio settings so the call's sound goes to the speaker. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
     <!-- The app works fine without a microphone; it just hides the mic
          button, so a device lacking one must still be able to install. -->
     <uses-feature

@@ -395,7 +395,7 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Don't know what's wrong? Photograph it. */}
+        {/* Don't know what's wrong? Tell GigEzee AI, then show it. */}
         {aiAvailable && (
           <div className="px-4 pt-3">
             <button
@@ -404,7 +404,7 @@ useEffect(() => {
             >
               <div className="w-11 h-11 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[22px]">
-                  photo_camera
+                  forum
                 </span>
               </div>
 
@@ -413,7 +413,7 @@ useEffect(() => {
                   Not sure what's wrong?
                 </p>
                 <p className="text-[11px] text-[#5a4136] leading-snug">
-                  Take a photo and GigEzee AI will work it out for you
+                  Tell GigEzee AI about it, then show it a photo
                 </p>
               </div>
 

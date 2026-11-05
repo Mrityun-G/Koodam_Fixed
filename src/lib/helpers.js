@@ -113,7 +113,15 @@ export const toHelper = (service, partner) => ({
       : 'bg-[#dce1ff] text-[#05164b]',
 
   serviceRadiusKm:
-    Number(partner.service_radius_km || 5)
+    Number(partner.service_radius_km || 5),
+
+  // The days and times they work and their dates off (lib/workingHours);
+  // null hours = no fixed hours
+  workingHours:
+    partner.working_hours || null,
+
+  daysOff:
+    partner.days_off || []
 });
 
 export const helpersFromServices = (services = []) =>

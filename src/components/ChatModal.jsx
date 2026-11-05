@@ -3,6 +3,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { BillingHistory } from './BillingHistory';
 import { Avatar } from './Avatar';
+import { VerifiedTag } from './VerifiedTag';
+import { MAX_CHAT_VIDEO_MB } from '../lib/chatVideo';
+import {
+  canVideoCall,
+  formatCallDuration,
+  requestVideoCall
+} from '../lib/videoCall';
+
+// The note a video call leaves in the chat
+const callNote = (msg, myRole) =>
+  msg.callResult === 'completed'
+    ? `Video call · ${formatCallDuration(msg.durationSec)}`
+    : msg.callResult === 'declined'
+      ? 'Video call declined'
+      : msg.sender === myRole
+        ? 'Video call · no answer'
+        : 'Missed video call';
 
 export const ChatModal = () => {
   const {
@@ -11,6 +28,9 @@ export const ChatModal = () => {
     chatPartner,
     messages,
     sendChatMessage,
+    sendChatVideo,
+    showToast,
+    isFirebaseConfigured,
     role,
     activeOrder
   } = useApp();
@@ -20,6 +40,12 @@ export const ChatModal = () => {
   const [inputText, setInputText] = useState('');
   const [showBills, setShowBills] = useState(false);
   const messagesListRef = useRef(null);
+
+  // Video clips: the record / choose menu, and the one being sent
+  const [videoMenuOpen, setVideoMenuOpen] = useState(false);
+  const [videoUpload, setVideoUpload] = useState(null);
+  const recordVideoRef = useRef(null);
+  const pickVideoRef = useRef(null);
 
   // The other person on the active booking: the partner for a member,
   // the customer for a partner. Used when the chat was opened without a
@@ -74,6 +100,21 @@ export const ChatModal = () => {
 
   const isOrderContact = !explicitName || explicitName === orderContact?.name;
 
+  // The Verified Partner tag: only for a partner whose ID documents
+  // GigEzee staff approved, and only on the member's side
+  const partnerVerified =
+    myRole === 'member' &&
+    Boolean(
+      (typeof chatPartner === 'object' && chatPartner?.isVerified) ||
+        (isOrderContact && activeOrder?.helperVerified)
+    );
+
+  // A video call goes to the other person on the booking, so it needs
+  // one, and this chat has to be with them
+  const canCall =
+    Boolean(isFirebaseConfigured && activeOrder?.orderId && isOrderContact) &&
+    canVideoCall();
+
   // The partner's ID, so a customer can see the bills for their work
   const chatPartnerId =
     (typeof chatPartner === 'object' && chatPartner?.partnerId) ||
@@ -117,7 +158,7 @@ export const ChatModal = () => {
     if (isChatOpen) {
       scrollToBottom();
     }
-  }, [messages, isChatOpen]);
+  }, [messages, isChatOpen, Boolean(videoUpload)]);
 
   // Reset the input when switching conversations.
   useEffect(() => {
@@ -150,7 +191,26 @@ export const ChatModal = () => {
 
   const handleClose = () => {
     setShowBills(false);
+    setVideoMenuOpen(false);
     setIsChatOpen(false);
+  };
+
+  const chooseVideo = async (event) => {
+    const file = event.target.files?.[0];
+    // Let the same clip be picked again after a failed send
+    event.target.value = '';
+
+    if (!file) return;
+
+    setVideoUpload({ progress: 0 });
+
+    try {
+      await sendChatVideo(file, (progress) => setVideoUpload({ progress }));
+    } catch (error) {
+      showToast(error.message || "Couldn't send the video. Please try again.");
+    } finally {
+      setVideoUpload(null);
+    }
   };
 
   return (
@@ -215,34 +275,25 @@ export const ChatModal = () => {
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h3
-                  className="
-                    font-bold text-sm
-                    text-[#0b1c30]
-                    truncate
-                  "
-                  title={partnerName}
-                >
-                  {partnerName}
-                </h3>
+              {/* The name gets the whole first line, so it isn't cut
+                  short by the header buttons */}
+              <h3
+                className="
+                  font-bold text-sm
+                  text-[#0b1c30]
+                  truncate
+                "
+                title={partnerName}
+              >
+                {partnerName}
+              </h3>
 
-                <span
-                  className="
-                    material-symbols-outlined
-                    text-[15px]
-                    text-[#00ae78]
-                    shrink-0
-                  "
-                  style={{
-                    fontVariationSettings: "'FILL' 1"
-                  }}
-                  aria-label="Verified"
-                >
-                  verified
-                </span>
-
-                {/* Who the other person is: partners chat with customers */}
+              <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
+                {/* Who the other person is: partners chat with customers.
+                    A partner staff have verified shows the tag instead. */}
+                {partnerVerified ? (
+                  <VerifiedTag size="sm" />
+                ) : (
                 <span
                   className={`
                     text-[9px] font-bold uppercase tracking-wide
@@ -254,7 +305,7 @@ export const ChatModal = () => {
                 >
                   {myRole === 'partner' ? 'Customer' : 'Partner'}
                 </span>
-              </div>
+                )}
 
               <p
                 className="
@@ -262,7 +313,7 @@ export const ChatModal = () => {
                   text-[#006c49]
                   font-medium
                   flex items-center gap-1
-                  truncate
+                  truncate min-w-0
                 "
               >
                 <span
@@ -283,6 +334,7 @@ export const ChatModal = () => {
                   ? ` (${partnerDistance})`
                   : ''}
               </p>
+              </div>
             </div>
           </div>
 
@@ -311,6 +363,33 @@ export const ChatModal = () => {
                 </span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => requestVideoCall()}
+              disabled={!canCall}
+              title={
+                canCall
+                  ? `Video call ${partnerName}`
+                  : 'Video calls work once a booking is accepted'
+              }
+              aria-label={`Video call ${partnerName}`}
+              className={`
+                w-9 h-9
+                rounded-full
+                bg-[#eff4ff]
+                text-[#a14000]
+                flex items-center justify-center
+                transition-colors
+                ${canCall
+                  ? 'hover:bg-[#ffdbcc]'
+                  : 'opacity-40 cursor-not-allowed'}
+              `}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                videocam
+              </span>
+            </button>
 
             <a
               href={partnerPhone ? `tel:${partnerPhone}` : undefined}
@@ -435,7 +514,20 @@ export const ChatModal = () => {
             </span>
           </div>
 
-          {messages.map((msg) => (
+          {messages.map((msg) => msg.type === 'call' ? (
+            <div key={msg.id} className="flex justify-center">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-white border border-slate-100 text-slate-600 shadow-xs">
+                <span
+                  className={`material-symbols-outlined text-[16px] ${
+                    msg.callResult === 'completed' ? 'text-[#00ae78]' : 'text-red-500'
+                  }`}
+                >
+                  {msg.callResult === 'completed' ? 'videocam' : 'missed_video_call'}
+                </span>
+                {callNote(msg, myRole)} · {msg.time}
+              </span>
+            </div>
+          ) : (
             <div
               key={msg.id}
               className={`
@@ -451,7 +543,7 @@ export const ChatModal = () => {
                 className={`
                   max-w-[80%]
                   rounded-2xl
-                  px-4 py-2.5
+                  ${msg.type === 'video' ? 'p-1.5' : 'px-4 py-2.5'}
                   shadow-xs
                   text-sm
                   break-words
@@ -462,9 +554,24 @@ export const ChatModal = () => {
                   }
                 `}
               >
-                <p className="leading-relaxed whitespace-pre-wrap" data-no-translate>
-                  {msg.text}
-                </p>
+                {msg.type === 'video' && msg.videoUrl ? (
+                  <video
+                    src={msg.videoUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    aria-label={
+                      msg.sender === myRole
+                        ? 'Video you sent'
+                        : `Video from ${partnerName}`
+                    }
+                    className="block w-56 max-w-full max-h-72 rounded-xl bg-black"
+                  />
+                ) : (
+                  <p className="leading-relaxed whitespace-pre-wrap" data-no-translate>
+                    {msg.text}
+                  </p>
+                )}
               </div>
 
               <span
@@ -478,6 +585,26 @@ export const ChatModal = () => {
               </span>
             </div>
           ))}
+
+          {/* The clip on its way */}
+          {videoUpload && (
+            <div className="flex flex-col items-end">
+              <div className="w-56 max-w-[80%] rounded-2xl rounded-br-xs bg-[#ff6a00] text-white p-3 shadow-xs">
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <span className="material-symbols-outlined text-[18px] animate-pulse">
+                    videocam
+                  </span>
+                  Sending video… {Math.round(videoUpload.progress * 100)}%
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-white/30 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-white transition-all"
+                    style={{ width: `${Math.max(4, Math.round(videoUpload.progress * 100))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Quick Suggestion Chips */}
@@ -525,6 +652,84 @@ export const ChatModal = () => {
             flex items-center gap-2
           "
         >
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setVideoMenuOpen((open) => !open)}
+              disabled={Boolean(videoUpload)}
+              aria-label="Send a video"
+              aria-expanded={videoMenuOpen}
+              className="
+                w-11 h-11
+                rounded-full
+                bg-[#eff4ff]
+                text-[#a14000]
+                hover:bg-[#ffdbcc]
+                disabled:opacity-50
+                flex items-center justify-center
+                transition-colors
+                active:scale-95
+              "
+            >
+              <span className="material-symbols-outlined text-[21px]">
+                videocam
+              </span>
+            </button>
+
+            {videoMenuOpen && (
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-1.5 z-20">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVideoMenuOpen(false);
+                    recordVideoRef.current?.click();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#eff4ff] text-sm font-semibold text-[#0b1c30] text-left"
+                >
+                  <span className="material-symbols-outlined text-[20px] text-[#ff6a00]">
+                    videocam
+                  </span>
+                  Record a video
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVideoMenuOpen(false);
+                    pickVideoRef.current?.click();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#eff4ff] text-sm font-semibold text-[#0b1c30] text-left"
+                >
+                  <span className="material-symbols-outlined text-[20px] text-[#4e5c92]">
+                    video_library
+                  </span>
+                  Choose a video
+                </button>
+
+                <p className="px-3 pt-1 pb-1.5 text-[10px] text-slate-400">
+                  Up to {MAX_CHAT_VIDEO_MB} MB, about 30 seconds
+                </p>
+              </div>
+            )}
+
+            {/* capture opens the camera straight in video mode */}
+            <input
+              ref={recordVideoRef}
+              type="file"
+              accept="video/*"
+              capture="environment"
+              onChange={chooseVideo}
+              className="hidden"
+            />
+            <input
+              ref={pickVideoRef}
+              type="file"
+              accept="video/*"
+              onChange={chooseVideo}
+              className="hidden"
+            />
+          </div>
+
           <input
             type="text"
             value={inputText}
