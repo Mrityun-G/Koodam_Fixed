@@ -42,17 +42,17 @@
 }
 
 .date-scroll::-webkit-scrollbar-track {
-  background: #eff4ff;
+  background: #FFF3D5;
   border-radius: 10px;
 }
 
 .date-scroll::-webkit-scrollbar-thumb {
-  background: #ff6a00;
+  background: #FFC928;
   border-radius: 10px;
 }
 
 .date-scroll::-webkit-scrollbar-thumb:hover {
-  background: #a14000;
+  background: #F5B301;
 }
 /* Some people get motion sick from movement on screen, and Android has a
    system setting for it. Honour it: entrances still finish, they just stop

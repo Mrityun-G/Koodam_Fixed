@@ -64,37 +64,37 @@ export const RepairBill = ({ order, fallbackTrustFee = 0 }) => {
           <img
             src={order.repairPhotoUrl}
             alt="Finished repair"
-            className="w-full max-h-56 object-contain bg-slate-50 border border-slate-100"
+            className="w-full max-h-56 object-contain bg-white rounded-xl border border-[#E6E9F4]"
           />
         </a>
       )}
 
-      <div className="rounded-xl bg-[#f8f9ff] px-3 py-3 flex flex-col gap-2 text-xs">
+      <div className="rounded-xl bg-[#FFF7E0] border border-[#FFC928]/30 px-3 py-3 flex flex-col gap-2 text-xs">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-slate-500 truncate">
+          <span className="text-[#4E5C92] truncate">
             {order?.serviceTitle || 'Service'}
           </span>
-          <span className="font-bold text-[#0b1c30] shrink-0">{formatRupees(servicePrice)}</span>
+          <span className="font-bold text-[#101F55] shrink-0">{formatRupees(servicePrice)}</span>
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <span className="text-slate-500">Trust Shield fee</span>
-          <span className="font-bold text-[#0b1c30] shrink-0">{formatRupees(trustFee)}</span>
+          <span className="text-[#4E5C92]">Trust Shield fee</span>
+          <span className="font-bold text-[#101F55] shrink-0">{formatRupees(trustFee)}</span>
         </div>
 
         {approvedExtras.map(([chargeId, charge]) => (
           <div key={chargeId} className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2 min-w-0 text-slate-500">
+            <span className="flex items-center gap-2 min-w-0 text-[#4E5C92]">
               {charge.photoUrl && (
                 <img
                   src={charge.photoUrl}
                   alt={charge.item}
-                  className="w-8 aspect-[4/3] object-contain bg-slate-50 shrink-0"
+                  className="w-8 aspect-[4/3] object-contain bg-[#FFF7E0] shrink-0"
                 />
               )}
               <span className="truncate">{charge.item} (extra part)</span>
             </span>
-            <span className="font-bold text-[#0b1c30] shrink-0">
+            <span className="font-bold text-[#101F55] shrink-0">
               {formatRupees(charge.amount)}
             </span>
           </div>
@@ -102,32 +102,32 @@ export const RepairBill = ({ order, fallbackTrustFee = 0 }) => {
 
         {hasTax && (
           <>
-            <div className="border-t border-dashed border-slate-200 pt-2 flex items-center justify-between gap-2">
-              <span className="text-slate-500">Subtotal</span>
-              <span className="font-bold text-[#0b1c30] shrink-0">
+            <div className="border-t border-dashed border-[#E6E9F4] pt-2 flex items-center justify-between gap-2">
+              <span className="text-[#4E5C92]">Subtotal</span>
+              <span className="font-bold text-[#101F55] shrink-0">
                 {formatRupees(total - cgst - sgst)}
               </span>
             </div>
 
             <div className="flex items-center justify-between gap-2">
-              <span className="text-slate-500">{`CGST (${halfRate(gstPercent)}%)`}</span>
-              <span className="font-bold text-[#0b1c30] shrink-0">{formatRupees(cgst)}</span>
+              <span className="text-[#4E5C92]">{`CGST (${halfRate(gstPercent)}%)`}</span>
+              <span className="font-bold text-[#101F55] shrink-0">{formatRupees(cgst)}</span>
             </div>
 
             <div className="flex items-center justify-between gap-2">
-              <span className="text-slate-500">{`SGST (${halfRate(gstPercent)}%)`}</span>
-              <span className="font-bold text-[#0b1c30] shrink-0">{formatRupees(sgst)}</span>
+              <span className="text-[#4E5C92]">{`SGST (${halfRate(gstPercent)}%)`}</span>
+              <span className="font-bold text-[#101F55] shrink-0">{formatRupees(sgst)}</span>
             </div>
           </>
         )}
 
-        <div className="border-t border-slate-200 pt-2 flex items-center justify-between">
-          <span className="text-sm font-bold text-[#0b1c30]">Total</span>
-          <span className="text-lg font-extrabold text-[#a14000]">{formatRupees(total)}</span>
+        <div className="border-t border-[#E6E9F4] pt-2 flex items-center justify-between">
+          <span className="text-sm font-bold text-[#101F55]">Total</span>
+          <span className="text-lg font-extrabold text-[#101F55]">{formatRupees(total)}</span>
         </div>
 
         {hasTax && gstin && (
-          <p className="text-[10px] text-slate-400">{`GSTIN: ${gstin}`}</p>
+          <p className="text-[10px] text-[#4E5C92]/70">{`GSTIN: ${gstin}`}</p>
         )}
       </div>
     </div>

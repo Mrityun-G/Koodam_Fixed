@@ -20,25 +20,25 @@ export const NotFoundScreen = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center w-full bg-[#f8f9ff] px-6 py-10 text-center">
-      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#d3e4fe]">
+    <div className="flex-1 flex flex-col items-center justify-center w-full bg-[#FFF3D5] px-6 py-10 text-center">
+      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFE7A8]">
         <span
-          className="material-symbols-outlined text-[32px] text-[#354479]"
+          className="material-symbols-outlined text-[32px] text-[#101F55]"
           style={{ fontVariationSettings: "'FILL' 1" }}
         >
           explore_off
         </span>
       </div>
 
-      <p className="text-[11px] font-bold uppercase tracking-wider text-[#4e5c92]">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[#4E5C92]">
         Page not found
       </p>
 
-      <h1 className="mt-1.5 text-lg font-extrabold text-[#0b1c30]">
+      <h1 className="mt-1.5 text-lg font-extrabold text-[#101F55]">
         This screen doesn&apos;t exist
       </h1>
 
-      <p className="mt-2 max-w-xs text-xs leading-relaxed text-[#4e5c92]">
+      <p className="mt-2 max-w-xs text-xs leading-relaxed text-[#4E5C92]">
         We couldn&apos;t find what you were looking for. It may have moved,
         or the link may be out of date.
       </p>
@@ -46,7 +46,7 @@ export const NotFoundScreen = () => {
       <button
         type="button"
         onClick={goHome}
-        className="mt-6 w-full max-w-xs rounded-full bg-gradient-to-r from-[#ff6a00] to-[#ff9a56] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#ff6a00]/30 active:scale-98 transition-all"
+        className="mt-6 w-full max-w-xs rounded-full bg-gradient-to-r from-[#FFC928] to-[#FFD65A] py-3.5 text-sm font-bold text-[#101F55] shadow-lg shadow-[#FFC928]/30 active:scale-98 transition-all"
       >
         {role === 'welcome' ? 'Back to start' : 'Go to Home'}
       </button>

@@ -20,7 +20,7 @@ const MAX_NOTE = 500;
 // The talking part stays on the phone: everything they said goes to
 // the AI together with the photo, as one request.
 const BotAvatar = () => (
-  <div className="w-8 h-8 rounded-full bg-[#ff6a00] text-white flex items-center justify-center shrink-0 shadow-sm">
+  <div className="w-8 h-8 rounded-full bg-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 shadow-sm">
     <span className="material-symbols-outlined text-[17px]">auto_awesome</span>
   </div>
 );
@@ -35,14 +35,14 @@ const BotSays = ({ children, wide = false }) => (
 );
 
 const BotBubble = ({ children }) => (
-  <div className="self-start bg-white border border-slate-100 rounded-2xl rounded-tl-md px-3.5 py-2.5 text-[13px] leading-relaxed text-[#0b1c30] shadow-xs">
+  <div className="self-start bg-white border border-slate-100 rounded-2xl rounded-tl-md px-3.5 py-2.5 text-[13px] leading-relaxed text-[#101F55] shadow-xs">
     {children}
   </div>
 );
 
 const MeSays = ({ children }) => (
   <div className="flex justify-end">
-    <div className="max-w-[80%] bg-[#ff6a00] text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 text-[13px] leading-relaxed break-words">
+    <div className="max-w-[80%] bg-[#FFC928] text-[#101F55] rounded-2xl rounded-tr-md px-3.5 py-2.5 text-[13px] leading-relaxed break-words">
       {children}
     </div>
   </div>
@@ -53,7 +53,7 @@ const TypingDots = () => (
     {[0, 150, 300].map((delay) => (
       <span
         key={delay}
-        className="w-1.5 h-1.5 rounded-full bg-[#a14000]/70 animate-bounce"
+        className="w-1.5 h-1.5 rounded-full bg-[#F5B301]/70 animate-bounce"
         style={{ animationDelay: `${delay}ms` }}
       />
     ))}
@@ -234,12 +234,12 @@ export const DiagnoseScreen = () => {
         : 'Listening… go ahead');
 
   return (
-    <div className="flex flex-col h-full bg-[#f8f9ff]">
+    <div className="flex flex-col h-full bg-[#FFF3D5]">
       <header className="shrink-0 bg-white px-4 py-3 flex items-center gap-3 border-b border-slate-100">
         <button
           onClick={() => navigateTo('home')}
           aria-label="Back"
-          className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#0b1c30] flex items-center justify-center active:scale-95"
+          className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center active:scale-95"
         >
           <span className="material-symbols-outlined text-[20px]">
             arrow_back
@@ -249,10 +249,10 @@ export const DiagnoseScreen = () => {
         <BotAvatar />
 
         <div className="min-w-0 flex-1">
-          <h1 className="text-base font-bold text-[#0b1c30] leading-tight">
+          <h1 className="text-base font-bold text-[#101F55] leading-tight">
             GigEzee AI
           </h1>
-          <p className="text-[11px] text-[#5a4136]">
+          <p className="text-[11px] text-[#4E5C92]">
             Tell me the problem, then show me
           </p>
         </div>
@@ -262,7 +262,7 @@ export const DiagnoseScreen = () => {
             onClick={newChat}
             aria-label="Start a new chat"
             title="Start a new chat"
-            className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#0b1c30] flex items-center justify-center active:scale-95"
+            className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center active:scale-95"
           >
             <span className="material-symbols-outlined text-[20px]">
               restart_alt
@@ -284,7 +284,7 @@ export const DiagnoseScreen = () => {
           </BotBubble>
           <BotBubble>
             Type it below, or tap the{' '}
-            <span className="material-symbols-outlined text-[15px] align-[-3px] text-[#a14000]">
+            <span className="material-symbols-outlined text-[15px] align-[-3px] text-[#F47B16]">
               mic
             </span>{' '}
             and just say it.
@@ -308,7 +308,7 @@ export const DiagnoseScreen = () => {
             <div className="flex flex-col gap-1.5 w-56 max-w-full">
               <button
                 onClick={() => cameraInputRef.current?.click()}
-                className="w-full py-3 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-sm font-bold active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-sm font-bold active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <span className="material-symbols-outlined text-[20px]">
                   photo_camera
@@ -318,7 +318,7 @@ export const DiagnoseScreen = () => {
 
               <button
                 onClick={() => galleryInputRef.current?.click()}
-                className="w-full py-2.5 rounded-xl bg-white border border-slate-200 text-[#4e5c92] text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 rounded-xl bg-white border border-slate-200 text-[#4E5C92] text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   photo_library
@@ -335,7 +335,7 @@ export const DiagnoseScreen = () => {
             <img
               src={preview}
               alt="The problem you photographed"
-              className="w-3/5 max-h-64 object-cover rounded-2xl rounded-tr-md border-2 border-[#ff6a00] bg-slate-50"
+              className="w-3/5 max-h-64 object-cover rounded-2xl rounded-tr-md border-2 border-[#FFC928] bg-slate-50"
             />
           </div>
         )}
@@ -347,7 +347,7 @@ export const DiagnoseScreen = () => {
                 Looking at your photo
                 <TypingDots />
               </span>
-              <span className="block text-[11px] text-[#5a4136] mt-0.5">
+              <span className="block text-[11px] text-[#4E5C92] mt-0.5">
                 This takes a few seconds. Please don't close the app.
               </span>
             </BotBubble>
@@ -363,13 +363,13 @@ export const DiagnoseScreen = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => analyse(photo, noteText.slice(0, MAX_NOTE))}
-                className="px-4 py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold active:scale-95 transition-all"
               >
                 Try again
               </button>
               <button
                 onClick={anotherPhoto}
-                className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-[#0b1c30] text-xs font-bold active:scale-95 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-[#101F55] text-xs font-bold active:scale-95 transition-all"
               >
                 Send a different photo
               </button>
@@ -415,7 +415,7 @@ export const DiagnoseScreen = () => {
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-[#0b1c30]">
+                    <p className="text-sm font-bold text-[#101F55]">
                       {result.appliance}
                     </p>
 
@@ -433,21 +433,21 @@ export const DiagnoseScreen = () => {
                 </div>
 
                 {result.photo_problem && (
-                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#fff8f4]">
-                    <span className="material-symbols-outlined text-[#a14000] text-[16px] shrink-0">
+                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#FFF7E0]">
+                    <span className="material-symbols-outlined text-[#F47B16] text-[16px] shrink-0">
                       info
                     </span>
-                    <p className="text-[11px] text-[#5a4136] leading-relaxed">
+                    <p className="text-[11px] text-[#4E5C92] leading-relaxed">
                       {result.photo_problem}
                     </p>
                   </div>
                 )}
 
                 <div>
-                  <h2 className="text-sm font-bold text-[#0b1c30]">
+                  <h2 className="text-sm font-bold text-[#101F55]">
                     What a helper will check
                   </h2>
-                  <p className="text-[11px] text-[#5a4136]">
+                  <p className="text-[11px] text-[#4E5C92]">
                     {confidenceNote(result.confidence)}
                   </p>
                 </div>
@@ -455,20 +455,20 @@ export const DiagnoseScreen = () => {
                 {result.likely_causes?.map((cause, index) => (
                   <div
                     key={cause.cause}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-[#f8f9ff]"
+                    className="flex items-start gap-3 p-3 rounded-xl bg-[#FFF3D5]"
                   >
-                    <div className="w-6 h-6 rounded-full bg-[#dce1ff] text-[#4e5c92] text-[11px] font-bold flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#FFE7A8] text-[#4E5C92] text-[11px] font-bold flex items-center justify-center shrink-0">
                       {index + 1}
                     </div>
 
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#0b1c30]">
+                      <p className="text-xs font-bold text-[#101F55]">
                         {cause.cause}
                       </p>
-                      <p className="text-[11px] text-[#5a4136] mt-0.5 leading-relaxed">
+                      <p className="text-[11px] text-[#4E5C92] mt-0.5 leading-relaxed">
                         {cause.why}
                       </p>
-                      <span className="inline-block mt-1 text-[10px] font-bold text-[#a14000]">
+                      <span className="inline-block mt-1 text-[10px] font-bold text-[#101F55]">
                         {likelihoodLabel(cause.likelihood)}
                       </span>
                     </div>
@@ -483,8 +483,8 @@ export const DiagnoseScreen = () => {
               </div>
 
               {result.questions_for_member?.length > 0 && (
-                <div className="bg-[#eff4ff] rounded-2xl p-3.5 border border-[#dce1ff] flex flex-col gap-2">
-                  <p className="text-sm font-bold text-[#0b1c30]">
+                <div className="bg-[#FFF3D5] rounded-2xl p-3.5 border border-[#FFE7A8] flex flex-col gap-2">
+                  <p className="text-sm font-bold text-[#101F55]">
                     The helper may ask you
                   </p>
 
@@ -492,9 +492,9 @@ export const DiagnoseScreen = () => {
                     {result.questions_for_member.map((question) => (
                       <li
                         key={question}
-                        className="flex items-start gap-2 text-[11px] text-[#0b1c30]"
+                        className="flex items-start gap-2 text-[11px] text-[#101F55]"
                       >
-                        <span className="material-symbols-outlined text-[#4e5c92] text-[14px] shrink-0">
+                        <span className="material-symbols-outlined text-[#4E5C92] text-[14px] shrink-0">
                           help
                         </span>
                         {question}
@@ -508,14 +508,14 @@ export const DiagnoseScreen = () => {
                 {result.service_title ? (
                   <button
                     onClick={bookSuggestedService}
-                    className="w-full py-3.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-sm font-bold active:scale-95 transition-all"
+                    className="w-full py-3.5 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-sm font-bold active:scale-95 transition-all"
                   >
                     {`Find a ${result.service_title} helper`}
                   </button>
                 ) : (
                   <button
                     onClick={() => navigateTo('home')}
-                    className="w-full py-3.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-sm font-bold active:scale-95 transition-all"
+                    className="w-full py-3.5 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-sm font-bold active:scale-95 transition-all"
                   >
                     Pick a service myself
                   </button>
@@ -523,7 +523,7 @@ export const DiagnoseScreen = () => {
 
                 <button
                   onClick={anotherPhoto}
-                  className="w-full py-3 rounded-xl bg-white border border-slate-200 text-[#0b1c30] text-xs font-bold active:scale-95 transition-all"
+                  className="w-full py-3 rounded-xl bg-white border border-slate-200 text-[#101F55] text-xs font-bold active:scale-95 transition-all"
                 >
                   Try another photo
                 </button>
@@ -557,7 +557,7 @@ export const DiagnoseScreen = () => {
       {!photo && (
         <div className="shrink-0 bg-white border-t border-slate-100 px-3 pt-2 pb-3 flex flex-col gap-1.5">
           {listening && (
-            <p className="px-1 text-[11px] text-[#a14000] font-semibold truncate">
+            <p className="px-1 text-[11px] text-[#101F55] font-semibold truncate">
               {listeningLabel}
             </p>
           )}
@@ -574,7 +574,7 @@ export const DiagnoseScreen = () => {
               onClick={() => cameraInputRef.current?.click()}
               aria-label="Take a photo"
               title="Take a photo"
-              className="w-10 h-10 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0 active:scale-95"
+              className="w-10 h-10 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center shrink-0 active:scale-95"
             >
               <span className="material-symbols-outlined text-[21px]">
                 photo_camera
@@ -596,7 +596,7 @@ export const DiagnoseScreen = () => {
                     ? 'Add more, or take a photo'
                     : 'For example: the AC runs but the room stays warm'
               }
-              className="flex-1 min-w-0 h-10 rounded-full border border-slate-200 bg-[#f8f9ff] px-4 text-[13px] text-[#0b1c30] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40 disabled:opacity-60"
+              className="flex-1 min-w-0 h-10 rounded-full border border-slate-200 bg-[#FFF3D5] px-4 text-[13px] text-[#101F55] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40 disabled:opacity-60"
             />
 
             {listening ? (
@@ -617,7 +617,7 @@ export const DiagnoseScreen = () => {
                 onClick={start}
                 aria-label="Speak instead of typing"
                 title="Speak instead of typing"
-                className="w-10 h-10 rounded-full bg-[#ff6a00] text-white flex items-center justify-center shrink-0 active:scale-95"
+                className="w-10 h-10 rounded-full bg-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 active:scale-95"
               >
                 <span className="material-symbols-outlined text-[21px]">
                   mic
@@ -628,7 +628,7 @@ export const DiagnoseScreen = () => {
                 type="submit"
                 disabled={!canSend}
                 aria-label="Send"
-                className="w-10 h-10 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white flex items-center justify-center shrink-0 active:scale-95 disabled:opacity-40"
+                className="w-10 h-10 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] flex items-center justify-center shrink-0 active:scale-95 disabled:opacity-40"
               >
                 <span className="material-symbols-outlined text-[20px]">
                   send

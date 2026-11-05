@@ -123,8 +123,10 @@ useEffect(() => {
           name: service.title,
           image: serviceCardImage(service.title),
           icon: service.icon || 'home_repair_service',
-          bg: service.bg_color || '#e5eeff',
-          color: service.icon_color || '#4e5c92'
+          // Brand colours, not the tile colours stored with the service,
+          // so a service without a photo still matches the app
+          bg: '#FFF3D5',
+          color: '#101F55'
         }))
       );
       setHelpers(allHelpers);
@@ -283,7 +285,7 @@ useEffect(() => {
   );
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
+    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5]">
       <Header
         subtitle="Home"
         onRefresh={refreshPage}
@@ -301,7 +303,7 @@ useEffect(() => {
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-[#0b1c30] placeholder:text-slate-400 text-xs focus:outline-none min-w-0 font-medium"
+                className="w-full bg-transparent text-[#101F55] placeholder:text-slate-400 text-xs focus:outline-none min-w-0 font-medium"
                 placeholder='Search "AC repair", "Electrician", "Elder care"...'
                 type="text"
               />
@@ -320,8 +322,8 @@ useEffect(() => {
               }}
               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
                 filterActive
-                  ? 'bg-[#ff6a00] text-white'
-                  : 'bg-[#eff4ff] text-[#0b1c30] hover:bg-[#d3e4fe]'
+                  ? 'bg-[#FFC928] text-[#101F55]'
+                  : 'bg-[#FFF3D5] text-[#101F55] hover:bg-[#FFE7A8]'
               }`}
             >
               <span className="material-symbols-outlined text-[19px]">tune</span>
@@ -331,15 +333,15 @@ useEffect(() => {
 
         {/* Neighborhood Activity Sparkle Pill */}
         <div className="px-4 py-1">
-          <div className="flex items-center justify-between gap-2 bg-[#eff4ff] px-3.5 py-1.5 rounded-full shadow-2xs border border-slate-100">
+          <div className="flex items-center justify-between gap-2 bg-[#FFF3D5] px-3.5 py-1.5 rounded-full shadow-2xs border border-slate-100">
             <div className="flex items-center gap-1.5 min-w-0">
               <span
-                className="material-symbols-outlined text-[#ff6a00] text-[17px] shrink-0"
+                className="material-symbols-outlined text-[#F47B16] text-[17px] shrink-0"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
                 bolt
               </span>
-              <span className="text-[11px] text-[#0b1c30] font-semibold truncate">
+              <span className="text-[11px] text-[#101F55] font-semibold truncate">
                 {helpersLoading
                   ? `Finding helpers in ${areaName}…`
                   : availableHelperCount > 0
@@ -348,8 +350,8 @@ useEffect(() => {
               </span>
             </div>
             <span className="flex h-2 w-2 relative shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff6a00] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#a14000]"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFC928] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F5B301]"></span>
             </span>
           </div>
         </div>
@@ -358,7 +360,7 @@ useEffect(() => {
         <div className="px-4 py-1.5">
           <div
             onClick={() => setIsEmergencyModalOpen(true)}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#ff6a00] via-[#a14000] to-[#7b2f00] text-white p-4 shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-98"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#101F55] via-[#13286b] to-[#1B3380] text-white p-4 shadow-md shadow-[#101F55]/25 border border-[#FFC928]/40 cursor-pointer hover:shadow-lg transition-all active:scale-98"
           >
             {/* Decorative pattern */}
             <div className="absolute -right-4 -bottom-6 opacity-15 pointer-events-none">
@@ -386,7 +388,7 @@ useEffect(() => {
               </div>
 
               <div className="pt-2 flex items-center justify-between">
-                <button className="flex items-center gap-1 text-xs text-white font-bold hover:underline">
+                <button className="flex items-center gap-1 text-xs text-[#FFD65A] font-bold hover:underline">
                   <span>Request Emergency Aid</span>
                   <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
                 </button>
@@ -400,24 +402,24 @@ useEffect(() => {
           <div className="px-4 pt-3">
             <button
               onClick={() => navigateTo('diagnose', 'home')}
-              className="w-full bg-white rounded-2xl p-3.5 shadow-xs border border-[#ffdbcc] flex items-center gap-3 text-left hover:bg-[#fff8f4] active:scale-[0.99] transition-all"
+              className="w-full bg-white rounded-2xl p-3.5 shadow-xs border border-[#FFE7A8] flex items-center gap-3 text-left hover:bg-[#FFF7E0] active:scale-[0.99] transition-all"
             >
-              <div className="w-11 h-11 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[22px]">
                   forum
                 </span>
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-[#0b1c30]">
+                <p className="text-sm font-bold text-[#101F55]">
                   Not sure what's wrong?
                 </p>
-                <p className="text-[11px] text-[#5a4136] leading-snug">
+                <p className="text-[11px] text-[#4E5C92] leading-snug">
                   Tell GigEzee AI about it, then show it a photo
                 </p>
               </div>
 
-              <span className="material-symbols-outlined text-[#a14000] text-[20px] shrink-0">
+              <span className="material-symbols-outlined text-[#F47B16] text-[20px] shrink-0">
                 chevron_right
               </span>
             </button>
@@ -428,8 +430,8 @@ useEffect(() => {
         <div className="px-4 pt-3 pb-1 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-[#0b1c30]">Neighborhood Services</h2>
-              <p className="text-xs text-[#5a4136]">Verified assistance within 15 minutes</p>
+              <h2 className="text-base font-bold text-[#101F55]">Neighborhood Services</h2>
+              <p className="text-xs text-[#4E5C92]">Verified assistance within 15 minutes</p>
             </div>
             {selectedCategory && (
               <button
@@ -467,7 +469,7 @@ useEffect(() => {
                     showToast(isSelected ? 'Showing all services' : `Filtered to ${cat.name}`);
                   }}
                   className={`rounded-2xl bg-white p-1.5 flex flex-col items-center text-center border shadow-[0_2px_10px_rgba(11,28,48,0.06)] transition-all active:scale-[0.97] ${
-                    isSelected ? 'border-[#ff6a00] ring-1 ring-[#ff6a00]' : 'border-slate-100'
+                    isSelected ? 'border-[#FFC928] ring-1 ring-[#FFC928]' : 'border-slate-100'
                   }`}
                 >
                   <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden">
@@ -490,7 +492,7 @@ useEffect(() => {
                     )}
 
                     {isSelected && (
-                      <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#ff6a00] text-white flex items-center justify-center shadow">
+                      <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFC928] text-[#101F55] flex items-center justify-center shadow">
                         <span className="material-symbols-outlined text-[14px]">check</span>
                       </span>
                     )}
@@ -498,7 +500,7 @@ useEffect(() => {
 
                   <span
                     aria-hidden="true"
-                    className="material-symbols-outlined mt-2 text-[20px] leading-none text-[#ff6a00]"
+                    className="material-symbols-outlined mt-2 text-[20px] leading-none text-[#F47B16]"
                   >
                     {cat.icon}
                   </span>
@@ -509,7 +511,7 @@ useEffect(() => {
                   <span className="w-full min-h-[2.4em] mt-1 mb-0.5 px-0.5 flex items-center justify-center text-[12px] leading-[1.2]">
                     <span
                       className={`font-bold line-clamp-2 ${
-                        isSelected ? 'text-[#ff6a00]' : 'text-[#0b1c30]'
+                        isSelected ? 'text-[#101F55]' : 'text-[#101F55]'
                       }`}
                     >
                       {cat.name}
@@ -525,22 +527,22 @@ useEffect(() => {
         <div className="px-4 py-2">
           <div
             onClick={() => navigateTo('nearbyMap', 'home')}
-            className="relative overflow-hidden rounded-2xl bg-[#eff4ff] p-3 flex items-center justify-between shadow-2xs border border-slate-100 cursor-pointer hover:bg-[#dce9ff] transition-colors"
+            className="relative overflow-hidden rounded-2xl bg-[#FFF3D5] p-3 flex items-center justify-between shadow-2xs border border-slate-100 cursor-pointer hover:bg-[#FFE7A8] transition-colors"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-[#006c49]/10 flex items-center justify-center text-[#006c49] shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#101F55]/10 flex items-center justify-center text-[#101F55] shrink-0">
                 <span className="material-symbols-outlined text-[20px]">radar</span>
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs text-[#0b1c30] font-bold truncate">Live Local Grid</span>
-                <span className="text-[11px] text-[#5a4136] truncate">
+                <span className="text-xs text-[#101F55] font-bold truncate">Live Local Grid</span>
+                <span className="text-[11px] text-[#4E5C92] truncate">
                   {helpersLoading
                     ? 'Finding helpers near you…'
                     : `${availableHelperCount} helpers available near ${areaName}`}
                 </span>
               </div>
             </div>
-            <button className="px-3 py-1 rounded-full bg-[#1b2a5e] text-white text-[11px] font-semibold shrink-0 hover:bg-[#111a3a] transition-colors shadow-xs">
+            <button className="px-3 py-1 rounded-full bg-[#101F55] text-white text-[11px] font-semibold shrink-0 hover:bg-[#101F55] transition-colors shadow-xs">
               Map View
             </button>
           </div>
@@ -550,11 +552,11 @@ useEffect(() => {
         <div className="px-4 pt-1 pb-4 flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <h2 className="text-base font-bold text-[#0b1c30]">Top Helpers Near You</h2>
-              <span className="w-2 h-2 rounded-full bg-[#00ae78]"></span>
+              <h2 className="text-base font-bold text-[#101F55]">Top Helpers Near You</h2>
+              <span className="w-2 h-2 rounded-full bg-[#101F55]"></span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#a14000] font-bold">
+              <span className="text-xs text-[#101F55] font-bold">
                 {availableHelperCount} Available
               </span>
               <button
@@ -563,7 +565,7 @@ useEffect(() => {
                 disabled={helpersRefreshing || helpersLoading}
                 aria-label="Refresh helpers"
                 title="Refresh helpers"
-                className="flex items-center gap-0.5 px-2 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[11px] font-bold text-[#a14000] disabled:opacity-60 active:scale-95 transition-all"
+                className="flex items-center gap-0.5 px-2 py-1 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] text-[11px] font-bold text-[#101F55] disabled:opacity-60 active:scale-95 transition-all"
               >
                 <span className={`material-symbols-outlined text-[15px] ${helpersRefreshing ? 'animate-spin' : ''}`}>
                   refresh
@@ -578,7 +580,7 @@ useEffect(() => {
             {helpersLoading ? (
 
   <div className="bg-white rounded-2xl p-6 text-center border border-slate-100">
-    <span className="material-symbols-outlined animate-spin text-[#ff6a00]">
+    <span className="material-symbols-outlined animate-spin text-[#F47B16]">
       progress_activity
     </span>
 
@@ -595,7 +597,7 @@ useEffect(() => {
       person_search
     </span>
 
-    <p className="text-sm font-semibold text-[#0b1c30] mt-2">
+    <p className="text-sm font-semibold text-[#101F55] mt-2">
       No helpers available
     </p>
 
@@ -614,7 +616,7 @@ useEffect(() => {
         {topHelpers.length > 3 && (
           <button
             onClick={() => setShowAllHelpers(prev => !prev)}
-            className="w-full py-2.5 rounded-full bg-white border border-slate-100 shadow-xs text-xs font-bold text-[#a14000] flex items-center justify-center gap-1 active:scale-95 transition-all"
+            className="w-full py-2.5 rounded-full bg-white border border-slate-100 shadow-xs text-xs font-bold text-[#101F55] flex items-center justify-center gap-1 active:scale-95 transition-all"
             type="button"
           >
             {showAllHelpers ? 'Show less' : 'View more'}
@@ -629,13 +631,13 @@ useEffect(() => {
         </div>
         {/* Neighbor Trust Guarantee */}
         <div className="px-4 pb-2">
-          <div className="bg-[#eff4ff] rounded-2xl p-3 flex items-center gap-3 shadow-2xs border border-slate-100">
-            <div className="w-10 h-10 rounded-full bg-[#6ffbbe] text-[#002113] flex items-center justify-center shrink-0">
+          <div className="bg-[#FFF3D5] rounded-2xl p-3 flex items-center gap-3 shadow-2xs border border-slate-100">
+            <div className="w-10 h-10 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-2xl">handshake</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <h4 className="text-xs font-bold text-[#0b1c30]">The GigEzee Neighbor Guarantee</h4>
-              <p className="text-[11px] text-[#5a4136] mt-0.5 leading-snug">
+              <h4 className="text-xs font-bold text-[#101F55]">The GigEzee Neighbor Guarantee</h4>
+              <p className="text-[11px] text-[#4E5C92] mt-0.5 leading-snug">
                 Fair, upfront prices with no hidden charges. Every helper is identity-checked and vouched for by local residents.
               </p>
             </div>

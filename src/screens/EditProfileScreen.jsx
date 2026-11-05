@@ -190,7 +190,7 @@ export const EditProfileScreen = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
+    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5] min-h-screen">
 
       <SubHeader title="Edit Profile" />
 
@@ -221,7 +221,7 @@ export const EditProfileScreen = () => {
             onClick={() =>
               fileInputRef.current?.click()
             }
-            className="text-xs font-bold text-[#a14000] hover:underline"
+            className="text-xs font-bold text-[#101F55] hover:underline"
           >
             Change Photo
           </button>
@@ -242,7 +242,7 @@ export const EditProfileScreen = () => {
               onChange={(e) =>
                 setName(e.target.value)
               }
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#FFF3D5] p-2.5 text-sm text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
             />
           </label>
 
@@ -257,7 +257,7 @@ export const EditProfileScreen = () => {
               onChange={(e) =>
                 setEmail(e.target.value)
               }
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#FFF3D5] p-2.5 text-sm text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
             />
           </label>
 
@@ -272,7 +272,7 @@ export const EditProfileScreen = () => {
               onChange={(e) =>
                 setPhone(e.target.value)
               }
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#FFF3D5] p-2.5 text-sm text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
             />
           </label>
 
@@ -281,7 +281,7 @@ export const EditProfileScreen = () => {
         {/* SAVE */}
         <button
           onClick={handleSave}
-          className="w-full py-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white font-bold text-sm shadow-md active:scale-95 transition-all"
+          className="w-full py-3 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] font-bold text-sm shadow-md active:scale-95 transition-all"
         >
           Save Changes
         </button>

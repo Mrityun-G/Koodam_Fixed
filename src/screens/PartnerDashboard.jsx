@@ -41,7 +41,7 @@ const bookedForSummary = (bookedFor, durationMinutes) =>
     .join(' · ');
 
 const PhoneBookingBadge = () => (
-  <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#7b2f00] bg-[#ffdbcc] px-2 py-0.5 rounded-full">
+  <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#101F55] bg-[#FFE7A8] px-2 py-0.5 rounded-full">
     <span className="material-symbols-outlined text-[13px]">call</span>
     Phone booking • Cash
   </span>
@@ -242,11 +242,11 @@ export const PartnerDashboard = () => {
   // ================================
 
   const JOB_STYLES = [
-    { match: /electric/i, icon: 'electric_bolt', tone: 'bg-[#ffdbcc] text-[#a14000]' },
-    { match: /plumb/i, icon: 'plumbing', tone: 'bg-[#dce1ff] text-[#4e5c92]' },
-    { match: /clean/i, icon: 'cleaning_services', tone: 'bg-[#c8f7e1] text-[#006c49]' },
-    { match: /ac|appliance/i, icon: 'mode_fan', tone: 'bg-[#d3e4fe] text-[#05164b]' },
-    { match: /carpent|paint/i, icon: 'carpenter', tone: 'bg-amber-100 text-amber-700' }
+    { match: /electric/i, icon: 'electric_bolt', tone: 'bg-[#FFE7A8] text-[#101F55]' },
+    { match: /plumb/i, icon: 'plumbing', tone: 'bg-[#FFE7A8] text-[#4E5C92]' },
+    { match: /clean/i, icon: 'cleaning_services', tone: 'bg-[#FFE7A8] text-[#101F55]' },
+    { match: /ac|appliance/i, icon: 'mode_fan', tone: 'bg-[#FFE7A8] text-[#101F55]' },
+    { match: /carpent|paint/i, icon: 'carpenter', tone: 'bg-[#FFF3D5] text-[#101F55]' }
   ];
 
   const getJobDayLabel = (date) => {
@@ -273,7 +273,7 @@ export const PartnerDashboard = () => {
     const when = job.booking_time ? new Date(job.booking_time) : null;
     const style =
       JOB_STYLES.find((s) => s.match.test(`${job.category} ${job.title}`)) ||
-      { icon: 'home_repair_service', tone: 'bg-[#dce1ff] text-[#4e5c92]' };
+      { icon: 'home_repair_service', tone: 'bg-[#FFE7A8] text-[#4E5C92]' };
 
     return {
       id: job.booking_id,
@@ -769,19 +769,19 @@ export const PartnerDashboard = () => {
   const ID_STATUS = {
     NOT_SUBMITTED: {
       label: 'Upload all three documents to get your Verified tick',
-      tone: 'bg-amber-100 text-amber-600',
+      tone: 'bg-[#FFF3D5] text-[#101F55]',
       icon: 'pending',
       canReplace: true
     },
     UNDER_REVIEW: {
       label: 'Submitted — GigEzee staff are checking them',
-      tone: 'bg-amber-100 text-amber-600',
+      tone: 'bg-[#FFF3D5] text-[#101F55]',
       icon: 'hourglass_top',
       canReplace: false
     },
     VERIFIED: {
       label: 'Verified — customers see your Verified tick',
-      tone: 'bg-[#00ae78]/15 text-[#006c49]',
+      tone: 'bg-[#101F55]/15 text-[#101F55]',
       icon: 'verified',
       canReplace: false
     },
@@ -887,12 +887,12 @@ export const PartnerDashboard = () => {
     },
     UNDER_REVIEW: {
       label: 'Submitted — waiting for admin approval',
-      tone: 'bg-amber-100 text-amber-600',
+      tone: 'bg-[#FFF3D5] text-[#101F55]',
       canUpload: false
     },
     VERIFIED: {
       label: 'Approved by admin',
-      tone: 'bg-[#00ae78]/15 text-[#006c49]',
+      tone: 'bg-[#101F55]/15 text-[#101F55]',
       canUpload: false
     },
     REJECTED: {
@@ -998,8 +998,8 @@ export const PartnerDashboard = () => {
   // ================================
 
   const EXTRA_CHARGE_STATUS = {
-    PENDING: { label: 'Awaiting approval', tone: 'bg-amber-100 text-amber-700' },
-    APPROVED: { label: 'Approved', tone: 'bg-[#00ae78]/15 text-[#006c49]' },
+    PENDING: { label: 'Awaiting approval', tone: 'bg-[#FFF3D5] text-[#101F55]' },
+    APPROVED: { label: 'Approved', tone: 'bg-[#101F55]/15 text-[#101F55]' },
     DECLINED: { label: 'Declined', tone: 'bg-red-50 text-red-500' }
   };
 
@@ -1086,14 +1086,14 @@ export const PartnerDashboard = () => {
   return (
     <div
       ref={rootRef}
-      className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen"
+      className="flex-1 flex flex-col relative w-full bg-[#FFF3D5] min-h-screen"
     >
 
       {/* ========================================= */}
       {/* TOP HEADER */}
       {/* ========================================= */}
 
-      <header className="sticky top-0 inset-x-0 z-40 bg-[#f8f9ff]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-slate-100">
+      <header className="sticky top-0 inset-x-0 z-40 bg-[#FFF3D5]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-slate-100">
         <div className="h-16 px-4 flex items-center justify-between gap-2">
 
           <button
@@ -1108,14 +1108,14 @@ export const PartnerDashboard = () => {
             />
 
             <div className="flex flex-col min-w-0">
-              <span className="font-bold text-base text-[#0b1c30] leading-none">
+              <span className="font-bold text-base text-[#101F55] leading-none">
                 Partner Hub
               </span>
 
               <span
                 className={`text-[11px] font-bold flex items-center gap-1 mt-1 ${
                   isPartnerOnline
-                    ? 'text-[#006c49]'
+                    ? 'text-[#101F55]'
                     : 'text-slate-400'
                 }`}
               >
@@ -1126,7 +1126,7 @@ export const PartnerDashboard = () => {
                 <span
                   className={`w-2 h-2 rounded-full ${
                     isPartnerOnline
-                      ? 'bg-[#00ae78] animate-pulse'
+                      ? 'bg-[#101F55] animate-pulse'
                       : 'bg-slate-400'
                   }`}
                 />
@@ -1143,7 +1143,7 @@ export const PartnerDashboard = () => {
                 : showToast('No new notifications')
             }
             title="Notifications"
-            className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[#a14000] active:scale-95 transition-all border border-slate-200"
+            className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] text-[#101F55] active:scale-95 transition-all border border-slate-200"
           >
             <span
               className="material-symbols-outlined text-[20px]"
@@ -1157,7 +1157,7 @@ export const PartnerDashboard = () => {
             </span>
 
             {hasIncomingJob && (
-              <span className="absolute top-1.5 right-2 w-2.5 h-2.5 rounded-full bg-[#ff6a00] ring-2 ring-[#eff4ff] animate-pulse" />
+              <span className="absolute top-1.5 right-2 w-2.5 h-2.5 rounded-full bg-[#FFC928] ring-2 ring-[#FFF3D5] animate-pulse" />
             )}
           </button>
 
@@ -1166,7 +1166,7 @@ export const PartnerDashboard = () => {
             aria-label="Partner Profile"
             onClick={() => switchPartnerTab('profile')}
             title="View profile & settings"
-            className="w-10 h-10 flex items-center justify-center rounded-full p-0.5 hover:ring-2 hover:ring-[#ff6a00]/30 active:scale-95 transition-all"
+            className="w-10 h-10 flex items-center justify-center rounded-full p-0.5 hover:ring-2 hover:ring-[#FFC928]/30 active:scale-95 transition-all"
           >
             {partnerProfile?.avatar ? (
               <img
@@ -1175,7 +1175,7 @@ export const PartnerDashboard = () => {
                 src={partnerProfile.avatar}
               />
             ) : (
-              <span className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] ring-1 ring-slate-200 flex items-center justify-center text-sm font-bold">
+              <span className="w-8 h-8 rounded-full bg-[#FFE7A8] text-[#101F55] ring-1 ring-slate-200 flex items-center justify-center text-sm font-bold">
                 {(partnerProfile?.name || 'P').trim().charAt(0).toUpperCase()}
               </span>
             )}
@@ -1194,7 +1194,7 @@ export const PartnerDashboard = () => {
         {hasIncomingJob && !['home', 'jobs'].includes(partnerTab) && (
           <button
             onClick={() => switchPartnerTab('home')}
-            className="w-full flex items-center justify-between gap-2 bg-[#ff6a00] text-white rounded-2xl px-4 py-3 shadow-md active:scale-[0.98] transition-all"
+            className="w-full flex items-center justify-between gap-2 bg-[#FFC928] text-[#101F55] rounded-2xl px-4 py-3 shadow-md active:scale-[0.98] transition-all"
           >
             <span className="flex items-center gap-2 text-xs font-bold">
               <span className="material-symbols-outlined text-[18px] animate-bounce">
@@ -1217,7 +1217,7 @@ export const PartnerDashboard = () => {
         <div
           className={`relative overflow-hidden rounded-2xl p-4 text-white shadow-md transition-colors ${
             isPartnerOnline
-              ? 'bg-gradient-to-r from-[#ff6a00] via-[#a14000] to-[#7b2f00]'
+              ? 'bg-gradient-to-r from-[#101F55] via-[#13286b] to-[#1B3380] border border-[#FFC928]/40'
               : 'bg-gradient-to-r from-slate-500 to-slate-700'
           }`}
         >
@@ -1257,7 +1257,7 @@ export const PartnerDashboard = () => {
               <span
                 className={`relative w-12 h-7 rounded-full transition-colors duration-200 shadow-inner ${
                   isPartnerOnline
-                    ? 'bg-[#00ae78]'
+                    ? 'bg-[#FFC928]'
                     : 'bg-white/30 ring-1 ring-white/50'
                 }`}
               >
@@ -1294,13 +1294,13 @@ export const PartnerDashboard = () => {
         {/* ========================================= */}
 
         {hasIncomingJob && (
-          <section className="relative overflow-hidden bg-white rounded-2xl p-4 shadow-lg border border-[#ffdbcc] animate-in fade-in duration-300">
+          <section className="relative overflow-hidden bg-white rounded-2xl p-4 shadow-lg border border-[#FFE7A8] animate-in fade-in duration-300">
 
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#ff6a00]/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#FFC928]/10 rounded-full blur-2xl pointer-events-none" />
 
             <div className="flex items-center justify-between gap-2 mb-3">
 
-              <span className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-[#a14000]">
+              <span className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-[#101F55]">
 
                 <span
                   className="material-symbols-outlined text-[18px] animate-bounce"
@@ -1315,7 +1315,7 @@ export const PartnerDashboard = () => {
                 NEW JOB REQUEST
               </span>
 
-              <span className="flex items-center gap-1 bg-[#ffdbcc] text-[#a14000] px-2 py-0.5 rounded-full text-xs font-bold font-mono">
+              <span className="flex items-center gap-1 bg-[#FFE7A8] text-[#101F55] px-2 py-0.5 rounded-full text-xs font-bold font-mono">
 
                 <span className="material-symbols-outlined text-[13px]">
                   timer
@@ -1325,20 +1325,20 @@ export const PartnerDashboard = () => {
               </span>
             </div>
 
-            <h3 className="font-bold text-base text-[#0b1c30] line-clamp-1">
+            <h3 className="font-bold text-base text-[#101F55] line-clamp-1">
               {incomingJobDetails.title}
             </h3>
 
             {incomingJobDetails.isPhoneBooking && <PhoneBookingBadge />}
 
-            <div className="mt-2 space-y-1.5 text-xs text-[#5a4136]">
+            <div className="mt-2 space-y-1.5 text-xs text-[#4E5C92]">
 
               <p className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px] text-[#a14000]">
+                <span className="material-symbols-outlined text-[16px] text-[#F47B16]">
                   location_on
                 </span>
 
-                <span className="font-bold text-[#0b1c30]">
+                <span className="font-bold text-[#101F55]">
                   {incomingJobDetails.distance} away
                 </span>
 
@@ -1346,7 +1346,7 @@ export const PartnerDashboard = () => {
               </p>
 
               <p className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px] text-[#a14000]">
+                <span className="material-symbols-outlined text-[16px] text-[#F47B16]">
                   schedule
                 </span>
 
@@ -1365,13 +1365,13 @@ export const PartnerDashboard = () => {
               )}
 
               <p className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px] text-[#a14000]">
+                <span className="material-symbols-outlined text-[16px] text-[#F47B16]">
                   payments
                 </span>
 
                 Estimated earning
 
-                <span className="font-extrabold text-[#a14000] text-sm">
+                <span className="font-extrabold text-[#101F55] text-sm">
                   ₹{partnerShareOf(incomingJobDetails)}
                 </span>
               </p>
@@ -1389,7 +1389,7 @@ export const PartnerDashboard = () => {
               <button
                 onClick={handleAcceptJob}
                 disabled={acceptingJob}
-                className="flex-1 disabled:opacity-60 py-2.5 px-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
+                className="flex-1 disabled:opacity-60 py-2.5 px-3 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">
                   check_circle
@@ -1408,8 +1408,8 @@ export const PartnerDashboard = () => {
         <section className="space-y-2">
 
           <div className="px-1 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[18px] text-[#ff6a00]">
+            <h2 className="text-sm font-bold text-[#101F55] flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px] text-[#F47B16]">
                 insights
               </span>
               Today's Overview
@@ -1421,7 +1421,7 @@ export const PartnerDashboard = () => {
               disabled={homeRefreshing}
               aria-label="Refresh today's overview"
               title="Refresh today's overview"
-              className="flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[11px] font-bold text-[#a14000] disabled:opacity-60 active:scale-95 transition-all"
+              className="flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] text-[11px] font-bold text-[#101F55] disabled:opacity-60 active:scale-95 transition-all"
             >
               <span className={`material-symbols-outlined text-[15px] ${homeRefreshing ? 'animate-spin' : ''}`}>
                 refresh
@@ -1436,27 +1436,27 @@ export const PartnerDashboard = () => {
                 label: "Today's Earnings",
                 value: `₹${Number(partnerStats.todayEarnings || 0).toLocaleString('en-IN')}`,
                 icon: 'currency_rupee',
-                card: 'bg-gradient-to-br from-[#fff4ec] to-[#ffdbcc] border-[#ffc9ad]',
-                iconTone: 'bg-[#ff6a00] text-white',
-                valueTone: 'text-[#7b2f00]',
+                card: 'bg-gradient-to-br from-[#FFF7E0] to-[#FFE7A8] border-[#FFE7A8]',
+                iconTone: 'bg-[#FFC928] text-[#101F55]',
+                valueTone: 'text-[#101F55]',
                 tab: 'earnings'
               },
               {
                 label: 'Jobs Completed',
                 value: partnerStats.completedJobs,
                 icon: 'task_alt',
-                card: 'bg-gradient-to-br from-[#ecfdf5] to-[#c8f7e1] border-[#a7ecd0]',
-                iconTone: 'bg-[#00ae78] text-white',
-                valueTone: 'text-[#006c49]',
+                card: 'bg-gradient-to-br from-[#FFF7E0] to-[#FFE7A8] border-[#FFE7A8]',
+                iconTone: 'bg-[#101F55] text-white',
+                valueTone: 'text-[#101F55]',
                 tab: 'jobs'
               },
               {
                 label: 'Rating',
                 value: partnerStats.rating,
                 icon: 'star',
-                card: 'bg-gradient-to-br from-[#fffbeb] to-[#fde9a8] border-[#fbd96b]',
-                iconTone: 'bg-amber-500 text-white',
-                valueTone: 'text-amber-800',
+                card: 'bg-gradient-to-br from-[#FFF7E0] to-[#FFE7A8] border-[#FFD65A]',
+                iconTone: 'bg-[#FFC928] text-[#101F55]',
+                valueTone: 'text-[#101F55]',
                 tab: 'profile'
               },
               {
@@ -1464,9 +1464,9 @@ export const PartnerDashboard = () => {
                 value: `${SERVICE_RADIUS_KM} km`,
                 onClick: cycleServiceRadius,
                 icon: 'radar',
-                card: 'bg-gradient-to-br from-[#eef0ff] to-[#dce1ff] border-[#c5ccff]',
-                iconTone: 'bg-[#4e5c92] text-white',
-                valueTone: 'text-[#05164b]',
+                card: 'bg-gradient-to-br from-[#FFF7E0] to-[#FFE7A8] border-[#FFE7A8]',
+                iconTone: 'bg-[#101F55] text-white',
+                valueTone: 'text-[#101F55]',
                 tab: 'services'
               }
             ].map(stat => (
@@ -1511,8 +1511,8 @@ export const PartnerDashboard = () => {
         <section className="space-y-2">
 
           <div className="px-1">
-            <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[18px] text-[#4e5c92]">
+            <h2 className="text-sm font-bold text-[#101F55] flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px] text-[#4E5C92]">
                 event_upcoming
               </span>
               Next Job
@@ -1523,7 +1523,7 @@ export const PartnerDashboard = () => {
             <div className="relative overflow-hidden bg-white rounded-2xl p-4 pl-5 shadow-sm border border-slate-100">
 
               {/* Colour accent strip */}
-              <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#ff6a00] to-[#a14000]" />
+              <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#FFC928] to-[#F5B301]" />
 
               <div className="flex items-start justify-between gap-3">
 
@@ -1536,7 +1536,7 @@ export const PartnerDashboard = () => {
                   </div>
 
                   <div className="min-w-0">
-                    <h3 className="font-bold text-sm text-[#0b1c30] truncate">
+                    <h3 className="font-bold text-sm text-[#101F55] truncate">
                       {nextJob.title}
                     </h3>
 
@@ -1549,22 +1549,22 @@ export const PartnerDashboard = () => {
                     </p>
 
                     {nextJob.status === 'In progress' && (
-                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#006c49] bg-[#c8f7e1] px-1.5 py-0.5 rounded-full">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00ae78] animate-pulse" />
+                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#101F55] bg-[#FFE7A8] px-1.5 py-0.5 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#101F55] animate-pulse" />
                         In progress
                       </span>
                     )}
                   </div>
                 </div>
 
-                <span className="font-extrabold text-sm text-[#006c49] bg-[#00ae78]/15 px-2.5 py-1 rounded-full shrink-0">
+                <span className="font-extrabold text-sm text-[#101F55] bg-[#101F55]/15 px-2.5 py-1 rounded-full shrink-0">
                   ₹{nextJob.price}
                 </span>
               </div>
 
               <button
                 onClick={() => switchPartnerTab('jobs')}
-                className="w-full mt-3 py-2.5 rounded-full bg-gradient-to-r from-[#ff6a00] to-[#a14000] hover:opacity-90 text-white text-xs font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                className="w-full mt-3 py-2.5 rounded-full bg-gradient-to-r from-[#FFC928] to-[#F5B301] hover:opacity-90 text-[#101F55] text-xs font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
                 View Job
                 <span className="material-symbols-outlined text-[16px]">
@@ -1596,7 +1596,7 @@ export const PartnerDashboard = () => {
             <div
               className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                 isSharingLocation
-                  ? 'bg-[#00ae78]/15 text-[#006c49]'
+                  ? 'bg-[#101F55]/15 text-[#101F55]'
                   : 'bg-slate-100 text-slate-500'
               }`}
             >
@@ -1607,7 +1607,7 @@ export const PartnerDashboard = () => {
 
             <div className="min-w-0">
 
-              <p className="text-xs font-bold text-[#0b1c30]">
+              <p className="text-xs font-bold text-[#101F55]">
                 Live GPS Sharing
               </p>
 
@@ -1638,8 +1638,8 @@ export const PartnerDashboard = () => {
             }
             className={`shrink-0 px-3 py-1.5 rounded-full font-bold text-xs transition-all active:scale-95 border disabled:opacity-40 disabled:cursor-not-allowed ${
               isSharingLocation
-                ? 'bg-[#ffdbcc] text-[#a14000] border-[#ffdbcc]'
-                : 'bg-[#eff4ff] text-[#0b1c30] border-slate-200'
+                ? 'bg-[#FFE7A8] text-[#101F55] border-[#FFE7A8]'
+                : 'bg-[#FFF3D5] text-[#101F55] border-slate-200'
             }`}
           >
             {isSharingLocation
@@ -1650,7 +1650,7 @@ export const PartnerDashboard = () => {
 
         {!hasIncomingJob && (
           <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-slate-500 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-full bg-[#FFF3D5] text-slate-500 flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[18px]">
                 inbox
               </span>
@@ -1665,16 +1665,16 @@ export const PartnerDashboard = () => {
         )}
 
         {hasIncomingJob && (
-          <section className="relative overflow-hidden bg-white rounded-2xl p-4 shadow-lg border border-[#ffdbcc] animate-in fade-in duration-300">
+          <section className="relative overflow-hidden bg-white rounded-2xl p-4 shadow-lg border border-[#FFE7A8] animate-in fade-in duration-300">
 
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#ff6a00]/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#FFC928]/10 rounded-full blur-2xl pointer-events-none" />
 
-            <div className="flex items-center justify-between bg-[#ffdbcc] rounded-xl px-3 py-2 text-[#7b2f00] mb-3">
+            <div className="flex items-center justify-between bg-[#FFE7A8] rounded-xl px-3 py-2 text-[#101F55] mb-3">
 
               <div className="flex items-center gap-1.5 min-w-0">
 
                 <span
-                  className="material-symbols-outlined text-[18px] text-[#a14000] shrink-0 animate-bounce"
+                  className="material-symbols-outlined text-[18px] text-[#F47B16] shrink-0 animate-bounce"
                   style={{
                     fontVariationSettings:
                       "'FILL' 1"
@@ -1688,7 +1688,7 @@ export const PartnerDashboard = () => {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 shrink-0 bg-white/90 px-2 py-0.5 rounded-full shadow-2xs text-[#a14000]">
+              <div className="flex items-center gap-1 shrink-0 bg-white/90 px-2 py-0.5 rounded-full shadow-2xs text-[#101F55]">
 
                 <span className="material-symbols-outlined text-[13px]">
                   timer
@@ -1706,23 +1706,23 @@ export const PartnerDashboard = () => {
 
               <div className="min-w-0">
 
-                <span className="inline-block text-[10px] font-semibold text-[#4e5c92] bg-[#dce1ff]/60 px-2 py-0.5 rounded-md mb-1">
+                <span className="inline-block text-[10px] font-semibold text-[#4E5C92] bg-[#FFE7A8]/60 px-2 py-0.5 rounded-md mb-1">
                   {incomingJobDetails.category}
                 </span>
 
-                <h3 className="font-bold text-sm text-[#0b1c30] line-clamp-1">
+                <h3 className="font-bold text-sm text-[#101F55] line-clamp-1">
                   {incomingJobDetails.title}
                 </h3>
 
                 {incomingJobDetails.isPhoneBooking && <PhoneBookingBadge />}
 
-                <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
+                <p className="text-xs text-[#4E5C92] flex items-center gap-1 mt-0.5">
 
-                  <span className="material-symbols-outlined text-[15px] text-[#a14000]">
+                  <span className="material-symbols-outlined text-[15px] text-[#F47B16]">
                     near_me
                   </span>
 
-                  <span className="font-bold text-[#0b1c30]">
+                  <span className="font-bold text-[#101F55]">
                     {incomingJobDetails.distance}
                   </span>
 
@@ -1731,22 +1731,22 @@ export const PartnerDashboard = () => {
                 </p>
 
                 {incomingJobDetails.scheduledAt && (
-                  <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
-                    <span className="material-symbols-outlined text-[15px] text-[#a14000]">
+                  <p className="text-xs text-[#4E5C92] flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[15px] text-[#F47B16]">
                       schedule
                     </span>
-                    <span className="font-bold text-[#0b1c30]">
+                    <span className="font-bold text-[#101F55]">
                       {formatRequestTime(incomingJobDetails.scheduledAt)}
                     </span>
                   </p>
                 )}
 
                 {(incomingJobDetails.bookedFor || incomingJobDetails.durationMinutes) && (
-                  <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
-                    <span className="material-symbols-outlined text-[15px] text-[#a14000]">
+                  <p className="text-xs text-[#4E5C92] flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[15px] text-[#F47B16]">
                       {incomingJobDetails.bookedFor?.relation === 'CHILD' ? 'child_care' : 'person'}
                     </span>
-                    <span className="font-bold text-[#0b1c30]">
+                    <span className="font-bold text-[#101F55]">
                       {incomingJobDetails.bookedFor
                         ? `For the customer's ${bookedForSummary(
                             incomingJobDetails.bookedFor,
@@ -1767,19 +1767,19 @@ export const PartnerDashboard = () => {
                 )}
               </div>
 
-              <div className="text-right shrink-0 bg-[#eff4ff] px-2.5 py-1 rounded-xl">
+              <div className="text-right shrink-0 bg-[#FFF3D5] px-2.5 py-1 rounded-xl">
 
                 <p className="text-[10px] text-slate-400 font-medium">
                   Est. Payout
                 </p>
 
-                <p className="text-base font-extrabold text-[#a14000]">
+                <p className="text-base font-extrabold text-[#101F55]">
                   ₹{partnerShareOf(incomingJobDetails)}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 bg-[#eff4ff] rounded-xl mb-3">
+            <div className="flex items-center justify-between p-2.5 bg-[#FFF3D5] rounded-xl mb-3">
 
               <div className="flex items-center gap-2 min-w-0">
 
@@ -1791,7 +1791,7 @@ export const PartnerDashboard = () => {
                       src={incomingJobDetails.customerAvatar}
                     />
                   ) : (
-                    <span className="w-full h-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center text-xs font-bold">
+                    <span className="w-full h-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center text-xs font-bold">
                       {(incomingJobDetails.customerName || 'C').trim().charAt(0).toUpperCase()}
                     </span>
                   )}
@@ -1799,14 +1799,14 @@ export const PartnerDashboard = () => {
 
                 <div className="min-w-0">
 
-                  <p className="text-xs font-bold text-[#0b1c30] truncate">
+                  <p className="text-xs font-bold text-[#101F55] truncate">
                     {incomingJobDetails.customerName}
                   </p>
 
                   <div className="flex items-center gap-1 text-[10px] text-slate-500">
 
                     <span
-                      className="material-symbols-outlined text-[13px] text-amber-500"
+                      className="material-symbols-outlined text-[13px] text-[#F5B301]"
                       style={{
                         fontVariationSettings:
                           "'FILL' 1"
@@ -1815,7 +1815,7 @@ export const PartnerDashboard = () => {
                       star
                     </span>
 
-                    <span className="font-bold text-[#0b1c30]">
+                    <span className="font-bold text-[#101F55]">
                       {Number(incomingJobDetails.customerRating || 0).toFixed(2)}
                     </span>
 
@@ -1826,7 +1826,7 @@ export const PartnerDashboard = () => {
                 </div>
               </div>
 
-              <span className="text-[10px] text-[#006c49] bg-[#00ae78]/15 px-2 py-0.5 rounded-full font-bold shrink-0">
+              <span className="text-[10px] text-[#101F55] bg-[#101F55]/15 px-2 py-0.5 rounded-full font-bold shrink-0">
                 Cash / UPI
               </span>
             </div>
@@ -1843,7 +1843,7 @@ export const PartnerDashboard = () => {
               <button
                 onClick={handleAcceptJob}
                 disabled={acceptingJob}
-                className="flex-[2] disabled:opacity-60 py-2.5 px-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
+                className="flex-[2] disabled:opacity-60 py-2.5 px-3 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">
                   check_circle
@@ -1860,16 +1860,16 @@ export const PartnerDashboard = () => {
         )}
 
         {jobDiagnosis && activeOrder.currentStep <= 4 && (
-          <section className="bg-white rounded-2xl p-4 border border-[#ffdbcc] flex flex-col gap-3">
+          <section className="bg-white rounded-2xl p-4 border border-[#FFE7A8] flex flex-col gap-3">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   auto_awesome
                 </span>
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   GigEzee AI read the customer's photo
                 </p>
                 <p className="text-[11px] text-slate-600" data-no-translate>
@@ -1917,7 +1917,7 @@ export const PartnerDashboard = () => {
               )}
 
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] text-[#0b1c30] leading-relaxed" data-no-translate>
+                <p className="text-[11px] text-[#101F55] leading-relaxed" data-no-translate>
                   {jobDiagnosis.summary_for_partner}
                 </p>
 
@@ -1930,7 +1930,7 @@ export const PartnerDashboard = () => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <p className="text-[11px] font-bold text-[#0b1c30]">
+              <p className="text-[11px] font-bold text-[#101F55]">
                 Likely causes to check
               </p>
 
@@ -1939,7 +1939,7 @@ export const PartnerDashboard = () => {
                   key={cause.cause}
                   className="flex items-start gap-2 text-[11px] text-slate-600"
                 >
-                  <span className="font-bold text-[#a14000] shrink-0">
+                  <span className="font-bold text-[#101F55] shrink-0">
                     {`${index + 1}.`}
                   </span>
                   <span data-no-translate>
@@ -1963,16 +1963,16 @@ export const PartnerDashboard = () => {
         {activeOrder.bookedFor?.name &&
           activeOrder.currentStep >= 3 &&
           activeOrder.currentStep <= 4 && (
-            <section className="bg-[#eff4ff] rounded-2xl p-4 border border-[#dce1ff] flex flex-col gap-3">
+            <section className="bg-[#FFF3D5] rounded-2xl p-4 border border-[#FFE7A8] flex flex-col gap-3">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#dce1ff] text-[#4e5c92] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-full bg-[#FFE7A8] text-[#4E5C92] flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-[18px]">
                     {activeOrder.bookedFor.relation === 'CHILD' ? 'child_care' : 'person'}
                   </span>
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#0b1c30]">
+                  <p className="text-xs font-bold text-[#101F55]">
                     <span>You'll be meeting</span>{' '}
                     <span data-no-translate>{activeOrder.bookedFor.name}</span>
                   </p>
@@ -1990,7 +1990,7 @@ export const PartnerDashboard = () => {
               </div>
 
               {activeOrder.bookedFor.notes && (
-                <p className="text-[11px] text-[#0b1c30] bg-white rounded-xl p-2.5 whitespace-pre-line" data-no-translate>
+                <p className="text-[11px] text-[#101F55] bg-white rounded-xl p-2.5 whitespace-pre-line" data-no-translate>
                   {activeOrder.bookedFor.notes}
                 </p>
               )}
@@ -2005,7 +2005,7 @@ export const PartnerDashboard = () => {
                 {activeOrder.customerPhone && (
                   <a
                     href={`tel:${activeOrder.customerPhone}`}
-                    className="flex-1 py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold text-center active:scale-95 transition-all"
+                    className="flex-1 py-2.5 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold text-center active:scale-95 transition-all"
                   >
                     {`Call ${(activeOrder.customerName || 'customer').split(' ')[0]}`}
                   </a>
@@ -2014,7 +2014,7 @@ export const PartnerDashboard = () => {
                 {activeOrder.bookedFor.phone && (
                   <a
                     href={`tel:${activeOrder.bookedFor.phone}`}
-                    className="flex-1 py-2.5 rounded-xl bg-white border border-slate-200 text-[#0b1c30] text-xs font-bold text-center active:scale-95 transition-all"
+                    className="flex-1 py-2.5 rounded-xl bg-white border border-slate-200 text-[#101F55] text-xs font-bold text-center active:scale-95 transition-all"
                   >
                     {`Call ${activeOrder.bookedFor.name.split(' ')[0]}`}
                   </a>
@@ -2026,14 +2026,14 @@ export const PartnerDashboard = () => {
         {isPhoneBooking &&
           activeOrder.currentStep >= 3 &&
           activeOrder.currentStep <= 4 && (
-            <section className="bg-[#fff8f4] rounded-2xl p-4 border border-[#ffdbcc] flex flex-col gap-3">
+            <section className="bg-[#FFF7E0] rounded-2xl p-4 border border-[#FFE7A8] flex flex-col gap-3">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-[18px]">call</span>
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#0b1c30]">Phone booking • Cash</p>
+                  <p className="text-xs font-bold text-[#101F55]">Phone booking • Cash</p>
                   <p className="text-[11px] text-slate-600">
                     {`This customer booked by phone and has no app. Call them for the exact address. They pay ₹${activeOrder.totalAmount} in cash after the work.`}
                   </p>
@@ -2043,7 +2043,7 @@ export const PartnerDashboard = () => {
               {activeOrder.customerPhone && (
                 <a
                   href={`tel:${activeOrder.customerPhone}`}
-                  className="w-full py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold text-center active:scale-95 transition-all"
+                  className="w-full py-2.5 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold text-center active:scale-95 transition-all"
                 >
                   <span data-no-translate>{`Call ${activeOrder.customerPhone}`}</span>
                 </a>
@@ -2057,7 +2057,7 @@ export const PartnerDashboard = () => {
 
             <div className="flex items-center gap-2">
 
-              <div className="w-9 h-9 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   pin
                 </span>
@@ -2065,7 +2065,7 @@ export const PartnerDashboard = () => {
 
               <div className="min-w-0">
 
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   Verify Arrival Code
                 </p>
 
@@ -2088,7 +2088,7 @@ export const PartnerDashboard = () => {
                 }
                 placeholder="Enter code"
                 inputMode="numeric"
-                className="flex-1 rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-sm font-mono tracking-widest text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                className="flex-1 rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-sm font-mono tracking-widest text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
               />
 
               <button
@@ -2096,7 +2096,7 @@ export const PartnerDashboard = () => {
                 disabled={
                   arrivalInput.length !== 4
                 }
-                className="shrink-0 px-4 py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all"
+                className="shrink-0 px-4 py-2.5 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-slate-200 disabled:text-slate-400 text-[#101F55] text-xs font-bold active:scale-95 transition-all"
               >
                 Verify & Start
               </button>
@@ -2112,7 +2112,7 @@ export const PartnerDashboard = () => {
 
               <div className="flex items-center gap-3 min-w-0">
 
-                <div className="w-9 h-9 rounded-full bg-[#6ffbbe]/40 text-[#006c49] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-full bg-[#FFE7A8]/40 text-[#101F55] flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-[18px]">
                     task_alt
                   </span>
@@ -2120,7 +2120,7 @@ export const PartnerDashboard = () => {
 
                 <div className="min-w-0">
 
-                  <p className="text-xs font-bold text-[#0b1c30]">
+                  <p className="text-xs font-bold text-[#101F55]">
                     Share Completion Code
                   </p>
 
@@ -2133,9 +2133,9 @@ export const PartnerDashboard = () => {
                 </div>
               </div>
 
-              <div className="shrink-0 bg-[#eff4ff] px-3 py-1.5 rounded-xl border border-slate-200">
+              <div className="shrink-0 bg-[#FFF3D5] px-3 py-1.5 rounded-xl border border-slate-200">
 
-                <span className="text-base tracking-widest text-[#a14000] font-extrabold font-mono">
+                <span className="text-base tracking-widest text-[#101F55] font-extrabold font-mono">
                   {activeOrder.completionOtp}
                 </span>
               </div>
@@ -2147,14 +2147,14 @@ export const PartnerDashboard = () => {
 
             <div className="flex items-center gap-3">
 
-              <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   build
                 </span>
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   Extra Parts Cost
                 </p>
 
@@ -2171,7 +2171,7 @@ export const PartnerDashboard = () => {
                 {extraChargeList.map(([chargeId, charge]) => (
                   <div
                     key={chargeId}
-                    className="flex items-center justify-between gap-2 bg-[#f8f9ff] rounded-xl px-3 py-2"
+                    className="flex items-center justify-between gap-2 bg-[#FFF3D5] rounded-xl px-3 py-2"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       {charge.photoUrl && (
@@ -2182,7 +2182,7 @@ export const PartnerDashboard = () => {
                         />
                       )}
 
-                      <span className="text-xs text-[#0b1c30] truncate">
+                      <span className="text-xs text-[#101F55] truncate">
                         {charge.item} • ₹{charge.amount}
                       </span>
                     </div>
@@ -2202,7 +2202,7 @@ export const PartnerDashboard = () => {
                 value={extraItem}
                 onChange={(e) => setExtraItem(e.target.value)}
                 placeholder="Part (e.g. Capacitor)"
-                className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-xs text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
               />
 
               <input
@@ -2214,12 +2214,12 @@ export const PartnerDashboard = () => {
                 }
                 placeholder="₹ Amount"
                 inputMode="numeric"
-                className="w-24 rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+                className="w-24 rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-xs text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
               />
             </div>
 
-            <label className="flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-[#f8f9ff] px-3 py-2 text-xs text-slate-500 cursor-pointer">
-              <span className="material-symbols-outlined text-[18px] text-[#a14000]">
+            <label className="flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-[#FFF3D5] px-3 py-2 text-xs text-slate-500 cursor-pointer">
+              <span className="material-symbols-outlined text-[18px] text-[#F47B16]">
                 photo_camera
               </span>
 
@@ -2256,7 +2256,7 @@ export const PartnerDashboard = () => {
             <button
               onClick={handleRequestExtraCharge}
               disabled={!extraItem.trim() || !extraAmount || isSendingExtra}
-              className="w-full py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all"
+              className="w-full py-2.5 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-slate-200 disabled:text-slate-400 text-[#101F55] text-xs font-bold active:scale-95 transition-all"
             >
               {isSendingExtra ? 'Sending…' : 'Send for Approval'}
             </button>
@@ -2268,14 +2268,14 @@ export const PartnerDashboard = () => {
 
             <div className="flex items-center gap-3">
 
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   add_a_photo
                 </span>
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   Repair Photo
                 </p>
 
@@ -2300,8 +2300,8 @@ export const PartnerDashboard = () => {
             <label
               className={`w-full py-2.5 rounded-xl text-xs font-bold text-center cursor-pointer active:scale-95 transition-all ${
                 activeOrder.repairPhotoUrl
-                  ? 'border border-slate-200 text-[#0b1c30] bg-white'
-                  : 'bg-[#ff6a00] hover:bg-[#a14000] text-white'
+                  ? 'border border-slate-200 text-[#101F55] bg-white'
+                  : 'bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55]'
               } ${isUploadingRepair ? 'opacity-60 pointer-events-none' : ''}`}
             >
               {isUploadingRepair
@@ -2320,7 +2320,7 @@ export const PartnerDashboard = () => {
             </label>
 
             {!canShareCompletionCode && (
-              <p className="text-[11px] font-medium text-amber-700">
+              <p className="text-[11px] font-medium text-[#101F55]">
                 {isPhoneBooking
                   ? hasPendingExtraCharge
                     ? 'Cash collection opens once the customer approves or declines the extra parts cost by phone.'
@@ -2336,22 +2336,22 @@ export const PartnerDashboard = () => {
         {isPhoneBooking &&
           activeOrder.currentStep === 4 &&
           canShareCompletionCode && (
-            <section className="bg-white rounded-2xl p-4 shadow-xs border border-[#6ffbbe]/60 flex flex-col gap-3">
+            <section className="bg-white rounded-2xl p-4 shadow-xs border border-[#FFE7A8]/60 flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-[#6ffbbe]/40 text-[#006c49] flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#FFE7A8]/40 text-[#101F55] flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-[18px]">payments</span>
                   </div>
 
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-[#0b1c30]">Collect Cash</p>
+                    <p className="text-xs font-bold text-[#101F55]">Collect Cash</p>
                     <p className="text-[11px] text-slate-500">
                       Take the full amount, then confirm to finish the job
                     </p>
                   </div>
                 </div>
 
-                <span className="shrink-0 text-lg font-extrabold text-[#006c49]">
+                <span className="shrink-0 text-lg font-extrabold text-[#101F55]">
                   ₹{activeOrder.totalAmount}
                 </span>
               </div>
@@ -2359,7 +2359,7 @@ export const PartnerDashboard = () => {
               <button
                 onClick={handleCashReceived}
                 disabled={isRecordingCash}
-                className="w-full py-2.5 rounded-xl bg-[#006c49] hover:bg-[#005237] disabled:opacity-60 text-white text-xs font-bold active:scale-95 transition-all"
+                className="w-full py-2.5 rounded-xl bg-[#101F55] hover:bg-[#101F55] disabled:opacity-60 text-white text-xs font-bold active:scale-95 transition-all"
               >
                 {isRecordingCash ? 'Recording…' : 'Cash Received'}
               </button>
@@ -2380,7 +2380,7 @@ export const PartnerDashboard = () => {
         >
           <div className="flex items-center gap-3 min-w-0">
 
-            <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[18px]">
                 chat_bubble
               </span>
@@ -2388,7 +2388,7 @@ export const PartnerDashboard = () => {
 
             <div className="min-w-0 text-left">
 
-              <p className="text-xs font-bold text-[#0b1c30]">
+              <p className="text-xs font-bold text-[#101F55]">
                 Message Customer
               </p>
 
@@ -2419,7 +2419,7 @@ export const PartnerDashboard = () => {
                 />
 
                 <div className="absolute left-2 top-2 z-10 bg-white/95 rounded-xl px-2.5 py-1.5 shadow-sm pointer-events-none">
-                  <p className="text-[11px] font-bold text-[#0b1c30]">
+                  <p className="text-[11px] font-bold text-[#101F55]">
                     {liveEtaMinutes != null
                       ? `${liveEtaMinutes} min • ${liveDistanceKm.toFixed(1)} km`
                       : isSharingLocation
@@ -2436,7 +2436,7 @@ export const PartnerDashboard = () => {
             >
               <div className="flex items-center gap-3 min-w-0">
 
-                <div className="w-9 h-9 rounded-full bg-[#ff6a00]/15 text-[#a14000] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-full bg-[#FFC928]/15 text-[#101F55] flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-[18px]">
                     navigation
                   </span>
@@ -2444,7 +2444,7 @@ export const PartnerDashboard = () => {
 
                 <div className="min-w-0 text-left">
 
-                  <p className="text-xs font-bold text-[#0b1c30]">
+                  <p className="text-xs font-bold text-[#101F55]">
                     Navigate to Customer
                   </p>
 
@@ -2467,13 +2467,13 @@ export const PartnerDashboard = () => {
 
           <div className="flex items-center justify-between px-1">
 
-            <h2 className="text-sm font-bold text-[#0b1c30]">
+            <h2 className="text-sm font-bold text-[#101F55]">
               Scheduled Ahead
             </h2>
 
             <button
               onClick={() => setCalendarOpen(true)}
-              className="text-xs text-[#a14000] font-bold hover:underline"
+              className="text-xs text-[#101F55] font-bold hover:underline"
             >
               View Calendar
             </button>
@@ -2507,13 +2507,13 @@ export const PartnerDashboard = () => {
 
                     <div className="flex items-center gap-1.5">
 
-                      <span className="bg-[#eff4ff] text-[#0b1c30] text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      <span className="bg-[#FFF3D5] text-[#101F55] text-[10px] px-2 py-0.5 rounded-full font-bold">
                         {[job.day, job.time].filter(Boolean).join(', ')}
                       </span>
 
-                      <span className="text-[10px] text-[#006c49] font-semibold flex items-center gap-0.5">
+                      <span className="text-[10px] text-[#101F55] font-semibold flex items-center gap-0.5">
 
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00ae78]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#101F55]" />
 
                         {job.status}
                       </span>
@@ -2525,7 +2525,7 @@ export const PartnerDashboard = () => {
                       )}
                     </div>
 
-                    <h4 className="font-bold text-xs text-[#0b1c30] mt-1 truncate">
+                    <h4 className="font-bold text-xs text-[#101F55] mt-1 truncate">
                       {job.title}
                     </h4>
 
@@ -2535,7 +2535,7 @@ export const PartnerDashboard = () => {
                   </div>
                 </div>
 
-                <span className="font-extrabold text-xs text-[#a14000] shrink-0">
+                <span className="font-extrabold text-xs text-[#101F55] shrink-0">
                   ₹{job.price}
                 </span>
               </div>
@@ -2552,7 +2552,7 @@ export const PartnerDashboard = () => {
           <div className="flex items-center justify-between px-1">
 
             <div>
-              <h2 className="text-sm font-bold text-[#0b1c30]">
+              <h2 className="text-sm font-bold text-[#101F55]">
                 My Services
               </h2>
 
@@ -2563,7 +2563,7 @@ export const PartnerDashboard = () => {
 
             <button
               onClick={openAddServiceModal}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all shadow-sm"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold active:scale-95 transition-all shadow-sm"
             >
               <span className="material-symbols-outlined text-[15px]">
                 add
@@ -2588,14 +2588,14 @@ export const PartnerDashboard = () => {
           ) : partnerServices.length === 0 ? (
             <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-100 text-center">
 
-              <div className="w-11 h-11 mx-auto rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center mb-2">
+              <div className="w-11 h-11 mx-auto rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center mb-2">
 
                 <span className="material-symbols-outlined text-[22px]">
                   handyman
                 </span>
               </div>
 
-              <p className="text-sm font-bold text-[#0b1c30]">
+              <p className="text-sm font-bold text-[#101F55]">
                 No services added yet
               </p>
 
@@ -2605,7 +2605,7 @@ export const PartnerDashboard = () => {
 
               <button
                 onClick={openAddServiceModal}
-                className="mt-3 px-4 py-2 rounded-full bg-[#eff4ff] text-[#a14000] text-xs font-bold border border-slate-200 active:scale-95 transition-all"
+                className="mt-3 px-4 py-2 rounded-full bg-[#FFF3D5] text-[#101F55] text-xs font-bold border border-slate-200 active:scale-95 transition-all"
               >
                 Add Your First Service
               </button>
@@ -2644,7 +2644,7 @@ export const PartnerDashboard = () => {
 
                         <div className="flex items-start gap-3 min-w-0">
 
-                          <div className="w-10 h-10 rounded-xl bg-[#dce1ff] text-[#4e5c92] flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-[#FFE7A8] text-[#4E5C92] flex items-center justify-center shrink-0">
 
                             <span className="material-symbols-outlined text-[20px]">
                               handyman
@@ -2655,12 +2655,12 @@ export const PartnerDashboard = () => {
 
                             <div className="flex items-center gap-1.5">
 
-                              <h3 className="text-xs font-bold text-[#0b1c30] truncate">
+                              <h3 className="text-xs font-bold text-[#101F55] truncate">
                                 {title}
                               </h3>
 
                               {partnerService.is_active && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#00ae78]/15 text-[#006c49] font-bold shrink-0">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#101F55]/15 text-[#101F55] font-bold shrink-0">
                                   ACTIVE
                                 </span>
                               )}
@@ -2685,7 +2685,7 @@ export const PartnerDashboard = () => {
                                   : 'years'}
                               </span>
 
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-[#a14000]">
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-[#101F55]">
 
                                 <span className="material-symbols-outlined text-[13px]">
                                   currency_rupee
@@ -2705,7 +2705,7 @@ export const PartnerDashboard = () => {
                                 partnerService
                               )
                             }
-                            className="w-8 h-8 rounded-full bg-[#eff4ff] text-[#4e5c92] flex items-center justify-center hover:bg-[#dce9ff] active:scale-95 transition-all"
+                            className="w-8 h-8 rounded-full bg-[#FFF3D5] text-[#4E5C92] flex items-center justify-center hover:bg-[#FFE7A8] active:scale-95 transition-all"
                             title="Edit service"
                           >
                             <span className="material-symbols-outlined text-[16px]">
@@ -2744,7 +2744,7 @@ export const PartnerDashboard = () => {
 
           <div className="flex items-center justify-between px-1">
 
-            <h2 className="text-sm font-bold text-[#0b1c30]">
+            <h2 className="text-sm font-bold text-[#101F55]">
               Earnings & Overview
             </h2>
 
@@ -2754,7 +2754,7 @@ export const PartnerDashboard = () => {
               disabled={earningsRefreshing}
               aria-label="Refresh earnings"
               title="Refresh earnings"
-              className="flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[11px] font-bold text-[#a14000] disabled:opacity-60 active:scale-95 transition-all"
+              className="flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] text-[11px] font-bold text-[#101F55] disabled:opacity-60 active:scale-95 transition-all"
             >
               <span className={`material-symbols-outlined text-[15px] ${earningsRefreshing ? 'animate-spin' : ''}`}>
                 refresh
@@ -2773,7 +2773,7 @@ export const PartnerDashboard = () => {
                   Today's Earnings
                 </span>
 
-                <div className="w-7 h-7 rounded-full bg-[#ffdbcc] flex items-center justify-center text-[#a14000]">
+                <div className="w-7 h-7 rounded-full bg-[#FFE7A8] flex items-center justify-center text-[#101F55]">
 
                   <span className="material-symbols-outlined text-[16px]">
                     currency_rupee
@@ -2783,11 +2783,11 @@ export const PartnerDashboard = () => {
 
               <div className="mt-2">
 
-                <span className="text-2xl font-extrabold text-[#0b1c30] leading-none">
+                <span className="text-2xl font-extrabold text-[#101F55] leading-none">
                   ₹{partnerStats.todayEarnings}
                 </span>
 
-                <p className="text-[11px] text-[#006c49] font-medium mt-1 flex items-center gap-1">
+                <p className="text-[11px] text-[#101F55] font-medium mt-1 flex items-center gap-1">
 
                   <span className="material-symbols-outlined text-[13px]">
                     task_alt
@@ -2807,7 +2807,7 @@ export const PartnerDashboard = () => {
                   Rating & Trust
                 </span>
 
-                <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                <div className="w-7 h-7 rounded-full bg-[#FFF3D5] flex items-center justify-center text-[#101F55]">
 
                   <span
                     className="material-symbols-outlined text-[16px]"
@@ -2825,12 +2825,12 @@ export const PartnerDashboard = () => {
 
                 <div className="flex items-baseline gap-1">
 
-                  <span className="text-2xl font-extrabold text-[#0b1c30] leading-none">
+                  <span className="text-2xl font-extrabold text-[#101F55] leading-none">
                     {partnerStats.rating}
                   </span>
 
                   <span
-                    className="material-symbols-outlined text-[#ff6a00] text-[16px]"
+                    className="material-symbols-outlined text-[#F47B16] text-[16px]"
                     style={{
                       fontVariationSettings:
                         "'FILL' 1"
@@ -2846,11 +2846,11 @@ export const PartnerDashboard = () => {
               </div>
             </div>
 
-            <div className="col-span-2 bg-[#1b2a5e] text-white rounded-2xl p-4 shadow-sm flex items-center justify-between border border-slate-700">
+            <div className="col-span-2 bg-[#101F55] text-white rounded-2xl p-4 shadow-sm flex items-center justify-between border border-slate-700">
 
               <div className="min-w-0">
 
-                <p className="text-[11px] text-[#dce1ff] opacity-90">
+                <p className="text-[11px] text-[#C9D3F5] opacity-90">
                   This Week's Earnings
                 </p>
 
@@ -2860,7 +2860,7 @@ export const PartnerDashboard = () => {
                     ₹{partnerStats.weeklyBalance}
                   </span>
 
-                  <span className="text-[10px] text-[#dce1ff]/80">
+                  <span className="text-[10px] text-[#C9D3F5]/80">
                     Withdraw it from Payouts below
                   </span>
                 </div>
@@ -2870,7 +2870,7 @@ export const PartnerDashboard = () => {
                 onClick={() =>
                   setPayoutSetupOpen(true)
                 }
-                className="bg-[#ff6a00] hover:bg-[#a14000] text-white px-3.5 py-2 rounded-full text-xs font-bold active:scale-95 transition-all shrink-0 flex items-center gap-1 shadow-md"
+                className="bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] px-3.5 py-2 rounded-full text-xs font-bold active:scale-95 transition-all shrink-0 flex items-center gap-1 shadow-md"
               >
                 <span className="material-symbols-outlined text-[15px]">
                   account_balance
@@ -2905,7 +2905,7 @@ export const PartnerDashboard = () => {
           />
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-bold text-[#0b1c30] truncate">
+            <h2 className="text-sm font-bold text-[#101F55] truncate">
               {partnerProfile?.name || 'Partner'}
             </h2>
 
@@ -2917,7 +2917,7 @@ export const PartnerDashboard = () => {
               {partnerProfile?.phone}
             </p>
 
-            <span className="inline-block mt-1 text-[10px] font-bold text-[#a14000] bg-[#eff4ff] px-2 py-0.5 rounded-full">
+            <span className="inline-block mt-1 text-[10px] font-bold text-[#101F55] bg-[#FFF3D5] px-2 py-0.5 rounded-full">
               Service Partner
             </span>
           </div>
@@ -2925,7 +2925,7 @@ export const PartnerDashboard = () => {
           <button
             aria-label="Edit Profile"
             onClick={() => navigateTo('editProfile', 'profile')}
-            className="w-9 h-9 shrink-0 flex items-center justify-center rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[#a14000] active:scale-95 transition-all"
+            className="w-9 h-9 shrink-0 flex items-center justify-center rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] text-[#101F55] active:scale-95 transition-all"
           >
             <span className="material-symbols-outlined text-[18px]">
               edit
@@ -2939,7 +2939,7 @@ export const PartnerDashboard = () => {
 
         <section className="space-y-2">
           <div className="px-1">
-            <h2 className="text-sm font-bold text-[#0b1c30]">
+            <h2 className="text-sm font-bold text-[#101F55]">
               Verification & Documents
             </h2>
           </div>
@@ -2962,7 +2962,7 @@ export const PartnerDashboard = () => {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-[#0b1c30]">
+                  <p className="text-xs font-bold text-[#101F55]">
                     ID Verification
                   </p>
 
@@ -2995,12 +2995,12 @@ export const PartnerDashboard = () => {
                       <span className="flex items-center gap-1.5 min-w-0 text-[11px]">
                         <span
                           className={`material-symbols-outlined text-[15px] ${
-                            uploaded ? 'text-[#00ae78]' : 'text-slate-300'
+                            uploaded ? 'text-[#101F55]' : 'text-slate-300'
                           }`}
                         >
                           {uploaded ? 'check_circle' : 'radio_button_unchecked'}
                         </span>
-                        <span className="font-semibold text-[#0b1c30] truncate">
+                        <span className="font-semibold text-[#101F55] truncate">
                           {label}
                         </span>
                       </span>
@@ -3010,7 +3010,7 @@ export const PartnerDashboard = () => {
                           type="button"
                           onClick={() => pickIdDocument(kind)}
                           disabled={Boolean(uploadingIdKind)}
-                          className="shrink-0 px-3 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] disabled:opacity-50 text-[#a14000] text-[11px] font-bold active:scale-95 transition-all"
+                          className="shrink-0 px-3 py-1 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] disabled:opacity-50 text-[#101F55] text-[11px] font-bold active:scale-95 transition-all"
                         >
                           {uploadingIdKind === kind
                             ? 'Uploading…'
@@ -3039,7 +3039,7 @@ export const PartnerDashboard = () => {
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   Police Verification
                 </p>
 
@@ -3063,7 +3063,7 @@ export const PartnerDashboard = () => {
                 <button
                   onClick={() => policeFileInputRef.current?.click()}
                   disabled={isUploadingPolice}
-                  className="shrink-0 px-3 py-1.5 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] disabled:opacity-50 text-[#a14000] text-[11px] font-bold active:scale-95 transition-all"
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] disabled:opacity-50 text-[#101F55] text-[11px] font-bold active:scale-95 transition-all"
                 >
                   {isUploadingPolice
                     ? 'Uploading…'
@@ -3088,7 +3088,7 @@ export const PartnerDashboard = () => {
 
           <div className="flex items-center justify-between px-1">
 
-            <h2 className="text-sm font-bold text-[#0b1c30]">
+            <h2 className="text-sm font-bold text-[#101F55]">
               Recent Reviews
             </h2>
 
@@ -3122,7 +3122,7 @@ export const PartnerDashboard = () => {
                           key={i}
                           className={`material-symbols-outlined text-[15px] ${
                             i <= r.stars
-                              ? 'text-[#ff6a00]'
+                              ? 'text-[#101F55]'
                               : 'text-slate-200'
                           }`}
                           style={{
@@ -3140,7 +3140,7 @@ export const PartnerDashboard = () => {
                     </span>
                   </div>
 
-                  <p className="text-xs font-bold text-[#0b1c30] mt-1.5 truncate">
+                  <p className="text-xs font-bold text-[#101F55] mt-1.5 truncate">
                     {r.serviceTitle}
                   </p>
 
@@ -3155,7 +3155,7 @@ export const PartnerDashboard = () => {
               {reviews.length > 3 && (
                 <button
                   onClick={() => setShowAllReviews(prev => !prev)}
-                  className="w-full py-2.5 rounded-full bg-white border border-slate-100 shadow-xs text-xs font-bold text-[#a14000] flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  className="w-full py-2.5 rounded-full bg-white border border-slate-100 shadow-xs text-xs font-bold text-[#101F55] flex items-center justify-center gap-1 active:scale-95 transition-all"
                 >
                   {showAllReviews ? 'Show less' : 'View more'}
                   <span className="material-symbols-outlined text-[16px]">
@@ -3173,7 +3173,7 @@ export const PartnerDashboard = () => {
 
         <section className="space-y-2 pt-1">
           <div className="px-1">
-            <h2 className="text-sm font-bold text-[#0b1c30]">
+            <h2 className="text-sm font-bold text-[#101F55]">
               Settings
             </h2>
           </div>
@@ -3183,14 +3183,14 @@ export const PartnerDashboard = () => {
               onClick={() => navigateTo('settings', 'profile')}
               className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
             >
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   settings
                 </span>
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   Settings
                 </p>
 
@@ -3208,14 +3208,14 @@ export const PartnerDashboard = () => {
               onClick={() => navigateTo('resetPassword', 'profile')}
               className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
             >
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   lock_reset
                 </span>
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   Reset Password
                 </p>
 
@@ -3233,14 +3233,14 @@ export const PartnerDashboard = () => {
               onClick={() => navigateTo('faq', 'profile')}
               className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
             >
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   help
                 </span>
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   FAQ
                 </p>
 
@@ -3258,14 +3258,14 @@ export const PartnerDashboard = () => {
               onClick={() => navigateTo('terms', 'profile')}
               className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
             >
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">
                   policy
                 </span>
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
+                <p className="text-xs font-bold text-[#101F55]">
                   Terms & Policy
                 </p>
 
@@ -3304,7 +3304,7 @@ export const PartnerDashboard = () => {
       {/* PARTNER BOTTOM NAVIGATION */}
       {/* ========================================= */}
 
-      <nav className="sticky bottom-0 inset-x-0 z-40 bg-[#f8f9ff]/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(27,42,94,0.06)] border-t border-slate-100 pb-safe">
+      <nav className="sticky bottom-0 inset-x-0 z-40 bg-[#FFF3D5]/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(27,42,94,0.06)] border-t border-slate-100 pb-safe">
         <div className="flex justify-around items-center h-18 px-2 max-w-lg mx-auto py-1">
           {partnerNavItems.map(item => {
             const isActive = partnerTab === item.id;
@@ -3316,14 +3316,14 @@ export const PartnerDashboard = () => {
                 onClick={() => switchPartnerTab(item.id)}
                 className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-1 transition-all ${
                   isActive
-                    ? 'text-[#a14000] font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'text-[#101F55] font-bold'
+                    : 'text-slate-500 hover:text-[#101F55]'
                 }`}
               >
                 <div
                   className={`w-11 h-7 rounded-full flex items-center justify-center relative transition-colors ${
                     isActive
-                      ? 'bg-[#ffdbcc] text-[#a14000]'
+                      ? 'bg-[#FFE7A8] text-[#101F55]'
                       : 'text-slate-600'
                   }`}
                 >
@@ -3339,7 +3339,7 @@ export const PartnerDashboard = () => {
                   </span>
 
                   {item.badge && (
-                    <span className="absolute top-0 right-1 w-2.5 h-2.5 rounded-full bg-[#ff6a00] ring-2 ring-[#f8f9ff] animate-pulse" />
+                    <span className="absolute top-0 right-1 w-2.5 h-2.5 rounded-full bg-[#FFC928] ring-2 ring-[#FFF3D5] animate-pulse" />
                   )}
                 </div>
 
@@ -3365,7 +3365,7 @@ export const PartnerDashboard = () => {
 
               <div className="flex items-center gap-2">
 
-                <div className="w-9 h-9 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center">
 
                   <span className="material-symbols-outlined text-[18px]">
                     handyman
@@ -3373,7 +3373,7 @@ export const PartnerDashboard = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-[#0b1c30] text-base">
+                  <h3 className="font-bold text-[#101F55] text-base">
                     {editingService
                       ? 'Edit Service'
                       : 'Add Service'}
@@ -3400,7 +3400,7 @@ export const PartnerDashboard = () => {
 
             <div className="space-y-1.5 mb-3">
 
-              <label className="text-[11px] font-bold text-[#0b1c30]">
+              <label className="text-[11px] font-bold text-[#101F55]">
                 Service
               </label>
 
@@ -3415,7 +3415,7 @@ export const PartnerDashboard = () => {
                   Boolean(editingService) ||
                   serviceSaving
                 }
-                className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40 disabled:bg-slate-100 disabled:text-slate-500"
+                className="w-full rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-sm text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40 disabled:bg-slate-100 disabled:text-slate-500"
               >
                 <option value="">
                   Select a service
@@ -3444,7 +3444,7 @@ export const PartnerDashboard = () => {
 
             <div className="space-y-1.5 mb-3">
 
-              <label className="text-[11px] font-bold text-[#0b1c30]">
+              <label className="text-[11px] font-bold text-[#101F55]">
                 Experience
               </label>
 
@@ -3462,7 +3462,7 @@ export const PartnerDashboard = () => {
                   }
                   disabled={serviceSaving}
                   placeholder="e.g. 3"
-                  className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 pr-16 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40 disabled:opacity-50"
+                  className="w-full rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 pr-16 text-sm text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40 disabled:opacity-50"
                 />
 
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium">
@@ -3475,13 +3475,13 @@ export const PartnerDashboard = () => {
 
             <div className="space-y-1.5 mb-4">
 
-              <label className="text-[11px] font-bold text-[#0b1c30]">
+              <label className="text-[11px] font-bold text-[#101F55]">
                 Your Price
               </label>
 
               <div className="relative">
 
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#a14000]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#101F55]">
                   ₹
                 </span>
 
@@ -3505,7 +3505,7 @@ export const PartnerDashboard = () => {
                         )
                       : 'Enter price'
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] pl-8 pr-3 py-2.5 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40 disabled:opacity-50"
+                  className="w-full rounded-xl border border-slate-200 bg-[#FFF3D5] pl-8 pr-3 py-2.5 text-sm text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40 disabled:opacity-50"
                 />
               </div>
 
@@ -3532,7 +3532,7 @@ export const PartnerDashboard = () => {
                   serviceSaving ||
                   !selectedServiceId
                 }
-                className="flex-[2] py-2.5 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                className="flex-[2] py-2.5 rounded-full bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-slate-200 disabled:text-slate-400 text-[#101F55] text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
 
                 {serviceSaving ? (
@@ -3573,13 +3573,13 @@ export const PartnerDashboard = () => {
 
               <div className="flex items-center gap-2">
 
-                <div className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center">
                   <span className="material-symbols-outlined text-base">
                     calendar_month
                   </span>
                 </div>
 
-                <h3 className="font-bold text-[#0b1c30] text-base">
+                <h3 className="font-bold text-[#101F55] text-base">
                   My Calendar
                 </h3>
               </div>
@@ -3604,7 +3604,7 @@ export const PartnerDashboard = () => {
                 <span className="material-symbols-outlined text-[20px]">chevron_left</span>
               </button>
 
-              <span className="text-sm font-bold text-[#0b1c30]">
+              <span className="text-sm font-bold text-[#101F55]">
                 {calendarMonth.toLocaleDateString('en-IN', {
                   month: 'long',
                   year: 'numeric'
@@ -3649,10 +3649,10 @@ export const PartnerDashboard = () => {
                     onClick={() => setCalendarDay(dayString)}
                     className={`h-10 rounded-xl flex flex-col items-center justify-center text-xs font-semibold transition-all ${
                       isSelected
-                        ? 'bg-[#ff6a00] text-white'
+                        ? 'bg-[#FFC928] text-[#101F55]'
                         : isToday
-                          ? 'bg-[#eff4ff] text-[#a14000]'
-                          : 'text-[#0b1c30] hover:bg-slate-50'
+                          ? 'bg-[#FFF3D5] text-[#101F55]'
+                          : 'text-[#101F55] hover:bg-slate-50'
                     }`}
                   >
                     {date.getDate()}
@@ -3664,7 +3664,7 @@ export const PartnerDashboard = () => {
                             ? 'bg-red-500'
                             : isSelected
                               ? 'bg-white'
-                              : 'bg-[#00ae78]'
+                              : 'bg-[#101F55]'
                         }`}
                       />
                     )}
@@ -3675,7 +3675,7 @@ export const PartnerDashboard = () => {
 
             <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400">
               <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00ae78]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#101F55]" />
                 Booked
               </span>
               <span className="flex items-center gap-1">
@@ -3687,7 +3687,7 @@ export const PartnerDashboard = () => {
             {/* Jobs on the selected day */}
             <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
 
-              <h4 className="text-xs font-bold text-[#0b1c30]">
+              <h4 className="text-xs font-bold text-[#101F55]">
                 {new Date(calendarDay).toLocaleDateString('en-IN', {
                   weekday: 'long',
                   day: 'numeric',
@@ -3711,15 +3711,15 @@ export const PartnerDashboard = () => {
                       className={`rounded-2xl p-3 border flex items-start justify-between gap-3 ${
                         isClash
                           ? 'bg-red-50 border-red-100'
-                          : 'bg-[#f8f9ff] border-slate-100'
+                          : 'bg-[#FFF3D5] border-slate-100'
                       }`}
                     >
                       <div className="min-w-0">
-                        <p className="text-[11px] font-bold text-[#a14000]">
+                        <p className="text-[11px] font-bold text-[#101F55]">
                           {job.time} – {endTime}
                         </p>
 
-                        <p className="text-xs font-bold text-[#0b1c30] truncate">
+                        <p className="text-xs font-bold text-[#101F55] truncate">
                           {job.title}
                         </p>
 
@@ -3734,7 +3734,7 @@ export const PartnerDashboard = () => {
                         )}
                       </div>
 
-                      <span className="font-extrabold text-xs text-[#a14000] shrink-0">
+                      <span className="font-extrabold text-xs text-[#101F55] shrink-0">
                         ₹{job.price}
                       </span>
                     </div>

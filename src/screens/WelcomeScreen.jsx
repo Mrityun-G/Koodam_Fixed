@@ -11,10 +11,12 @@ import {
 } from 'lucide-react';
 import { useApp, PORTAL } from '../context/AppContext';
 
-// Navy and gold. GOLD_TEXT is a darker gold for text on white, where the
+// Navy and gold, the GigEzee palette every screen follows (navy #101F55,
+// golden yellow #FFC928, cream #FFF3D5, white, orange #F47B16 for small
+// accents). GOLD_TEXT is a darker gold for text on white, where the
 // bright gold would be too faint to read.
-const NAVY = '#0b1a45';
-const GOLD = '#f5b301';
+const NAVY = '#101F55';
+const GOLD = '#FFC928';
 const GOLD_TEXT = '#9a6700';
 
 // Paints the "Ezee" of the brand name gold wherever it appears in a title,
@@ -70,15 +72,15 @@ const ServiceCard = ({ kind, t, compact, navigateTo }) => {
   const LoginIcon = card.loginIcon;
 
   return (
-  <div className="relative mt-4 bg-gradient-to-br from-white via-white to-[#fff7e0] rounded-3xl shadow-xl shadow-[#0b1a45]/10 border border-[#e6e9f4] overflow-hidden">
+  <div className="relative mt-4 bg-gradient-to-br from-white via-white to-[#fff7e0] rounded-3xl shadow-xl shadow-[#101F55]/10 border border-[#e6e9f4] overflow-hidden">
     {/* Gold edge along the top of the card */}
-    <div className="absolute z-10 inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0b1a45] via-[#f5b301] to-[#0b1a45]" />
+    <div className="absolute z-10 inset-x-0 top-0 h-1 bg-gradient-to-r from-[#101F55] via-[#FFC928] to-[#101F55]" />
     <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-[#fff4cc] pointer-events-none" />
 
     <div className="relative">
       <div className="relative px-5 pt-5">
         <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-md shadow-[#0b1a45]/30"
+          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-md shadow-[#101F55]/30"
           style={{ background: `linear-gradient(145deg, #1b3380, ${NAVY})` }}
         >
           <span
@@ -130,7 +132,7 @@ const ServiceCard = ({ kind, t, compact, navigateTo }) => {
 
       <button
         onClick={() => navigateTo(card.login)}
-        className="group mt-5 w-full py-2 pl-3 pr-2 rounded-full text-white text-[15px] font-bold flex items-center gap-2 shadow-lg shadow-[#0b1a45]/30 border border-[#f5b301]/40 active:scale-98 transition-all"
+        className="group mt-5 w-full py-2 pl-3 pr-2 rounded-full text-white text-[15px] font-bold flex items-center gap-2 shadow-lg shadow-[#101F55]/30 border border-[#FFC928]/40 active:scale-98 transition-all"
         style={{ background: `linear-gradient(90deg, ${NAVY}, #1b3380)` }}
         type="button"
       >
@@ -138,7 +140,7 @@ const ServiceCard = ({ kind, t, compact, navigateTo }) => {
           <LoginIcon size={22} color={GOLD} fill={GOLD} />
         </span>
         <span className="flex-1 text-center">{copy.btn}</span>
-        <span className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-[#ffd65a] to-[#f5b301] transition-transform group-hover:translate-x-0.5">
+        <span className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-[#ffd65a] to-[#FFC928] transition-transform group-hover:translate-x-0.5">
           <ArrowRight size={20} color={NAVY} strokeWidth={2.5} />
         </span>
       </button>
@@ -150,7 +152,7 @@ const ServiceCard = ({ kind, t, compact, navigateTo }) => {
         type="button"
       >
         {copy.signupLead}{' '}
-        <span className="underline decoration-2 underline-offset-4 decoration-[#f5b301]" style={{ color: GOLD_TEXT }}>
+        <span className="underline decoration-2 underline-offset-4 decoration-[#FFC928]" style={{ color: GOLD_TEXT }}>
           {t.signupAction}
         </span>
       </button>
@@ -255,7 +257,7 @@ export const WelcomeScreen = () => {
   const isLatin = !strings[language] || language === 'en';
 
   return (
-    <main className="flex-1 flex flex-col relative w-full min-h-screen overflow-hidden bg-[#f6f7fb]">
+    <main className="flex-1 flex flex-col relative w-full min-h-screen overflow-hidden bg-[#FFF3D5]">
       {/* Hero: the brand on the left, the person this app is for on the right.
           Customers get a light, warm hero; partners a navy one. The photo's
           lower edge tucks behind the Mutual Aid card that overlaps the hero. */}
@@ -268,11 +270,11 @@ export const WelcomeScreen = () => {
         }}
       >
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className={`absolute -top-10 right-0 w-64 h-64 rounded-full blur-3xl ${isPartnerApp ? 'bg-[#f5b301]/25' : 'bg-[#ffd65a]/45'}`} />
+          <div className={`absolute -top-10 right-0 w-64 h-64 rounded-full blur-3xl ${isPartnerApp ? 'bg-[#FFC928]/25' : 'bg-[#ffd65a]/45'}`} />
           <div className={`absolute top-28 -left-20 w-48 h-48 rounded-full blur-3xl ${isPartnerApp ? 'bg-[#3c5bc4]/40' : 'bg-[#ffe7b0]/70'}`} />
           {/* Thin gold rings, a quiet nod to "coming together" */}
-          <div className="absolute -top-24 -left-24 w-60 h-60 rounded-full border border-[#f5b301]/30" />
-          <div className="absolute -top-16 -left-16 w-44 h-44 rounded-full border border-[#f5b301]/20" />
+          <div className="absolute -top-24 -left-24 w-60 h-60 rounded-full border border-[#FFC928]/30" />
+          <div className="absolute -top-16 -left-16 w-44 h-44 rounded-full border border-[#FFC928]/20" />
         </div>
 
         <img
@@ -292,8 +294,8 @@ export const WelcomeScreen = () => {
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          <path d="M0 40 C 120 72, 280 8, 400 36 L400 64 L0 64 Z" fill="#f5b301" opacity="0.9" />
-          <path d="M0 48 C 120 80, 280 18, 400 46 L400 64 L0 64 Z" fill="#f6f7fb" />
+          <path d="M0 40 C 120 72, 280 8, 400 36 L400 64 L0 64 Z" fill="#FFC928" opacity="0.9" />
+          <path d="M0 48 C 120 80, 280 18, 400 46 L400 64 L0 64 Z" fill="#FFF3D5" />
         </svg>
 
         {/* Tamil and Kannada words run much longer than English ones and
@@ -303,8 +305,8 @@ export const WelcomeScreen = () => {
           <div
             className={`inline-flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-4 whitespace-nowrap ${
               isPartnerApp
-                ? 'bg-white/10 border border-[#f5b301]/40 text-[#ffd65a] backdrop-blur'
-                : 'bg-[#ffe7a8] border border-[#f5b301]/50 text-[#7a4e00]'
+                ? 'bg-white/10 border border-[#FFC928]/40 text-[#ffd65a] backdrop-blur'
+                : 'bg-[#ffe7a8] border border-[#FFC928]/50 text-[#7a4e00]'
             }`}
           >
             <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
@@ -319,11 +321,11 @@ export const WelcomeScreen = () => {
           >
             <BrandTitle
               text={isPartnerApp ? t.partnerTitle : t.title}
-              accent={isPartnerApp ? 'from-[#ffd65a] to-[#f5b301]' : 'from-[#f5a300] to-[#e07b00]'}
+              accent={isPartnerApp ? 'from-[#ffd65a] to-[#FFC928]' : 'from-[#f5a300] to-[#e07b00]'}
             />
           </h1>
 
-          <span className="w-12 h-1 rounded-full mt-3 bg-gradient-to-r from-[#ffd65a] to-[#f5b301]" />
+          <span className="w-12 h-1 rounded-full mt-3 bg-gradient-to-r from-[#ffd65a] to-[#FFC928]" />
 
           <p
             className="text-[13px] font-medium mt-3 leading-relaxed"
@@ -336,7 +338,7 @@ export const WelcomeScreen = () => {
 
       <div className="relative z-10 flex flex-col w-full px-4 -mt-16 pb-10">
         {/* Social Proof Card */}
-        <div className="w-full rounded-2xl overflow-hidden bg-white border border-[#f5b301]/40 shadow-lg shadow-[#0b1a45]/10 flex items-stretch text-left">
+        <div className="w-full rounded-2xl overflow-hidden bg-white border border-[#FFC928]/40 shadow-lg shadow-[#101F55]/10 flex items-stretch text-left">
           <div className="relative w-[44%] shrink-0 min-h-[124px]">
             <img
               className="absolute inset-0 w-full h-full object-cover object-left"
@@ -375,7 +377,7 @@ export const WelcomeScreen = () => {
         {/* Language Selector Pill Tray */}
         <div className="mt-7 flex justify-center">
           <div
-            className="inline-flex items-center p-1 rounded-full shadow-lg shadow-[#0b1a45]/20"
+            className="inline-flex items-center p-1 rounded-full shadow-lg shadow-[#101F55]/20"
             style={{ background: NAVY }}
           >
             {LANGUAGES.map((option) => (
@@ -388,7 +390,7 @@ export const WelcomeScreen = () => {
                 aria-pressed={language === option.code}
                 className={`px-5 py-2 rounded-full text-sm transition-all ${
                   language === option.code
-                    ? 'bg-gradient-to-r from-[#ffd65a] to-[#f5b301] text-[#0b1a45] font-extrabold shadow-sm'
+                    ? 'bg-gradient-to-r from-[#ffd65a] to-[#FFC928] text-[#101F55] font-extrabold shadow-sm'
                     : 'text-[#c9d3f5] font-semibold hover:text-white'
                 }`}
                 type="button"

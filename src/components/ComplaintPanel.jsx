@@ -17,22 +17,22 @@ const STATUS_TEXT = {
   OPEN: {
     customer: 'Waiting for the partner to reply.',
     partner: 'Reply before the deadline, or this becomes an escalation on your record.',
-    tone: 'bg-amber-50 text-amber-700'
+    tone: 'bg-[#FFF7E0] text-[#101F55]'
   },
   RESPONDED: {
     customer: 'The partner replied. Are you satisfied?',
     partner: "You replied. The customer can accept your reply or ask GigEzee to review it.",
-    tone: 'bg-[#dce1ff] text-[#4e5c92]'
+    tone: 'bg-[#FFE7A8] text-[#4E5C92]'
   },
   RESOLVED: {
     customer: 'You marked this as resolved.',
     partner: 'The customer marked this as resolved. No penalty.',
-    tone: 'bg-[#c8f7e1]/60 text-[#006c49]'
+    tone: 'bg-[#FFE7A8]/60 text-[#101F55]'
   },
   NEEDS_REVIEW: {
     customer: 'GigEzee is reviewing this.',
     partner: 'The customer asked GigEzee to review this. Staff will decide.',
-    tone: 'bg-[#dce1ff] text-[#4e5c92]'
+    tone: 'bg-[#FFE7A8] text-[#4E5C92]'
   },
   ESCALATED: {
     customer: "The partner didn't reply in time. It's been escalated on their record.",
@@ -119,7 +119,7 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
 
     return (
       <div className="mt-2 rounded-xl border border-red-100 p-2.5 space-y-2">
-        <p className="text-[11px] font-bold text-[#0b1c30]">What went wrong?</p>
+        <p className="text-[11px] font-bold text-[#101F55]">What went wrong?</p>
 
         <select
           value={reason}
@@ -176,13 +176,13 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
 
   return (
     <div className="mt-2 rounded-xl border border-slate-100 p-2.5 space-y-1.5">
-      <p className="text-[11px] font-bold text-[#0b1c30] flex items-center gap-1">
+      <p className="text-[11px] font-bold text-[#101F55] flex items-center gap-1">
         <span className="material-symbols-outlined text-[15px] text-red-500">report</span>
         {`${isPartner ? 'Customer complaint' : 'Your complaint'}: ${complaint.reason_label}`}
       </p>
 
       {complaint.description && (
-        <p className="text-[11px] text-[#5a4136] whitespace-pre-line">
+        <p className="text-[11px] text-[#4E5C92] whitespace-pre-line">
           {`"${complaint.description}"`}
         </p>
       )}
@@ -192,7 +192,7 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
           <p className="text-[10px] font-bold text-slate-400 uppercase">
             {isPartner ? 'Your reply' : "Partner's reply"}
           </p>
-          <p className="text-[11px] text-[#0b1c30] whitespace-pre-line">
+          <p className="text-[11px] text-[#101F55] whitespace-pre-line">
             {complaint.partner_response}
           </p>
         </div>
@@ -230,7 +230,7 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
                 'Reply sent to the customer.'
               )
             }
-            className="w-full text-[11px] font-bold text-white bg-[#ff6a00] rounded-lg py-2 disabled:opacity-60"
+            className="w-full text-[11px] font-bold text-[#101F55] bg-[#FFC928] rounded-lg py-2 disabled:opacity-60"
           >
             {busy ? 'Sending...' : 'Send reply'}
           </button>
@@ -250,7 +250,7 @@ export const ComplaintPanel = ({ bill, viewer, onChanged }) => {
                 'Thanks! Marked as resolved.'
               )
             }
-            className="flex-1 text-[11px] font-bold text-[#006c49] border border-[#c8f7e1] rounded-lg py-2"
+            className="flex-1 text-[11px] font-bold text-[#101F55] border border-[#FFE7A8] rounded-lg py-2"
           >
             I'm satisfied
           </button>

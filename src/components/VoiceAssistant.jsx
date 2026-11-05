@@ -59,8 +59,8 @@ export const VoiceAssistant = ({ onResult }) => {
         title="Search by voice"
         className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
           listening || transcribing
-            ? 'bg-[#ff6a00] text-white'
-            : 'bg-[#eff4ff] text-[#0b1c30] hover:bg-[#d3e4fe]'
+            ? 'bg-[#FFC928] text-[#101F55]'
+            : 'bg-[#FFF3D5] text-[#101F55] hover:bg-[#FFE7A8]'
         } disabled:cursor-wait`}
       >
         <span
@@ -73,7 +73,7 @@ export const VoiceAssistant = ({ onResult }) => {
       </button>
 
       {(listening || transcribing) && (
-        <p className="absolute right-0 top-full mt-1.5 w-56 truncate rounded-xl bg-[#0b1c30] px-3 py-2 text-[11px] text-white shadow-lg z-10">
+        <p className="absolute right-0 top-full mt-1.5 w-56 truncate rounded-xl bg-[#101F55] px-3 py-2 text-[11px] text-white shadow-lg z-10">
           {label}
         </p>
       )}

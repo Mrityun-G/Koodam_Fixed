@@ -155,7 +155,7 @@ export const PaymentScreen = () => {
         },
 
         theme: {
-          color: '#ff6a00'
+          color: '#101F55'
         },
 
         modal: {
@@ -201,7 +201,7 @@ export const PaymentScreen = () => {
 
   if (isServicePayment) {
     return (
-      <div className="flex min-h-screen flex-1 flex-col bg-[#f8f9ff]">
+      <div className="flex min-h-screen flex-1 flex-col bg-[#FFF3D5]">
 
         <header className="flex h-16 items-center gap-2 border-b border-slate-100 bg-white px-4">
 
@@ -211,7 +211,7 @@ export const PaymentScreen = () => {
             onClick={() =>
               navigateTo('tracking', 'requests')
             }
-            className="flex h-10 w-10 items-center justify-center rounded-full text-[#0b1c30] hover:bg-[#eff4ff]"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-[#101F55] hover:bg-[#FFF3D5]"
           >
             <span className="material-symbols-outlined">
               arrow_back
@@ -219,7 +219,7 @@ export const PaymentScreen = () => {
           </button>
 
           <div>
-            <p className="text-sm font-bold text-[#0b1c30]">
+            <p className="text-sm font-bold text-[#101F55]">
               Secure Payment
             </p>
 
@@ -232,9 +232,9 @@ export const PaymentScreen = () => {
 
         <main className="flex flex-1 flex-col gap-4 p-4">
 
-          <div className="rounded-3xl bg-[#0b1c30] p-5 text-white">
+          <div className="rounded-3xl bg-[#101F55] p-5 text-white">
 
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6ffbbe]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFD65A]">
               Service Completed
             </span>
 
@@ -255,7 +255,7 @@ export const PaymentScreen = () => {
                 Partner
               </span>
 
-              <span className="font-bold text-[#0b1c30]">
+              <span className="font-bold text-[#101F55]">
                 {activeOrder.helperName}
               </span>
             </div>
@@ -266,7 +266,7 @@ export const PaymentScreen = () => {
 
           </div>
 
-          <div className="rounded-2xl border border-[#6ffbbe]/50 bg-[#eafff4] p-4 text-xs text-[#006c49]">
+          <div className="rounded-2xl border border-[#FFE7A8]/50 bg-[#FFF7E0] p-4 text-xs text-[#101F55]">
 
             <span className="material-symbols-outlined mr-1 align-middle text-[16px]">
               verified_user
@@ -283,7 +283,7 @@ export const PaymentScreen = () => {
             type="button"
             disabled={processing || hasPendingExtraCharges}
             onClick={handleRazorpayPayment}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#ff6a00] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#ff6a00]/30 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#FFC928] py-3.5 text-sm font-bold text-[#101F55] shadow-lg shadow-[#FFC928]/30 disabled:opacity-60"
           >
 
             <span className="material-symbols-outlined text-[18px]">
@@ -309,7 +309,7 @@ export const PaymentScreen = () => {
      ========================= */
 
   return (
-    <div className="flex min-h-screen flex-1 flex-col bg-[#f8f9ff]">
+    <div className="flex min-h-screen flex-1 flex-col bg-[#FFF3D5]">
 
       <header className="flex h-16 items-center gap-2 border-b border-slate-100 bg-white px-4">
 
@@ -319,7 +319,7 @@ export const PaymentScreen = () => {
           onClick={() =>
             navigateTo('booking')
           }
-          className="flex h-10 w-10 items-center justify-center rounded-full text-[#0b1c30] hover:bg-[#eff4ff]"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-[#101F55] hover:bg-[#FFF3D5]"
         >
           <span className="material-symbols-outlined">
             arrow_back
@@ -327,7 +327,7 @@ export const PaymentScreen = () => {
         </button>
 
         <div>
-          <p className="text-sm font-bold text-[#0b1c30]">
+          <p className="text-sm font-bold text-[#101F55]">
             Secure payment
           </p>
 
@@ -340,9 +340,9 @@ export const PaymentScreen = () => {
 
       <main className="flex flex-1 flex-col gap-4 p-4">
 
-        <div className="rounded-3xl bg-[#0b1c30] p-5 text-white">
+        <div className="rounded-3xl bg-[#101F55] p-5 text-white">
 
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6ffbbe]">
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFD65A]">
             Ready to dispatch
           </span>
 
@@ -363,7 +363,7 @@ export const PaymentScreen = () => {
               When
             </span>
 
-            <span className="font-bold text-[#0b1c30]">
+            <span className="font-bold text-[#101F55]">
               {selectedDate}, {selectedTime}
             </span>
           </div>
@@ -375,7 +375,7 @@ export const PaymentScreen = () => {
               Service
             </span>
 
-            <span className="font-bold text-[#0b1c30]">
+            <span className="font-bold text-[#101F55]">
               ₹{selectedService.price}
             </span>
           </div>
@@ -385,7 +385,7 @@ export const PaymentScreen = () => {
               Trust Shield
             </span>
 
-            <span className="font-bold text-[#0b1c30]">
+            <span className="font-bold text-[#101F55]">
               ₹{trustFee}
             </span>
           </div>
@@ -394,19 +394,19 @@ export const PaymentScreen = () => {
             <>
               <div className="mt-2 flex items-center justify-between text-xs">
                 <span className="text-slate-500">{`CGST (${halfRate(gstPercent)}%)`}</span>
-                <span className="font-bold text-[#0b1c30]">{formatRupees(bookingBill.cgst)}</span>
+                <span className="font-bold text-[#101F55]">{formatRupees(bookingBill.cgst)}</span>
               </div>
 
               <div className="mt-2 flex items-center justify-between text-xs">
                 <span className="text-slate-500">{`SGST (${halfRate(gstPercent)}%)`}</span>
-                <span className="font-bold text-[#0b1c30]">{formatRupees(bookingBill.sgst)}</span>
+                <span className="font-bold text-[#101F55]">{formatRupees(bookingBill.sgst)}</span>
               </div>
             </>
           )}
 
         </div>
 
-        <div className="rounded-2xl border border-[#6ffbbe]/50 bg-[#eafff4] p-4 text-xs text-[#006c49]">
+        <div className="rounded-2xl border border-[#FFE7A8]/50 bg-[#FFF7E0] p-4 text-xs text-[#101F55]">
           <span className="material-symbols-outlined mr-1 align-middle text-[16px]">
             lock
           </span>
@@ -420,7 +420,7 @@ export const PaymentScreen = () => {
         <button
           type="button"
           onClick={handleConfirmBooking}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-[#ff6a00] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#ff6a00]/30"
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-[#FFC928] py-3.5 text-sm font-bold text-[#101F55] shadow-lg shadow-[#FFC928]/30"
         >
           <span className="material-symbols-outlined text-[18px]">
             verified
