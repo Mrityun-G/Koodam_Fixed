@@ -416,7 +416,7 @@ def delete_my_account(
 
     # Scrub the person out of the rows that have to stay
     caller.name = "Deleted user"
-    caller.email = f"deleted-{caller.id}@users.koodam.invalid"
+    caller.email = f"deleted-{caller.id}@users.gigezee.invalid"
     caller.phone = None
     caller.avatar = None
 

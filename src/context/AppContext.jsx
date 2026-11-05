@@ -169,7 +169,7 @@ const ACTIVE_ORDER_KEY = 'gigezee-active-order';
 
 // Accounts that have been through the getting-started steps. Stored by
 // uid so two people using one phone each see it once.
-const ONBOARDED_KEY = 'koodam-onboarded';
+const ONBOARDED_KEY = 'gigezee-onboarded';
 
 // Where the two keys above are kept: per tab during local development,
 // to match the per-tab sign-in in lib/firebase.js
@@ -3350,7 +3350,7 @@ const requestPasswordReset = async (email) => {
     // Firebase isn't configured in this build, so no email can go out.
     // Say so plainly instead of implying one was sent.
     showToast(
-      "Password reset isn't available right now. Please contact KOODAM support."
+      "Password reset isn't available right now. Please contact GigEzee support."
     );
   }
 };
@@ -3553,7 +3553,7 @@ const updatePartnerProfile = async (
     }
 
 
-    // Google accounts have no KOODAM password to change
+    // Google accounts have no GigEzee password to change
     const hasPassword = user.providerData.some(
       (provider) => provider.providerId === 'password'
     );

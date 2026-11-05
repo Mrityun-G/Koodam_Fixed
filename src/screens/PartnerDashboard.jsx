@@ -2916,7 +2916,7 @@ export const PartnerDashboard = () => {
 
                 <p className="text-[11px] text-slate-500">
                   Your Aadhaar, PAN and Voter ID were received at sign-up.
-                  KOODAM staff check them and they are never shown to
+                  GigEzee staff check them and they are never shown to
                   customers.
                 </p>
               </div>

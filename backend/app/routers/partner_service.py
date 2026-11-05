@@ -41,7 +41,7 @@ def resolve_partner(
 
 
 def require_service_owner(caller: User, partner: Partner) -> None:
-    """Only a partner (or KOODAM staff) may change that partner's listings."""
+    """Only a partner (or GigEzee staff) may change that partner's listings."""
     if not owns_partner(caller, partner) and not is_admin(caller):
         raise HTTPException(
             status_code=403,

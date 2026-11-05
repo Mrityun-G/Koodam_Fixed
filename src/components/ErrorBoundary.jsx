@@ -32,9 +32,12 @@ export class ErrorBoundary extends React.Component {
 
   handleRestart = () => {
     // Clears the screen the crash happened on, so a reload doesn't land
-    // straight back on it. Their login is untouched.
+    // straight back on it. Their login is untouched. Same key as
+    // ACTIVE_ORDER_KEY in context/AppContext.jsx, which keeps it in
+    // sessionStorage during development and localStorage otherwise.
     try {
-      sessionStorage.removeItem('koodam.activeOrder');
+      sessionStorage.removeItem('gigezee-active-order');
+      localStorage.removeItem('gigezee-active-order');
     } catch {
       // Nothing to clear
     }
