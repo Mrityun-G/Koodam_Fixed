@@ -8,7 +8,7 @@ import { VoiceAssistant } from '../components/VoiceAssistant';
 import { detectService, pickBestHelper, reliabilityPenalty } from '../lib/voiceIntent';
 import { helpersFromServices, withDistance } from '../lib/helpers';
 import { authorizedFetch } from '../lib/authorizedFetch';
-import { serviceImage } from '../lib/serviceImages';
+import { serviceCardImage } from '../lib/serviceImages';
 
 export const UserHomeScreen = () => {
   const {
@@ -121,7 +121,7 @@ useEffect(() => {
         services.map((service) => ({
           id: service.id,
           name: service.title,
-          image: serviceImage(service.title),
+          image: serviceCardImage(service.title),
           icon: service.icon || 'home_repair_service',
           bg: service.bg_color || '#e5eeff',
           color: service.icon_color || '#4e5c92'
@@ -441,13 +441,19 @@ useEffect(() => {
             )}
           </div>
 
-          {/* One row of photo cards, swiped sideways */}
-          <div className="-mx-4 px-4 scroll-px-4 flex items-start gap-3 overflow-x-auto snap-x snap-mandatory pt-1 pb-2">
+          {/* The services as a grid of photo cards, three across. Each
+              card is the same size: a 4:3 photo, then the icon and the
+              name centred on white underneath. */}
+          <div className="grid grid-cols-3 gap-2.5 pt-1">
             {categories.length === 0 && helpersLoading &&
-              Array.from({ length: 4 }, (_, index) => (
-                <div key={index} className="shrink-0 w-[100px] flex flex-col gap-1.5">
-                  <div className="w-full aspect-[4/5] rounded-2xl bg-slate-100 animate-pulse" />
-                  <div className="h-3 w-3/4 mx-auto rounded bg-slate-100 animate-pulse" />
+              Array.from({ length: 9 }, (_, index) => (
+                <div
+                  key={index}
+                  className="rounded-2xl bg-white border border-slate-100 p-1.5 flex flex-col items-center"
+                >
+                  <div className="w-full aspect-[4/3] rounded-xl bg-slate-100 animate-pulse" />
+                  <div className="mt-2 w-5 h-5 rounded-full bg-slate-100 animate-pulse" />
+                  <div className="mt-1.5 mb-1 h-3 w-3/4 rounded bg-slate-100 animate-pulse" />
                 </div>
               ))}
             {categories.map((cat) => {
@@ -460,13 +466,11 @@ useEffect(() => {
                     setSelectedCategory(isSelected ? null : cat.id);
                     showToast(isSelected ? 'Showing all services' : `Filtered to ${cat.name}`);
                   }}
-                  className="shrink-0 w-[100px] snap-start flex flex-col items-center gap-1.5 text-center transition-transform active:scale-95"
+                  className={`rounded-2xl bg-white p-1.5 flex flex-col items-center text-center border shadow-[0_2px_10px_rgba(11,28,48,0.06)] transition-all active:scale-[0.97] ${
+                    isSelected ? 'border-[#ff6a00] ring-1 ring-[#ff6a00]' : 'border-slate-100'
+                  }`}
                 >
-                  <div
-                    className={`relative w-full aspect-[4/5] rounded-2xl overflow-hidden shadow-sm ring-2 ring-offset-2 ring-offset-[#f8f9ff] transition-all ${
-                      isSelected ? 'ring-[#ff6a00]' : 'ring-transparent'
-                    }`}
-                  >
+                  <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden">
                     {cat.image ? (
                       // The name underneath says what it is
                       <img
@@ -481,22 +485,35 @@ useEffect(() => {
                         className="w-full h-full flex items-center justify-center"
                         style={{ backgroundColor: cat.bg, color: cat.color }}
                       >
-                        <span className="material-symbols-outlined text-[34px]">{cat.icon}</span>
+                        <span className="material-symbols-outlined text-[30px]">{cat.icon}</span>
                       </div>
                     )}
 
                     {isSelected && (
-                      <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#ff6a00] text-white flex items-center justify-center shadow">
+                      <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#ff6a00] text-white flex items-center justify-center shadow">
                         <span className="material-symbols-outlined text-[14px]">check</span>
                       </span>
                     )}
                   </div>
+
                   <span
-                    className={`text-[11px] leading-tight font-semibold line-clamp-2 ${
-                      isSelected ? 'text-[#ff6a00]' : 'text-[#0b1c30]'
-                    }`}
+                    aria-hidden="true"
+                    className="material-symbols-outlined mt-2 text-[20px] leading-none text-[#ff6a00]"
                   >
-                    {cat.name}
+                    {cat.icon}
+                  </span>
+
+                  {/* Room for two lines on every card, with the name
+                      centred in it, so each row lines up whether a name
+                      takes one line or two */}
+                  <span className="w-full min-h-[2.4em] mt-1 mb-0.5 px-0.5 flex items-center justify-center text-[12px] leading-[1.2]">
+                    <span
+                      className={`font-bold line-clamp-2 ${
+                        isSelected ? 'text-[#ff6a00]' : 'text-[#0b1c30]'
+                      }`}
+                    >
+                      {cat.name}
+                    </span>
                   </span>
                 </button>
               );
