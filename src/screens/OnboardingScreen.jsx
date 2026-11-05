@@ -33,9 +33,9 @@ const StepDots = ({ total, current }) => (
         key={index}
         className={`h-1.5 rounded-full transition-all ${
           index === current
-            ? 'w-6 bg-[#ff6a00]'
+            ? 'w-6 bg-[#FFC928]'
             : index < current
-            ? 'w-1.5 bg-[#ff9a56]'
+            ? 'w-1.5 bg-[#FFD65A]'
             : 'w-1.5 bg-slate-200'
         }`}
       />
@@ -51,11 +51,11 @@ const StepShell = ({ icon: Icon, tint, title, blurb, children }) => (
       <Icon size={30} />
     </div>
 
-    <h2 className="text-center text-lg font-extrabold text-[#0b1c30]">
+    <h2 className="text-center text-lg font-extrabold text-[#101F55]">
       {title}
     </h2>
 
-    <p className="mx-auto mt-1.5 max-w-xs text-center text-xs leading-relaxed text-[#4e5c92]">
+    <p className="mx-auto mt-1.5 max-w-xs text-center text-xs leading-relaxed text-[#4E5C92]">
       {blurb}
     </p>
 
@@ -152,7 +152,7 @@ export const OnboardingScreen = () => {
   const languageStep = (
     <StepShell
       icon={Languages}
-      tint="bg-[#d3e4fe] text-[#354479]"
+      tint="bg-[#FFE7A8] text-[#101F55]"
       title="Pick your language"
       blurb="GigEzee works in English, Tamil and Kannada. You can change this any time in Settings."
     >
@@ -164,16 +164,16 @@ export const OnboardingScreen = () => {
             onClick={() => setLanguage(option.code)}
             className={`flex w-full items-center justify-between rounded-2xl border p-3.5 text-left transition-all ${
               language === option.code
-                ? 'border-[#ff6a00] bg-[#fff3ea]'
+                ? 'border-[#FFC928] bg-[#FFF3D5]'
                 : 'border-slate-200 bg-white hover:border-slate-300'
             }`}
           >
-            <span className="text-sm font-bold text-[#0b1c30]">
+            <span className="text-sm font-bold text-[#101F55]">
               {option.label}
             </span>
 
             {language === option.code && (
-              <CheckCircle2 size={20} className="text-[#ff6a00]" />
+              <CheckCircle2 size={20} className="text-[#101F55]" />
             )}
           </button>
         ))}
@@ -184,7 +184,7 @@ export const OnboardingScreen = () => {
   const contactStep = (
     <StepShell
       icon={Phone}
-      tint="bg-[#6ffbbe]/60 text-[#005236]"
+      tint="bg-[#FFE7A8]/60 text-[#101F55]"
       title="How can we reach you?"
       blurb={
         isPartner
@@ -205,7 +205,7 @@ export const OnboardingScreen = () => {
           className={`mt-1.5 w-full rounded-full border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
             phoneError
               ? 'border-red-300 bg-red-50/60 focus:ring-red-300/50'
-              : 'border-slate-200 bg-[#f8f9ff] focus:ring-[#ff6a00]/40'
+              : 'border-slate-200 bg-[#FFF3D5] focus:ring-[#FFC928]/40'
           }`}
         />
 
@@ -221,7 +221,7 @@ export const OnboardingScreen = () => {
   const areaStep = (
     <StepShell
       icon={MapPin}
-      tint="bg-[#ffdbcc] text-[#7b2f00]"
+      tint="bg-[#FFE7A8] text-[#101F55]"
       title={isPartner ? 'Where do you work?' : 'Where do you need help?'}
       blurb={
         isPartner
@@ -239,7 +239,7 @@ export const OnboardingScreen = () => {
           value={area}
           onChange={(event) => setArea(event.target.value)}
           placeholder="e.g. Anna Nagar, Chennai"
-          className="mt-1.5 w-full rounded-full border border-slate-200 bg-[#f8f9ff] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
+          className="mt-1.5 w-full rounded-full border border-slate-200 bg-[#FFF3D5] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
         />
       </label>
 
@@ -247,7 +247,7 @@ export const OnboardingScreen = () => {
         type="button"
         onClick={useMyLocation}
         disabled={locating}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-[#ff6a00]/30 bg-[#fff3ea] py-2.5 text-xs font-bold text-[#a14000] disabled:opacity-60"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-[#FFC928]/30 bg-[#FFF3D5] py-2.5 text-xs font-bold text-[#101F55] disabled:opacity-60"
       >
         <Navigation size={15} />
         {locating ? 'Finding you…' : 'Use my current location'}
@@ -258,18 +258,18 @@ export const OnboardingScreen = () => {
   const partnerReadyStep = (
     <StepShell
       icon={Wrench}
-      tint="bg-[#d3e4fe] text-[#354479]"
+      tint="bg-[#FFE7A8] text-[#101F55]"
       title="Two things left"
       blurb="Finish these and customers can start booking you. Both live in your dashboard."
     >
       <div className="space-y-2.5">
         <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5">
-          <Wrench size={18} className="mt-0.5 shrink-0 text-[#354479]" />
+          <Wrench size={18} className="mt-0.5 shrink-0 text-[#101F55]" />
           <div>
-            <p className="text-xs font-bold text-[#0b1c30]">
+            <p className="text-xs font-bold text-[#101F55]">
               List your services
             </p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-[#4e5c92]">
+            <p className="mt-0.5 text-[10px] leading-relaxed text-[#4E5C92]">
               Pick the work you do and what you charge. Until you add one,
               you will not appear in search.
             </p>
@@ -277,24 +277,24 @@ export const OnboardingScreen = () => {
         </div>
 
         <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5">
-          <Wallet size={18} className="mt-0.5 shrink-0 text-[#005236]" />
+          <Wallet size={18} className="mt-0.5 shrink-0 text-[#101F55]" />
           <div>
-            <p className="text-xs font-bold text-[#0b1c30]">
+            <p className="text-xs font-bold text-[#101F55]">
               Add your payout details
             </p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-[#4e5c92]">
+            <p className="mt-0.5 text-[10px] leading-relaxed text-[#4E5C92]">
               Where your earnings are sent after each completed job.
             </p>
           </div>
         </div>
 
-        <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3.5">
-          <ShieldCheck size={18} className="mt-0.5 shrink-0 text-emerald-600" />
+        <div className="flex items-start gap-3 rounded-2xl border border-[#FFE7A8] bg-[#FFF7E0]/60 p-3.5">
+          <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[#101F55]" />
           <div>
-            <p className="text-xs font-bold text-[#0b1c30]">
+            <p className="text-xs font-bold text-[#101F55]">
               Your documents are in review
             </p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-[#4e5c92]">
+            <p className="mt-0.5 text-[10px] leading-relaxed text-[#4E5C92]">
               GigEzee checks every partner. You can start taking jobs while
               this is in progress.
             </p>
@@ -307,7 +307,7 @@ export const OnboardingScreen = () => {
   const memberReadyStep = (
     <StepShell
       icon={ShieldCheck}
-      tint="bg-[#6ffbbe]/60 text-[#005236]"
+      tint="bg-[#FFE7A8]/60 text-[#101F55]"
       title="How GigEzee keeps you safe"
       blurb="Three things worth knowing before your first booking."
     >
@@ -330,10 +330,10 @@ export const OnboardingScreen = () => {
             key={item.title}
             className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5"
           >
-            <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-500" />
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#101F55]" />
             <div>
-              <p className="text-xs font-bold text-[#0b1c30]">{item.title}</p>
-              <p className="mt-0.5 text-[10px] leading-relaxed text-[#4e5c92]">
+              <p className="text-xs font-bold text-[#101F55]">{item.title}</p>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-[#4E5C92]">
                 {item.body}
               </p>
             </div>
@@ -359,11 +359,11 @@ export const OnboardingScreen = () => {
   };
 
   return (
-    <div className="flex w-full flex-1 flex-col bg-gradient-to-b from-[#fff3ea] via-[#f8f9ff] to-[#f8f9ff]">
+    <div className="flex w-full flex-1 flex-col bg-gradient-to-b from-[#FFF3D5] via-[#FFF3D5] to-[#FFF3D5]">
       <header className="flex shrink-0 items-center justify-between px-4 pt-5 pb-2">
         <div className="flex items-center gap-2">
           <img src="/logo.svg" alt="GigEzee" className="h-5 w-5 object-contain" />
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#7b2f00]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#101F55]">
             Getting started
           </span>
         </div>
@@ -371,7 +371,7 @@ export const OnboardingScreen = () => {
         <button
           type="button"
           onClick={skip}
-          className="text-[11px] font-bold text-[#4e5c92] hover:underline"
+          className="text-[11px] font-bold text-[#4E5C92] hover:underline"
         >
           Skip
         </button>
@@ -387,7 +387,7 @@ export const OnboardingScreen = () => {
             type="button"
             disabled={blocked || saving}
             onClick={() => (isLast ? finish() : setStep((value) => value + 1))}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#ff6a00] to-[#ff9a56] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#ff6a00]/30 transition-all active:scale-98 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FFC928] to-[#FFD65A] py-3.5 text-sm font-bold text-[#101F55] shadow-lg shadow-[#FFC928]/30 transition-all active:scale-98 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none"
           >
             <span>
               {saving
@@ -405,7 +405,7 @@ export const OnboardingScreen = () => {
             <button
               type="button"
               onClick={() => setStep((value) => value - 1)}
-              className="w-full text-center text-[11px] font-bold text-[#4e5c92] hover:underline"
+              className="w-full text-center text-[11px] font-bold text-[#4E5C92] hover:underline"
             >
               Back
             </button>

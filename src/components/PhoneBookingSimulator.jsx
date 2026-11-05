@@ -156,7 +156,7 @@ export const PhoneBookingSimulator = () => {
             type="button"
             disabled={busy || phone.replace(/\D/g, '').length < 10}
             onClick={startCall}
-            className="shrink-0 font-bold text-white bg-[#006c49] rounded-lg px-3 disabled:opacity-60"
+            className="shrink-0 font-bold text-white bg-[#101F55] rounded-lg px-3 disabled:opacity-60"
           >
             Call
           </button>
@@ -164,17 +164,17 @@ export const PhoneBookingSimulator = () => {
       </div>
 
       {lines.length > 0 && (
-        <div ref={transcriptRef} className="max-h-64 overflow-y-auto space-y-1.5 bg-[#f8f9ff] rounded-xl p-2">
+        <div ref={transcriptRef} className="max-h-64 overflow-y-auto space-y-1.5 bg-[#FFF3D5] rounded-xl p-2">
           {lines.map((line, index) => (
             <p
               key={index}
               data-no-translate
               className={
                 line.from === 'caller'
-                  ? 'text-right font-mono font-bold text-[#a14000]'
+                  ? 'text-right font-mono font-bold text-[#101F55]'
                   : line.from === 'note'
-                  ? 'rounded-lg bg-amber-50 p-1.5 text-amber-700'
-                  : 'text-[#0b1c30]'
+                  ? 'rounded-lg bg-[#FFF7E0] p-1.5 text-[#101F55]'
+                  : 'text-[#101F55]'
               }
             >
               {line.text}
@@ -208,8 +208,8 @@ export const PhoneBookingSimulator = () => {
             type="button"
             disabled={busy || listening}
             onClick={listen}
-            className={`w-full py-2 rounded-lg font-bold text-white flex items-center justify-center gap-1 disabled:opacity-70 ${
-              listening ? 'bg-red-500 animate-pulse' : 'bg-[#ff6a00]'
+            className={`w-full py-2 rounded-lg font-bold flex items-center justify-center gap-1 disabled:opacity-70 ${
+              listening ? 'bg-red-500 text-white animate-pulse' : 'bg-[#FFC928] text-[#101F55]'
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">mic</span>
@@ -222,7 +222,7 @@ export const PhoneBookingSimulator = () => {
                 type="button"
                 disabled={busy}
                 onClick={() => pressKey(key)}
-                className="py-2 rounded-lg bg-[#eff4ff] text-sm font-bold text-[#0b1c30] disabled:opacity-60"
+                className="py-2 rounded-lg bg-[#FFF3D5] text-sm font-bold text-[#101F55] disabled:opacity-60"
               >
                 {key}
               </button>

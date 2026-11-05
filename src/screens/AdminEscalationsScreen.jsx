@@ -38,7 +38,7 @@ const Card = ({ children, className = '' }) => (
 );
 
 const SectionTitle = ({ children }) => (
-  <h2 className="text-xs font-extrabold text-[#0b1c30] uppercase tracking-wide pt-2">
+  <h2 className="text-xs font-extrabold text-[#101F55] uppercase tracking-wide pt-2">
     {children}
   </h2>
 );
@@ -50,13 +50,13 @@ const ReviewItem = ({ complaint, onDecide, busy }) => {
 
   return (
     <Card>
-      <p className="font-bold text-[#0b1c30]">
+      <p className="font-bold text-[#101F55]">
         {`${complaint.partner_name} • ${complaint.service_title}`}
       </p>
       <p className="text-slate-500">
         {`${complaint.customer_name} reported: ${complaint.reason_label} (${formatDate(complaint.created_at)})`}
       </p>
-      {complaint.description && <p className="text-[#5a4136]">{`"${complaint.description}"`}</p>}
+      {complaint.description && <p className="text-[#4E5C92]">{`"${complaint.description}"`}</p>}
       {complaint.partner_response && (
         <p className="bg-slate-50 rounded-lg p-2">
           <span className="font-bold">Partner replied: </span>
@@ -169,16 +169,16 @@ const WithdrawalsSection = () => {
         [...waiting, ...decided.slice(0, 10)].map((item) => (
           <Card key={item.id} className={isOpen(item) ? '' : 'opacity-70'}>
             <div className="flex justify-between gap-2">
-              <p className="font-bold text-[#0b1c30]">
+              <p className="font-bold text-[#101F55]">
                 {`${item.partner_name}${item.partner_phone ? ` • ${item.partner_phone}` : ''}`}
               </p>
-              <p className="font-extrabold text-[#0b1c30] shrink-0">{formatRupees(item.amount)}</p>
+              <p className="font-extrabold text-[#101F55] shrink-0">{formatRupees(item.amount)}</p>
             </div>
 
             {item.method === 'UPI' ? (
-              <p className="text-[#5a4136] select-all">{`UPI: ${item.upi_id}`}</p>
+              <p className="text-[#4E5C92] select-all">{`UPI: ${item.upi_id}`}</p>
             ) : (
-              <p className="text-[#5a4136] select-all">
+              <p className="text-[#4E5C92] select-all">
                 {`Bank: ${item.account_holder} • A/c ${item.account_number || `••••${item.account_last4}`} • IFSC ${item.ifsc}`}
               </p>
             )}
@@ -199,7 +199,7 @@ const WithdrawalsSection = () => {
                   type="button"
                   disabled={busy}
                   onClick={() => decide(item, 'paid')}
-                  className="flex-1 font-bold text-white bg-[#006c49] rounded-lg py-2 disabled:opacity-60"
+                  className="flex-1 font-bold text-white bg-[#101F55] rounded-lg py-2 disabled:opacity-60"
                 >
                   Mark paid
                 </button>
@@ -376,7 +376,7 @@ export const AdminEscalationsScreen = () => {
 
   if (error) {
     return (
-      <div className="flex-1 flex flex-col w-full bg-[#f8f9ff] min-h-screen">
+      <div className="flex-1 flex flex-col w-full bg-[#FFF3D5] min-h-screen">
         <SubHeader title="Partner Escalations" />
         <p className="p-4 text-xs text-red-500">{error}</p>
       </div>
@@ -387,7 +387,7 @@ export const AdminEscalationsScreen = () => {
   const waiting = data?.complaints.filter((c) => c.status !== 'NEEDS_REVIEW') || [];
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
+    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5] min-h-screen">
       <SubHeader title="Partner Escalations" />
 
       <main className="flex-1 flex flex-col w-full pb-10 px-4 space-y-2 pt-3">
@@ -405,8 +405,8 @@ export const AdminEscalationsScreen = () => {
               data.id_verifications.map((verification) => (
                 <Card key={verification.id}>
                   <div className="min-w-0">
-                    <p className="font-bold text-[#0b1c30] truncate">{verification.name}</p>
-                    <p className="text-amber-600 font-bold">Aadhaar, PAN and Voter ID under review</p>
+                    <p className="font-bold text-[#101F55] truncate">{verification.name}</p>
+                    <p className="text-[#101F55] font-bold">Aadhaar, PAN and Voter ID under review</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {ID_DOCUMENT_LABELS.map(({ kind, label }) => (
@@ -415,7 +415,7 @@ export const AdminEscalationsScreen = () => {
                         type="button"
                         disabled={!verification.documents?.[kind]}
                         onClick={() => openIdDocument(verification, kind)}
-                        className="font-bold text-[#a14000] border border-[#dce9ff] rounded-lg px-3 py-2 disabled:opacity-40"
+                        className="font-bold text-[#101F55] border border-[#FFE7A8] rounded-lg px-3 py-2 disabled:opacity-40"
                       >
                         {`Open ${label}`}
                       </button>
@@ -426,7 +426,7 @@ export const AdminEscalationsScreen = () => {
                       type="button"
                       disabled={busy}
                       onClick={() => decideIdVerification(verification, 'VERIFIED')}
-                      className="flex-1 font-bold text-white bg-[#006c49] rounded-lg py-2 disabled:opacity-60"
+                      className="flex-1 font-bold text-white bg-[#101F55] rounded-lg py-2 disabled:opacity-60"
                     >
                       Approve
                     </button>
@@ -454,8 +454,8 @@ export const AdminEscalationsScreen = () => {
                 <Card key={verification.id}>
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
-                      <p className="font-bold text-[#0b1c30] truncate">{verification.name}</p>
-                      <p className={verification.status === 'REJECTED' ? 'text-red-500 font-bold' : 'text-amber-600 font-bold'}>
+                      <p className="font-bold text-[#101F55] truncate">{verification.name}</p>
+                      <p className={verification.status === 'REJECTED' ? 'text-red-500 font-bold' : 'text-[#101F55] font-bold'}>
                         {verification.status === 'REJECTED' ? 'Rejected — awaiting re-upload' : 'Certificate under review'}
                       </p>
                       <p className="text-slate-500">{verification.file_name || 'Certificate file unavailable'}</p>
@@ -464,7 +464,7 @@ export const AdminEscalationsScreen = () => {
                       <button
                         type="button"
                         onClick={() => openPoliceCertificate(verification)}
-                        className="shrink-0 font-bold text-[#a14000] border border-[#dce9ff] rounded-lg px-3 py-2"
+                        className="shrink-0 font-bold text-[#101F55] border border-[#FFE7A8] rounded-lg px-3 py-2"
                       >
                         Open
                       </button>
@@ -475,7 +475,7 @@ export const AdminEscalationsScreen = () => {
                       type="button"
                       disabled={busy || !verification.has_certificate}
                       onClick={() => decidePoliceVerification(verification, 'VERIFIED')}
-                      className="flex-1 font-bold text-white bg-[#006c49] rounded-lg py-2 disabled:opacity-60"
+                      className="flex-1 font-bold text-white bg-[#101F55] rounded-lg py-2 disabled:opacity-60"
                     >
                       Approve
                     </button>
@@ -514,7 +514,7 @@ export const AdminEscalationsScreen = () => {
             ) : (
               waiting.map((complaint) => (
                 <Card key={complaint.id}>
-                  <p className="font-bold text-[#0b1c30]">
+                  <p className="font-bold text-[#101F55]">
                     {`${complaint.partner_name} • ${complaint.reason_label}`}
                   </p>
                   <p className="text-slate-500">
@@ -580,8 +580,8 @@ export const AdminEscalationsScreen = () => {
                 <Card key={partner.id}>
                   <div className="flex justify-between items-center gap-2">
                     <div className="min-w-0">
-                      <p className="font-bold text-[#0b1c30] truncate">{partner.name}</p>
-                      <p className={partner.deactivated ? 'text-red-500 font-bold' : partner.suspended ? 'text-amber-600 font-bold' : 'text-[#006c49] font-bold'}>
+                      <p className="font-bold text-[#101F55] truncate">{partner.name}</p>
+                      <p className={partner.deactivated ? 'text-red-500 font-bold' : partner.suspended ? 'text-[#101F55] font-bold' : 'text-[#101F55] font-bold'}>
                         {partner.deactivated
                           ? `Deactivated ${formatDate(partner.deactivated_at)}`
                           : partner.suspended
@@ -594,7 +594,7 @@ export const AdminEscalationsScreen = () => {
                         type="button"
                         disabled={busy}
                         onClick={() => reactivate(partner)}
-                        className="shrink-0 font-bold text-white bg-[#006c49] rounded-lg px-3 py-2 disabled:opacity-60"
+                        className="shrink-0 font-bold text-white bg-[#101F55] rounded-lg px-3 py-2 disabled:opacity-60"
                       >
                         Reactivate
                       </button>
@@ -610,7 +610,7 @@ export const AdminEscalationsScreen = () => {
                     )}
                   </div>
                   {partner.deactivated && partner.deactivation_reason && (
-                    <p className="text-[#5a4136]">{`Reason: ${partner.deactivation_reason}`}</p>
+                    <p className="text-[#4E5C92]">{`Reason: ${partner.deactivation_reason}`}</p>
                   )}
                 </Card>
               ))
@@ -633,7 +633,7 @@ export const AdminEscalationsScreen = () => {
                   className={escalation.status === 'OVERTURNED' ? 'opacity-60' : ''}
                 >
                   <div className="flex justify-between gap-2">
-                    <p className="font-bold text-[#0b1c30]">
+                    <p className="font-bold text-[#101F55]">
                       {`${escalation.partner_name}: ${escalation.severity === 'STRIKE' ? 'Strike' : 'Warning'}`}
                     </p>
                     {escalation.status === 'ACTIVE' ? (
@@ -641,20 +641,20 @@ export const AdminEscalationsScreen = () => {
                         type="button"
                         disabled={busy}
                         onClick={() => overturn(escalation)}
-                        className="text-[#4e5c92] font-bold shrink-0"
+                        className="text-[#4E5C92] font-bold shrink-0"
                       >
                         Overturn
                       </button>
                     ) : (
-                      <span className="text-[#006c49] font-bold shrink-0">Overturned</span>
+                      <span className="text-[#101F55] font-bold shrink-0">Overturned</span>
                     )}
                   </div>
                   <p className="text-slate-500">
                     {`${escalation.source_label} • ${formatDate(escalation.created_at)}`}
                   </p>
-                  <p className="text-[#5a4136]">{escalation.reason}</p>
+                  <p className="text-[#4E5C92]">{escalation.reason}</p>
                   {escalation.overturn_note && (
-                    <p className="text-[#006c49]">{`Overturned: ${escalation.overturn_note}`}</p>
+                    <p className="text-[#101F55]">{`Overturned: ${escalation.overturn_note}`}</p>
                   )}
                 </Card>
               ))

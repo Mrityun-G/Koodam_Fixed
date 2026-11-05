@@ -109,8 +109,8 @@ export const toHelper = (service, partner) => ({
 
   badgeColor:
     partner.is_verified
-      ? 'bg-[#6ffbbe] text-[#002113]'
-      : 'bg-[#dce1ff] text-[#05164b]',
+      ? 'bg-[#FFE7A8] text-[#101F55]'
+      : 'bg-[#FFE7A8] text-[#101F55]',
 
   serviceRadiusKm:
     Number(partner.service_radius_km || 5),

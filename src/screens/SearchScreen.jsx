@@ -40,10 +40,8 @@ const ServiceRow = ({ service, onSelect }) => {
       ) : (
         <div
           className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-          style={{
-            backgroundColor: service.bg_color || '#e5eeff',
-            color: service.icon_color || '#4e5c92'
-          }}
+          // Brand colours rather than the tile colours stored with the service
+          style={{ backgroundColor: '#FFF3D5', color: '#101F55' }}
         >
           <span className="material-symbols-outlined text-[22px]">
             {service.icon || 'home_repair_service'}
@@ -52,8 +50,8 @@ const ServiceRow = ({ service, onSelect }) => {
       )}
 
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-bold text-[#0b1c30] truncate">{service.title}</span>
-        <span className="text-[11px] text-[#5a4136] truncate">{helperCountLabel(service)}</span>
+        <span className="text-sm font-bold text-[#101F55] truncate">{service.title}</span>
+        <span className="text-[11px] text-[#4E5C92] truncate">{helperCountLabel(service)}</span>
       </div>
 
       <span className="material-symbols-outlined text-[20px] text-slate-300 shrink-0">
@@ -168,7 +166,7 @@ export const SearchScreen = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
+    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5]">
       <Header subtitle="Search" />
 
       <main className="flex-1 flex flex-col relative w-full pb-6">
@@ -181,7 +179,7 @@ export const SearchScreen = () => {
               // Hides the phone keyboard so the results can be seen
               inputRef.current?.blur();
             }}
-            className="flex items-center gap-2 bg-white rounded-2xl p-1.5 shadow-xs border border-slate-100 focus-within:border-[#ffb38a] transition-colors"
+            className="flex items-center gap-2 bg-white rounded-2xl p-1.5 shadow-xs border border-slate-100 focus-within:border-[#FFD65A] transition-colors"
           >
             <div className="flex items-center gap-2 flex-1 pl-2 min-w-0">
               <span className="material-symbols-outlined text-slate-400 text-[20px] shrink-0">
@@ -191,7 +189,7 @@ export const SearchScreen = () => {
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="w-full bg-transparent text-[#0b1c30] placeholder:text-slate-400 text-sm focus:outline-none min-w-0 font-medium py-1.5"
+                className="w-full bg-transparent text-[#101F55] placeholder:text-slate-400 text-sm focus:outline-none min-w-0 font-medium py-1.5"
                 placeholder='Search "AC repair", "Electrician", "Elder care"...'
                 type="text"
                 enterKeyHint="search"
@@ -224,7 +222,7 @@ export const SearchScreen = () => {
         ) : loadFailed && services.length === 0 ? (
           <div className="mx-4 mt-2 bg-white rounded-2xl p-6 text-center border border-slate-100">
             <span className="material-symbols-outlined text-slate-400 text-3xl">cloud_off</span>
-            <p className="text-sm font-semibold text-[#0b1c30] mt-2">
+            <p className="text-sm font-semibold text-[#101F55] mt-2">
               Couldn't load services
             </p>
             <p className="text-xs text-slate-500 mt-1">
@@ -236,7 +234,7 @@ export const SearchScreen = () => {
                 setLoading(true);
                 setReloadKey((key) => key + 1);
               }}
-              className="mt-3 px-4 py-2 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all"
+              className="mt-3 px-4 py-2 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold active:scale-95 transition-all"
             >
               Try again
             </button>
@@ -245,8 +243,8 @@ export const SearchScreen = () => {
           // Nothing typed yet: every service, to browse
           <section className="px-4 pt-2 flex flex-col gap-2">
             <div>
-              <h2 className="text-base font-bold text-[#0b1c30]">Browse services</h2>
-              <p className="text-xs text-[#5a4136]">
+              <h2 className="text-base font-bold text-[#101F55]">Browse services</h2>
+              <p className="text-xs text-[#4E5C92]">
                 {`Helpers who can reach ${areaName}`}
               </p>
             </div>
@@ -259,7 +257,7 @@ export const SearchScreen = () => {
           <>
             {matchingServices.length > 0 && (
               <section className="px-4 pt-2 flex flex-col gap-2">
-                <h2 className="text-base font-bold text-[#0b1c30]">Services</h2>
+                <h2 className="text-base font-bold text-[#101F55]">Services</h2>
 
                 {matchingServices.map((service) => (
                   <ServiceRow key={service.id} service={service} onSelect={selectService} />
@@ -269,7 +267,7 @@ export const SearchScreen = () => {
 
             <section className="px-4 pt-4 flex flex-col gap-3">
               {(matchingServices.length > 0 || matchingHelpers.length > 0) && (
-                <h2 className="text-base font-bold text-[#0b1c30]">Helpers</h2>
+                <h2 className="text-base font-bold text-[#101F55]">Helpers</h2>
               )}
 
               {matchingHelpers.map((helper) => (
@@ -281,7 +279,7 @@ export const SearchScreen = () => {
                   <span className="material-symbols-outlined text-slate-400 text-3xl">
                     person_search
                   </span>
-                  <p className="text-sm font-semibold text-[#0b1c30] mt-2">
+                  <p className="text-sm font-semibold text-[#101F55] mt-2">
                     No helpers nearby for this yet
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
@@ -295,7 +293,7 @@ export const SearchScreen = () => {
                   <span className="material-symbols-outlined text-slate-400 text-3xl">
                     search_off
                   </span>
-                  <p className="text-sm font-semibold text-[#0b1c30] mt-2">
+                  <p className="text-sm font-semibold text-[#101F55] mt-2">
                     {`No results for "${query.trim()}"`}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
@@ -304,7 +302,7 @@ export const SearchScreen = () => {
                   <button
                     type="button"
                     onClick={() => setQuery('')}
-                    className="mt-3 px-4 py-2 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[#a14000] text-xs font-bold active:scale-95 transition-all"
+                    className="mt-3 px-4 py-2 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] text-[#101F55] text-xs font-bold active:scale-95 transition-all"
                   >
                     Browse all services
                   </button>

@@ -51,22 +51,22 @@ export class ErrorBoundary extends React.Component {
     }
 
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-[#f8f9ff] px-6 py-10">
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#FFF3D5] px-6 py-10">
         <div className="w-full max-w-sm text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#ffdbcc]">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFE7A8]">
             <span
-              className="material-symbols-outlined text-[32px] text-[#a14000]"
+              className="material-symbols-outlined text-[32px] text-[#F47B16]"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               sentiment_dissatisfied
             </span>
           </div>
 
-          <h1 className="text-lg font-extrabold text-[#0b1c30]">
+          <h1 className="text-lg font-extrabold text-[#101F55]">
             Something went wrong
           </h1>
 
-          <p className="mt-2 text-xs leading-relaxed text-[#4e5c92]">
+          <p className="mt-2 text-xs leading-relaxed text-[#4E5C92]">
             Sorry — GigEzee hit a problem on this screen. Nothing you had
             booked is affected, and our team has been told about it.
           </p>
@@ -74,7 +74,7 @@ export class ErrorBoundary extends React.Component {
           <button
             type="button"
             onClick={this.handleRetry}
-            className="mt-6 w-full rounded-full bg-gradient-to-r from-[#ff6a00] to-[#ff9a56] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#ff6a00]/30 active:scale-98 transition-all"
+            className="mt-6 w-full rounded-full bg-gradient-to-r from-[#FFC928] to-[#FFD65A] py-3.5 text-sm font-bold text-[#101F55] shadow-lg shadow-[#FFC928]/30 active:scale-98 transition-all"
           >
             Try again
           </button>
@@ -82,7 +82,7 @@ export class ErrorBoundary extends React.Component {
           <button
             type="button"
             onClick={this.handleRestart}
-            className="mt-2.5 w-full rounded-full border border-slate-200 bg-white py-3.5 text-sm font-bold text-[#0b1c30] active:scale-98 transition-all"
+            className="mt-2.5 w-full rounded-full border border-slate-200 bg-white py-3.5 text-sm font-bold text-[#101F55] active:scale-98 transition-all"
           >
             Back to start
           </button>

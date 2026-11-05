@@ -53,7 +53,7 @@ const CONTENT = {
 const inputClass = 'w-full border border-slate-200 rounded-lg p-2 bg-white';
 
 const SectionTitle = ({ children }) => (
-  <h2 className="text-xs font-extrabold text-[#0b1c30] uppercase tracking-wide pt-2">
+  <h2 className="text-xs font-extrabold text-[#101F55] uppercase tracking-wide pt-2">
     {children}
   </h2>
 );
@@ -110,11 +110,11 @@ const ContentEditor = ({ contentKey, items, onSaved }) => {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-3.5 space-y-2 text-[11px]">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-bold text-[#0b1c30]">{`${spec.title} (${items.length})`}</p>
+        <p className="font-bold text-[#101F55]">{`${spec.title} (${items.length})`}</p>
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="font-bold text-[#a14000]"
+          className="font-bold text-[#101F55]"
         >
           {open ? 'Close' : 'Edit'}
         </button>
@@ -125,7 +125,7 @@ const ContentEditor = ({ contentKey, items, onSaved }) => {
           {spec.note && <p className="text-slate-400">{spec.note}</p>}
 
           {draft.map((item, index) => (
-            <div key={index} className="rounded-xl bg-[#f8f9ff] p-2.5 space-y-1.5">
+            <div key={index} className="rounded-xl bg-[#FFF3D5] p-2.5 space-y-1.5">
               {spec.fields.map((field) => {
                 const value = field.lines
                   ? (item[field.name] || []).join('\n')
@@ -165,7 +165,7 @@ const ContentEditor = ({ contentKey, items, onSaved }) => {
             <button
               type="button"
               onClick={() => setDraft((previous) => [...previous, { ...spec.blank }])}
-              className="flex-1 font-bold text-[#4e5c92] border border-slate-200 rounded-lg py-2"
+              className="flex-1 font-bold text-[#4E5C92] border border-slate-200 rounded-lg py-2"
             >
               Add
             </button>
@@ -173,7 +173,7 @@ const ContentEditor = ({ contentKey, items, onSaved }) => {
               type="button"
               disabled={saving}
               onClick={save}
-              className="flex-1 font-bold text-white bg-[#006c49] rounded-lg py-2 disabled:opacity-60"
+              className="flex-1 font-bold text-white bg-[#101F55] rounded-lg py-2 disabled:opacity-60"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -237,7 +237,7 @@ export const AdminAppSettings = () => {
           <>
             {SETTINGS.map(({ key, label }) => (
               <label key={key} className="flex items-center justify-between gap-3">
-                <span className="text-[#0b1c30] font-bold">{label}</span>
+                <span className="text-[#101F55] font-bold">{label}</span>
                 <input
                   type="number"
                   min="0"
@@ -249,7 +249,7 @@ export const AdminAppSettings = () => {
               </label>
             ))}
             <label className="flex items-center justify-between gap-3">
-              <span className="text-[#0b1c30] font-bold">GSTIN</span>
+              <span className="text-[#101F55] font-bold">GSTIN</span>
               <input
                 type="text"
                 maxLength={15}
@@ -268,7 +268,7 @@ export const AdminAppSettings = () => {
               type="button"
               disabled={saving}
               onClick={saveSettings}
-              className="w-full font-bold text-white bg-[#006c49] rounded-lg py-2 disabled:opacity-60"
+              className="w-full font-bold text-white bg-[#101F55] rounded-lg py-2 disabled:opacity-60"
             >
               {saving ? 'Saving...' : 'Save settings'}
             </button>

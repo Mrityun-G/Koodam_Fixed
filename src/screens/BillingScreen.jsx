@@ -17,7 +17,7 @@ export const BillingScreen = () => {
   ).length;
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
+    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5] min-h-screen">
       <SubHeader title="Billing History" />
 
       <main className="flex-1 flex flex-col w-full pb-10 px-4 space-y-3 pt-3">
@@ -28,7 +28,7 @@ export const BillingScreen = () => {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
               Total paid
             </p>
-            <p className="text-lg font-extrabold text-[#006c49]">
+            <p className="text-lg font-extrabold text-[#101F55]">
               ₹{totalPaid.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
             </p>
             <p className="text-[10px] text-slate-500">
@@ -40,7 +40,7 @@ export const BillingScreen = () => {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
               Awaiting payment
             </p>
-            <p className={`text-lg font-extrabold ${pendingCount > 0 ? 'text-amber-600' : 'text-[#0b1c30]'}`}>
+            <p className={`text-lg font-extrabold ${pendingCount > 0 ? 'text-[#101F55]' : 'text-[#101F55]'}`}>
               {pendingCount}
             </p>
             <p className="text-[10px] text-slate-500">
