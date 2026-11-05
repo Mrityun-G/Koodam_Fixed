@@ -838,20 +838,10 @@ useEffect(() => {
   activeOrder.bookingStatus
 ]);
 
-// A request the member cancelled, or the partner declined or never
-// answered, is over: clear it so Requests goes back to its fresh "No
-// active booking" page. The member has already been told why (a toast,
-// and a notification for a decline or no answer), and the order
-// listener has already sent the closed status to the backend.
-useEffect(() => {
-  if (
-    role !== 'member' ||
-    !activeOrder.orderId ||
-    !CLOSED_BOOKING_STATUSES.includes(activeOrder.bookingStatus)
-  ) {
-    return;
-  }
-
+// Let go of the member's booking, so Requests goes back to its fresh
+// "No active booking" page. Its record stays in Supabase (Billing
+// History); only this device stops following it.
+const finishActiveOrder = () => {
   try {
     loginStorage().removeItem(ACTIVE_ORDER_KEY);
   } catch {
@@ -859,7 +849,38 @@ useEffect(() => {
   }
 
   setActiveOrder(EMPTY_ORDER);
-}, [role, activeOrder.orderId, activeOrder.bookingStatus]);
+};
+
+// A booking that is over is cleared by itself:
+// - cancelled, declined or never answered: straight away. The member has
+//   already been told why (a toast, and a notification for a decline or
+//   no answer).
+// - paid and rated: after a moment, so the "Thanks for rating" card is
+//   seen first.
+// Either way the order listener has already sent the final status (and
+// the rating) to the backend.
+useEffect(() => {
+  if (role !== 'member' || !activeOrder.orderId) {
+    return undefined;
+  }
+
+  const closed = CLOSED_BOOKING_STATUSES.includes(activeOrder.bookingStatus);
+  const done = activeOrder.paymentStatus === 'PAID' && Boolean(activeOrder.rating);
+
+  if (!closed && !done) {
+    return undefined;
+  }
+
+  const timer = setTimeout(finishActiveOrder, closed ? 0 : 3000);
+
+  return () => clearTimeout(timer);
+}, [
+  role,
+  activeOrder.orderId,
+  activeOrder.bookingStatus,
+  activeOrder.paymentStatus,
+  activeOrder.rating
+]);
 
 // Drives the dot on the Requests tab. activeOrder is always an object (it
 // starts as EMPTY_ORDER), so testing it for truthiness pins the dot on
@@ -5152,6 +5173,7 @@ return (
       markPaymentCompleted,
 
       submitRating,
+      finishActiveOrder,
       cancelBookingRequest,
 
       togglePartnerDuty,
