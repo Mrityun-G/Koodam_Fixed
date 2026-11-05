@@ -3,7 +3,7 @@ from sqlalchemy import (
     select, func, cast, case
 )
 from sqlalchemy.orm import column_property
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 import uuid
 
 from app.config import RELIABILITY_DAYS, WARNING_POINTS, STRIKE_POINTS
@@ -76,6 +76,12 @@ class Partner(Base):
     latitude = Column(Float, nullable=True)
 
     longitude = Column(Float, nullable=True)
+
+    # The days and times the partner works, and their dates off; see
+    # app/working_hours.py. NULL hours = bookable at any standard time.
+    working_hours = Column(JSONB, nullable=True)
+
+    days_off = Column(JSONB, nullable=True)
 
     # Hidden from customers until then, after too many strikes
     suspended_until = Column(DateTime, nullable=True)

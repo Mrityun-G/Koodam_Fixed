@@ -6,6 +6,7 @@ rules_version = '2';
 //
 //   partnerDocuments/<firebase uid>/...  Aadhaar, PAN and Voter ID scans
 //   repairPhotos/<order id>/...          before/after photos of a job
+//   chatVideos/<order key>/...           video clips sent in the chat
 //
 // Without rules, Storage is either open to the whole internet (test
 // mode) or shut (locked mode). The KYC scans are the most sensitive
@@ -53,6 +54,18 @@ service firebase.storage {
       allow write: if signedIn()
                    && request.resource.contentType.matches('image/.*')
                    && under(5);
+    }
+
+    // ---------------------------------------------------------------
+    // Chat videos - either side of the booking records or picks one;
+    // both are signed in. Capped so a clip stays sendable on mobile data.
+    // ---------------------------------------------------------------
+    match /chatVideos/{orderKey}/{video=**} {
+      allow read: if signedIn();
+
+      allow write: if signedIn()
+                   && request.resource.contentType.matches('video/.*')
+                   && under(50);
     }
 
     // ---------------------------------------------------------------

@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
 import { Avatar } from '../components/Avatar';
+import { VerifiedTag } from '../components/VerifiedTag';
 import { MapTiles } from '../components/LiveMap';
 import { estimateEtaMinutes } from '../lib/geo';
 import { helpersFromServices, withDistance } from '../lib/helpers';
@@ -313,15 +314,7 @@ export const NearbyMapScreen = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-bold text-[#0b1c30] truncate">{selected.name}</p>
-                  {selected.isVerified && (
-                    <span
-                      className="material-symbols-outlined text-[16px] text-[#00ae78]"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                      title="Verified Partner: ID checked by GigEzee"
-                    >
-                      verified
-                    </span>
-                  )}
+                  {selected.isVerified && <VerifiedTag size="sm" />}
                   {selected.policeVerified && (
                     <span className="material-symbols-outlined text-[16px] text-[#006c49]" title="Police verified">
                       verified_user

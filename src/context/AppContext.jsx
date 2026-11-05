@@ -51,6 +51,7 @@ import { setErrorScreen, startErrorTracking } from '../lib/errorTracking';
 import { useRoute } from '../lib/route';
 
 import { uploadRepairPhoto, isHostedPhoto } from '../lib/repairPhoto';
+import { chatVideoProblem, uploadChatVideo } from '../lib/chatVideo';
 
 import { attachDiagnosisToOrder } from '../lib/diagnosis';
 
@@ -1578,7 +1579,11 @@ const hasLiveRequest = Boolean(
       weeklyBalance: 0,
       rating: 0,
       reviews: 0,
-      serviceRadiusKm: 5
+      serviceRadiusKm: 5,
+      // The days and times the partner works (lib/workingHours);
+      // null = no fixed hours
+      workingHours: null,
+      daysOff: []
     });
 
   // Accepted / in-progress bookings, soonest first (from Supabase)
@@ -1712,7 +1717,9 @@ const refreshPartnerOverview = async () => {
       weeklyBalance: overview.week_earnings,
       rating: overview.rating,
       reviews: overview.reviews_count,
-      serviceRadiusKm: overview.service_radius_km || 5
+      serviceRadiusKm: overview.service_radius_km || 5,
+      workingHours: overview.working_hours || null,
+      daysOff: overview.days_off || []
     }));
 
     setIsPartnerOnline(Boolean(overview.is_online));
@@ -1751,6 +1758,33 @@ const cycleServiceRadius = async () => {
     console.error('Failed to update service radius:', error);
     showToast('Could not update service radius. Please try again.');
   }
+};
+
+// Saves the partner's working days, hours and days off. Throws with
+// the backend's message so the editor can show it.
+const saveWorkingHours = async (workingHours, daysOff) => {
+  if (!partnerProfile?.id) {
+    throw new Error('Please sign in again.');
+  }
+
+  const saved = await authorizedFetch(
+    `/partners/${partnerProfile.id}/working-hours`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        working_hours: workingHours,
+        days_off: daysOff
+      })
+    }
+  );
+
+  setPartnerStats((prev) => ({
+    ...prev,
+    workingHours: saved.working_hours || null,
+    daysOff: saved.days_off || []
+  }));
+
+  return saved;
 };
 
 // Reload when the dashboard opens, after each booking sync, and every
@@ -3740,9 +3774,10 @@ const handleConfirmBooking = async () => {
     helperPhone,
     helperVehicle: selectedHelper?.vehicle || '',
     helperVehicleNumber: selectedHelper?.vehicleNumber || '',
-    helperVerified: Boolean(
-      selectedHelper?.policeVerified || selectedHelper?.isVerified
-    )
+    // Staff approved all their ID documents (the Verified Partner tag);
+    // the police check is a separate badge
+    helperVerified: Boolean(selectedHelper?.isVerified),
+    helperPoliceVerified: Boolean(selectedHelper?.policeVerified)
   };
 
   if (isFirebaseConfigured && db) {
@@ -5025,6 +5060,53 @@ const declineIncomingJob = async () => {
     }
   };
 
+  // A video clip in the chat: uploaded to Firebase Storage, then sent as
+  // a message carrying its link. onProgress gets 0..1 while it uploads.
+  // Throws with a message the chat can show.
+  const sendChatVideo = async (file, onProgress) => {
+    const problem = chatVideoProblem(file);
+
+    if (problem) {
+      throw new Error(problem);
+    }
+
+    const message = {
+      sender: role === 'partner' ? 'partner' : 'member',
+      type: 'video',
+      text: '',
+      time: new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    };
+
+    if (isFirebaseConfigured && db && activeOrder.orderId) {
+      const orderKey = toDbKey(activeOrder.orderId);
+      const { url, contentType } = await uploadChatVideo(file, orderKey, onProgress);
+
+      await push(ref(db, `chats/${orderKey}/messages`), {
+        ...message,
+        videoUrl: url,
+        videoType: contentType,
+        size: file.size,
+        ts: Date.now()
+      });
+
+      return;
+    }
+
+    // No booking yet (or no Firebase): the clip stays on this phone
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        ...message,
+        videoUrl: URL.createObjectURL(file),
+        ts: Date.now()
+      }
+    ]);
+  };
+
 
 // =========================================================
 // Provider
@@ -5140,6 +5222,7 @@ return (
       partnerUpcomingJobs,
       refreshPartnerOverview,
       cycleServiceRadius,
+      saveWorkingHours,
 
       hasIncomingJob,
       incomingCountdown,
@@ -5193,7 +5276,8 @@ return (
       acceptIncomingJob,
       declineIncomingJob,
 
-      sendChatMessage
+      sendChatMessage,
+      sendChatVideo
     }}
   >
     {children}

@@ -19,52 +19,134 @@
     "with auth.uid - today the order carries Supabase UUIDs, which auth",
     "cannot be matched against. Tracked as the next step.",
     "",
-    "Deploy:  firebase deploy --only database"
+    "Deploy:  firebase deploy --only database",
+    "",
+    "chats/<order key>/messages   the booking chat: text, video clips",
+    "                             (links to Storage) and call notes",
+    "calls/<order key>            the handshake for a live video call;",
+    "                             the call itself goes phone to phone"
   ],
-
   "rules": {
     ".read": false,
     ".write": false,
-
     "orders": {
       "$orderId": {
         ".read": "auth != null",
         ".write": "auth != null",
-
-        "orderId": { ".validate": "newData.isString() && newData.val().length <= 128" },
-        "customerId": { ".validate": "newData.isString() || newData.val() == null" },
-        "partnerId": { ".validate": "newData.isString() || newData.val() == null" },
-        "safetyPin": { ".validate": "newData.isString() && newData.val().length <= 8" },
-        "completionOtp": { ".validate": "newData.isString() || newData.val() == null" },
-        "totalAmount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
-        "customerLat": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
-        "customerLng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
-        "partnerLat": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
-        "partnerLng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
-
+        "orderId": {
+          ".validate": "newData.isString() && newData.val().length <= 128"
+        },
+        "customerId": {
+          ".validate": "newData.isString() || newData.val() == null"
+        },
+        "partnerId": {
+          ".validate": "newData.isString() || newData.val() == null"
+        },
+        "safetyPin": {
+          ".validate": "newData.isString() && newData.val().length <= 8"
+        },
+        "completionOtp": {
+          ".validate": "newData.isString() || newData.val() == null"
+        },
+        "totalAmount": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "customerLat": {
+          ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+        },
+        "customerLng": {
+          ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        },
+        "partnerLat": {
+          ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+        },
+        "partnerLng": {
+          ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        },
         "extraCharges": {
           "$chargeId": {
-            "amount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
-            "item": { ".validate": "newData.isString() && newData.val().length <= 200" }
+            "amount": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "item": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            }
           }
         },
-
         "messages": {
           "$messageId": {
-            "text": { ".validate": "newData.isString() && newData.val().length <= 2000" }
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 2000"
+            }
           }
         }
       }
     },
-
     "bookingRequests": {
       "$partnerId": {
         ".read": "auth != null",
         ".write": "auth != null",
-
         "$requestId": {
-          "expiresIn": { ".validate": "newData.isNumber() && newData.val() <= 3600" },
-          "serviceTitle": { ".validate": "newData.isString() && newData.val().length <= 200" }
+          "expiresIn": {
+            ".validate": "newData.isNumber() && newData.val() <= 3600"
+          },
+          "serviceTitle": {
+            ".validate": "newData.isString() && newData.val().length <= 200"
+          }
+        }
+      }
+    },
+    "chats": {
+      "$orderKey": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "messages": {
+          "$messageId": {
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 2000"
+            },
+            "type": {
+              ".validate": "newData.isString() && newData.val().matches(/^(text|video|call)$/)"
+            },
+            "videoUrl": {
+              ".validate": "newData.isString() && newData.val().length <= 2048 && newData.val().beginsWith('https://')"
+            },
+            "durationSec": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 86400"
+            }
+          }
+        }
+      }
+    },
+    "calls": {
+      "$orderKey": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "status": {
+          ".validate": "newData.isString() && newData.val().matches(/^(ringing|active|ended|declined|missed|cancelled)$/)"
+        },
+        "fromName": {
+          ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "offer": {
+          "sdp": {
+            ".validate": "newData.isString() && newData.val().length <= 30000"
+          }
+        },
+        "answer": {
+          "sdp": {
+            ".validate": "newData.isString() && newData.val().length <= 30000"
+          }
+        },
+        "candidates": {
+          "$side": {
+            ".validate": "$side === 'member' || $side === 'partner'",
+            "$candidateId": {
+              "candidate": {
+                ".validate": "newData.isString() && newData.val().length <= 2048"
+              }
+            }
+          }
         }
       }
     }

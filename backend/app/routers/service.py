@@ -15,6 +15,7 @@ from app.models.user import User
 from app.authz import require_admin, require_user
 from app.escalations import can_take_bookings
 from app.presence import is_present
+from app.working_hours import working_hours_fields
 from app.schemas.service import ServiceCreate, ServiceResponse, ServiceUpdate
 
 
@@ -161,7 +162,9 @@ def partner_listing(
         "police_verified": is_police_verified(partner),
         "latitude": partner.latitude,
         "longitude": partner.longitude,
-        "service_radius_km": partner.service_radius_km or 5
+        "service_radius_km": partner.service_radius_km or 5,
+        # The days and times they work, so the member only picks those
+        **working_hours_fields(partner)
     }
 
 

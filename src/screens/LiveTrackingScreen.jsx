@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Header } from '../components/Header';
 import { NavigationBar } from '../components/NavigationBar';
 import { Avatar } from '../components/Avatar';
+import { VerifiedTag } from '../components/VerifiedTag';
 import { LiveMap } from '../components/LiveMap';
 import { RepairBill } from '../components/RepairBill';
 import { useSecondsLeft } from '../lib/useSecondsLeft';
@@ -524,6 +525,10 @@ export const LiveTrackingScreen = () => {
                   <span>{activeOrder.serviceTitle}</span> <span>partner</span>
                 </p>
 
+                {activeOrder.helperVerified && (
+                  <VerifiedTag size="sm" className="mt-1 self-start" />
+                )}
+
                 {(activeOrder.helperVehicle || activeOrder.helperVehicleNumber) && (
                   <div className="flex items-center gap-1 text-[#5a4136] text-[11px] mt-1 bg-[#eff4ff] px-2 py-0.5 rounded-md self-start font-medium">
                     <span className="material-symbols-outlined text-[13px]">two_wheeler</span>
@@ -559,7 +564,8 @@ export const LiveTrackingScreen = () => {
                   setChatPartner({
                     name: activeOrder.helperName,
                     avatar: activeOrder.helperAvatar || '',
-                    partnerId: activeOrder.partnerId
+                    partnerId: activeOrder.partnerId,
+                    isVerified: Boolean(activeOrder.helperVerified)
                   });
                   setIsChatOpen(true);
                 }}

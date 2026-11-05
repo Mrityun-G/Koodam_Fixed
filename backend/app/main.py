@@ -123,7 +123,9 @@ with engine.begin() as connection:
         "ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP, "
         "ADD COLUMN IF NOT EXISTS id_check_status "
         "VARCHAR NOT NULL DEFAULT 'NOT_SUBMITTED', "
-        "ADD COLUMN IF NOT EXISTS id_rejection_reason VARCHAR; "
+        "ADD COLUMN IF NOT EXISTS id_rejection_reason VARCHAR, "
+        "ADD COLUMN IF NOT EXISTS working_hours JSONB, "
+        "ADD COLUMN IF NOT EXISTS days_off JSONB; "
         # A partner ticked as verified by hand (e.g. in the Supabase table
         # editor) before the ID check existed keeps their tick
         "UPDATE partners SET id_check_status = 'VERIFIED' "

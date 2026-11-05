@@ -8,6 +8,7 @@ import { OfflineModeScreen } from './screens/OfflineModeScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { AuthScreen } from './screens/AuthScreen';
 import { ChatModal } from './components/ChatModal';
+import { VideoCall } from './components/VideoCall';
 import { EmergencyModal } from './components/EmergencyModal';
 import { startDomTranslator } from './lib/domTranslator';
 
@@ -135,7 +136,15 @@ const AppContent = () => {
   const Screen = SCREENS[currentScreen] || NotFoundScreen;
 
   return (
-    <MobileFrame overlay={<ChatModal />}>
+    <MobileFrame
+      overlay={
+        <>
+          <ChatModal />
+          {/* Rings on both apps, over every screen */}
+          <VideoCall />
+        </>
+      }
+    >
       {isBooting ? (
         <BootSplash />
       ) : (

@@ -16,6 +16,7 @@ import { useSecondsLeft } from '../lib/useSecondsLeft';
 import { documentFileError } from '../lib/validators';
 import { PartnerPayouts } from '../components/PartnerPayouts';
 import { PartnerReliability } from '../components/PartnerReliability';
+import { PartnerWorkingHours } from '../components/PartnerWorkingHours';
 import { Avatar } from '../components/Avatar';
 import { LiveMap } from '../components/LiveMap';
 import {
@@ -1499,6 +1500,9 @@ export const PartnerDashboard = () => {
             ))}
           </div>
         </section>
+
+        {/* The days and times customers can book them */}
+        <PartnerWorkingHours />
 
         {/* ========================================= */}
         {/* NEXT JOB */}

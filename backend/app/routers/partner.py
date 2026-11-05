@@ -27,6 +27,11 @@ from app.routers.payment import calculate_split
 from app.routers.escalations import require_admin
 from app.schemas.partner import PartnerCreate, PartnerResponse
 from app.tax import booking_tax
+from app.working_hours import (
+    clean_days_off,
+    clean_working_hours,
+    working_hours_fields,
+)
 
 
 router = APIRouter(
@@ -444,6 +449,35 @@ def update_service_radius(
     }
 
 
+class WorkingHoursUpdate(BaseModel):
+    # {"mon": {"start": "09:00", "end": "18:00"}, ..., "sun": null};
+    # null altogether = no fixed hours
+    working_hours: Optional[dict] = None
+    days_off: list[str] = Field(default_factory=list)
+
+
+# The partner sets which days and times they work and their days off;
+# customers then only see booking times inside them
+@router.put("/{identifier}/working-hours")
+def update_working_hours(
+    identifier: UUID,
+    data: WorkingHoursUpdate,
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
+):
+    partner = require_own_partner(db, caller, identifier)
+
+    try:
+        partner.working_hours = clean_working_hours(data.working_hours)
+        partner.days_off = clean_days_off(data.days_off)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from None
+
+    db.commit()
+
+    return {"partner_id": partner.id, **working_hours_fields(partner)}
+
+
 class OnlineStatusUpdate(BaseModel):
     is_online: bool
     # Where the partner is when going online; customers see the distance
@@ -680,6 +714,8 @@ def get_partner_overview(
         "reviews_count": partner.reviews_count or 0,
         "service_radius_km": partner.service_radius_km or 5,
         "is_online": bool(partner.is_online),
+        # So the partner's dashboard shows the hours customers see
+        **working_hours_fields(partner),
         "upcoming_jobs": [
             {
                 "booking_id": booking.id,
