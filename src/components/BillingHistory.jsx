@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ComplaintPanel } from './ComplaintPanel';
 import { authorizedFetch } from '../lib/authorizedFetch';
+import { halfRate } from '../lib/tax';
 
 const formatRupees = (value) =>
   `₹${Number(value || 0).toLocaleString('en-IN', {
@@ -154,6 +155,8 @@ export const BillingHistory = ({
         const isOpen = openBillId === bill.booking_id;
         const isPaid = bill.payment_status === 'PAID';
         const balance = Math.max(0, (bill.total_amount || 0) - (bill.amount_paid || 0));
+        // GST on top of the bill; 0 on bills from before GigEzee charged it
+        const tax = Number(bill.cgst || 0) + Number(bill.sgst || 0);
 
         // Name the other person: the partner to a customer, and vice versa
         const otherName = isPartnerView ? bill.customer_name : bill.partner_name;
@@ -315,17 +318,46 @@ export const BillingHistory = ({
                     </div>
 
                     <p className="text-[10px] text-slate-400">
-                      {`Customer's total bill: ${formatRupees(bill.total_amount)} (includes ${formatRupees(bill.trust_fee)} trust fee paid to GigEzee). Extra parts are never commissioned.`}
+                      {`Customer's total bill: ${formatRupees(bill.total_amount)} (includes ${formatRupees(bill.trust_fee)} trust fee paid to GigEzee${tax > 0 ? ` and ${formatRupees(tax)} GST, which GigEzee pays to the government` : ''}). Extra parts are never commissioned.`}
                     </p>
                   </>
                 ) : (
                   <>
+                    {tax > 0 && (
+                      <>
+                        <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-dashed border-slate-200">
+                          <span className="text-[#5a4136]">Subtotal</span>
+                          <span className="font-bold text-[#0b1c30] shrink-0">
+                            {formatRupees((bill.total_amount || 0) - tax)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between gap-3">
+                          <span className="text-[#5a4136]">{`CGST (${halfRate(bill.gst_percent)}%)`}</span>
+                          <span className="font-bold text-[#0b1c30] shrink-0">
+                            {formatRupees(bill.cgst)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between gap-3">
+                          <span className="text-[#5a4136]">{`SGST (${halfRate(bill.gst_percent)}%)`}</span>
+                          <span className="font-bold text-[#0b1c30] shrink-0">
+                            {formatRupees(bill.sgst)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+
                     <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-slate-100">
                       <span className="font-bold text-[#0b1c30]">Total</span>
                       <span className="font-extrabold text-[#0b1c30]">
                         {formatRupees(bill.total_amount)}
                       </span>
                     </div>
+
+                    {tax > 0 && bill.gstin && (
+                      <p className="text-[10px] text-slate-400">{`GSTIN: ${bill.gstin}`}</p>
+                    )}
 
                     <div className="flex justify-between gap-3">
                       <span className="text-[#5a4136]">Amount paid</span>

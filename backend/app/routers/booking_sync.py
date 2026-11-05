@@ -19,6 +19,7 @@ from app.models.user import User
 from app.routers.partner_service import resolve_partner
 from app.routers.payment import calculate_split
 from app.routers.escalations import complaints_by_booking
+from app.tax import booking_tax, gst_in_force, tax_problem
 
 
 # =========================================================
@@ -77,6 +78,11 @@ class BookingSync(BaseModel):
 
     total_amount: Optional[float] = None
     safety_pin: Optional[str] = None
+
+    # GST included in total_amount, on top of everything else (app/tax.py)
+    gst_percent: Optional[float] = None
+    cgst: Optional[float] = None
+    sgst: Optional[float] = None
 
     payment_status: Optional[str] = None
     amount_paid: Optional[float] = None
@@ -254,6 +260,42 @@ def sync_extra_charges(db: Session, booking: Booking, data: BookingSync) -> floa
     return sum(charge.amount for charge in approved)
 
 
+def sync_gst(detail: BookingDetail, data: BookingSync) -> None:
+    """
+    The GST the app added to the bill. Its rate is fixed when the booking
+    is first recorded, and may only be above 0 while GigEzee has a GSTIN;
+    every later update must use that rate, and the amounts must add up.
+    """
+    percent = data.gst_percent or 0.0
+    cgst = data.cgst or 0.0
+    sgst = data.sgst or 0.0
+
+    if detail.gst_percent is None:
+        gstin = gst_in_force()[1]
+
+        if percent and not gstin:
+            raise HTTPException(
+                status_code=409,
+                detail="GST isn't being charged right now. Please book again."
+            )
+
+        detail.gst_percent = percent
+        detail.gstin = gstin if percent else None
+    elif abs(percent - detail.gst_percent) > 0.001:
+        raise HTTPException(
+            status_code=409,
+            detail="The GST rate of a booking can't change."
+        )
+
+    problem = tax_problem(data.total_amount or 0.0, percent, cgst, sgst)
+
+    if problem:
+        raise HTTPException(status_code=422, detail=problem)
+
+    detail.cgst_amount = cgst
+    detail.sgst_amount = sgst
+
+
 def sync_review(db: Session, booking: Booking, data: BookingSync):
     # Same rules as POST /reviews: completed bookings only, one review each
     if not data.rating or not 1 <= data.rating <= 5:
@@ -318,6 +360,7 @@ def apply_sync(db: Session, data: BookingSync) -> Booking:
 
     # A paid bill is final; its total can't be changed afterwards
     if data.total_amount is not None and detail.payment_status != "PAID":
+        sync_gst(detail, data)
         booking.total_amount = data.total_amount
 
     if data.address:
@@ -503,7 +546,7 @@ def build_bills(db: Session, filters: list) -> list:
 
         # Paid bills use the split saved when the payment was verified;
         # others show what the split will be
-        split = calculate_split(total, extra)
+        split = calculate_split(total, extra, booking_tax(detail))
 
         if detail and detail.partner_payout is not None:
             split.update({
@@ -531,6 +574,11 @@ def build_bills(db: Session, filters: list) -> list:
             "extra_amount": extra,
             "extra_charges": charges_by_booking.get(booking.id, []),
             "repair_photo_url": detail.repair_photo_url if detail else None,
+            # GST on top of everything above; 0 when none was charged
+            "gst_percent": (detail.gst_percent if detail else None) or 0.0,
+            "cgst": (detail.cgst_amount if detail else None) or 0.0,
+            "sgst": (detail.sgst_amount if detail else None) or 0.0,
+            "gstin": detail.gstin if detail else None,
             "total_amount": total,
             "payment_status": detail.payment_status if detail else "PENDING",
             "payment_method": (detail.payment_method if detail else None) or "ONLINE",

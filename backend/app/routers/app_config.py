@@ -4,11 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.app_config import CONTENT, SETTINGS, content, save_value, setting
+from app.app_config import (
+    CONTENT, SETTINGS, content, save_value, setting, text_setting
+)
 from app.config import IVR_PHONE_NUMBER
 from app.database import get_db
 from app.models.user import User
 from app.routers.escalations import require_admin
+from app.tax import gst_in_force, is_valid_gstin
 
 
 # =========================================================
@@ -27,6 +30,11 @@ def public_config():
         "trust_fee": setting("trust_fee"),
         "platform_commission_percent": setting("platform_commission_percent"),
         "min_withdrawal": setting("min_withdrawal"),
+        # The rate staff have set, and the GSTIN that switches it on
+        "gst_percent": setting("gst_percent"),
+        "gstin": text_setting("gstin"),
+        # What new bookings are actually charged: 0 until there's a GSTIN
+        "gst_charged_percent": gst_in_force()[0],
         # The number customers without a smartphone call to book
         "phone_booking_number": IVR_PHONE_NUMBER,
     }
@@ -45,6 +53,9 @@ class SettingsUpdate(BaseModel):
     trust_fee: Optional[float] = None
     platform_commission_percent: Optional[float] = None
     min_withdrawal: Optional[float] = None
+    gst_percent: Optional[float] = None
+    # Empty clears it, which stops GST being charged on new bookings
+    gstin: Optional[str] = Field(default=None, max_length=20)
 
 
 @router.put("/admin/settings")
@@ -53,7 +64,20 @@ def update_settings(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    for key, value in data.model_dump(exclude_none=True).items():
+    values = data.model_dump(exclude_none=True)
+
+    if "gstin" in values:
+        gstin = values.pop("gstin").strip().upper()
+
+        if gstin and not is_valid_gstin(gstin):
+            raise HTTPException(
+                status_code=400,
+                detail="That GSTIN isn't valid. It has 15 characters, e.g. 29ABCDE1234F1Z5."
+            )
+
+        save_value(db, "gstin", gstin, admin.email)
+
+    for key, value in values.items():
         spec = SETTINGS[key]
 
         if not spec["min"] <= value <= spec["max"]:

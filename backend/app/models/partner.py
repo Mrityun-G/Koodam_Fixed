@@ -44,7 +44,20 @@ class Partner(Base):
     # app is actually still open (see app/presence.py).
     last_seen_at = Column(DateTime, nullable=True)
 
+    # The "Verified Partner" tick customers see. True only while staff
+    # have approved the partner's ID documents (id_check_status VERIFIED).
     is_verified = Column(Boolean, default=False)
+
+    # Aadhaar, PAN and Voter ID, reviewed by staff in the admin console:
+    # NOT_SUBMITTED -> UNDER_REVIEW (all three uploaded) -> VERIFIED / REJECTED
+    id_check_status = Column(
+        String,
+        nullable=False,
+        default="NOT_SUBMITTED",
+        server_default="NOT_SUBMITTED"
+    )
+
+    id_rejection_reason = Column(String, nullable=True)
 
     # NOT_SUBMITTED -> UNDER_REVIEW -> VERIFIED / REJECTED
     # Set to VERIFIED or REJECTED by an admin (e.g. in the Supabase table editor)

@@ -8,6 +8,7 @@ import {
   toTimeRanges
 } from '../lib/schedule';
 import { authorizedFetch } from '../lib/authorizedFetch';
+import { formatRupees, gstLines, halfRate } from '../lib/tax';
 import {
   CARE_TIME_SLOTS,
   MAX_CARE_HOURS,
@@ -29,6 +30,8 @@ export const BookingScreen = () => {
     selectedTime,
     setSelectedTime,
     trustFee,
+    gstPercent,
+    gstin,
     handleConfirmBooking,
     navigateTo,
     location,
@@ -613,7 +616,9 @@ export const BookingScreen = () => {
 
   const numericTrustFee = Number(trustFee) || 0;
   const servicePrice = priceForHours(activeService, bookedHours);
-  const totalAmount = servicePrice + numericTrustFee;
+  // Same bill handleConfirmBooking saves: GST on top, while it's charged
+  const bill = gstLines(servicePrice + numericTrustFee, gstPercent);
+  const totalAmount = bill.total;
 
   const selectedStart =
     slotOptions.find(slot => slot.time === selectedTime)?.start ?? null;
@@ -1414,6 +1419,24 @@ export const BookingScreen = () => {
                 </span>
               </div>
 
+              {bill.tax > 0 && (
+                <>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[#5a4136]">{`CGST (${halfRate(gstPercent)}%)`}</span>
+                    <span className="font-bold shrink-0">{formatRupees(bill.cgst)}</span>
+                  </div>
+
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[#5a4136]">{`SGST (${halfRate(gstPercent)}%)`}</span>
+                    <span className="font-bold shrink-0">{formatRupees(bill.sgst)}</span>
+                  </div>
+
+                  {gstin && (
+                    <p className="text-[10px] text-slate-400">{`GSTIN: ${gstin}`}</p>
+                  )}
+                </>
+              )}
+
               <div className="flex justify-between text-[#006c49] font-medium">
                 <span>No hidden charges</span>
                 <span>Extra parts only with your approval</span>
@@ -1432,7 +1455,7 @@ export const BookingScreen = () => {
               </div>
 
               <span className="text-lg font-extrabold text-[#a14000]">
-                ₹{totalAmount.toLocaleString('en-IN')}
+                {formatRupees(totalAmount)}
               </span>
             </div>
           </div>
@@ -1448,7 +1471,7 @@ export const BookingScreen = () => {
             </span>
 
             <span className="text-xl font-extrabold text-[#0b1c30]">
-              ₹{totalAmount.toLocaleString('en-IN')}
+              {formatRupees(totalAmount)}
             </span>
           </div>
 

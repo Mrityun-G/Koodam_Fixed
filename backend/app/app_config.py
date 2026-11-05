@@ -27,6 +27,15 @@ SETTINGS = {
     },
     # Smallest balance a partner can withdraw (rupees)
     "min_withdrawal": {"default": 100.0, "min": 1, "max": 100000},
+    # GST added on top of a bill, half CGST and half SGST. Charged only
+    # once a GSTIN is set below (see app/tax.py).
+    "gst_percent": {"default": 18.0, "min": 0, "max": 28},
+}
+
+# Text settings. An empty GSTIN means GigEzee isn't registered for GST
+# yet, so no tax is charged.
+TEXT_SETTINGS = {
+    "gstin": "",
 }
 
 # Shown in the app. {trust_fee} and {commission_percent} in the FAQ are
@@ -125,6 +134,7 @@ def seed_app_config(db: Session) -> None:
     existing = {key for (key,) in db.query(AppConfig.key).all()}
     defaults = {
         **{key: spec["default"] for key, spec in SETTINGS.items()},
+        **TEXT_SETTINGS,
         **CONTENT,
     }
 
@@ -161,6 +171,13 @@ def setting(key: str) -> float:
     except Exception:
         # The database is unreachable: the defaults keep payments working
         return float(SETTINGS[key]["default"])
+
+
+def text_setting(key: str) -> str:
+    try:
+        return str(_values().get(key, TEXT_SETTINGS[key]) or "")
+    except Exception:
+        return TEXT_SETTINGS[key]
 
 
 def content(key: str):

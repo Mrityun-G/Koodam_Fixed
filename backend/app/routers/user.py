@@ -411,6 +411,8 @@ def delete_my_account(
         partner.vehicle_number = None
         partner.police_verification_status = "NOT_SUBMITTED"
         partner.police_rejection_reason = None
+        partner.id_check_status = "NOT_SUBMITTED"
+        partner.id_rejection_reason = None
         partner.deactivated_at = datetime.utcnow()
         partner.deactivation_reason = "Account deleted by the partner"
 

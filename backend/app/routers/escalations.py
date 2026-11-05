@@ -33,7 +33,7 @@ from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail
 from app.models.escalation import Complaint, PartnerEscalation
 from app.models.partner import Partner
-from app.models.partner_document import PartnerDocument
+from app.models.partner_document import ID_DOCUMENT_TYPES, PartnerDocument
 from app.models.service import Service
 from app.models.user import User
 
@@ -429,6 +429,29 @@ def admin_overview(
         .all()
     )
 
+    id_checks = (
+        db.query(Partner, PartnerUser.name)
+        .join(PartnerUser, PartnerUser.id == Partner.user_id)
+        .filter(Partner.id_check_status == "UNDER_REVIEW")
+        .order_by(PartnerUser.name.asc())
+        .all()
+    )
+
+    # Names and dates of their documents, without loading the files
+    id_documents = {}
+
+    if id_checks:
+        for row in db.query(
+            PartnerDocument.partner_id,
+            PartnerDocument.document_type,
+            PartnerDocument.file_name,
+            PartnerDocument.uploaded_at
+        ).filter(
+            PartnerDocument.partner_id.in_([partner.id for partner, _ in id_checks]),
+            PartnerDocument.document_type.in_(ID_DOCUMENT_TYPES.values())
+        ):
+            id_documents.setdefault(row.partner_id, {})[row.document_type] = row
+
     return {
         "complaints": [
             {
@@ -473,6 +496,25 @@ def admin_overview(
             }
             for partner, name, document in police_documents
         ],
+        "id_verifications": [
+            {
+                "id": partner.id,
+                "name": name,
+                "status": partner.id_check_status,
+                "documents": {
+                    kind: (
+                        {
+                            "file_name": row.file_name,
+                            "uploaded_at": row.uploaded_at,
+                        }
+                        if (row := id_documents.get(partner.id, {}).get(document_type))
+                        else None
+                    )
+                    for kind, document_type in ID_DOCUMENT_TYPES.items()
+                },
+            }
+            for partner, name in id_checks
+        ],
     }
 
 
@@ -516,6 +558,51 @@ def decide_police_verification(
         "id": partner.id,
         "status": partner.police_verification_status,
         "rejection_reason": partner.police_rejection_reason,
+    }
+
+
+@router.post("/admin/partners/{partner_id}/id-verification")
+def decide_id_verification(
+    partner_id: UUID,
+    data: PoliceVerificationDecision,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Approve the partner's Aadhaar, PAN and Voter ID (customers then see
+    the Verified Partner tick), or reject them with a reason."""
+    partner = db.get(Partner, partner_id)
+
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+
+    uploaded = db.query(PartnerDocument.id).filter(
+        PartnerDocument.partner_id == partner.id,
+        PartnerDocument.document_type.in_(ID_DOCUMENT_TYPES.values())
+    ).count()
+
+    if uploaded < len(ID_DOCUMENT_TYPES):
+        raise HTTPException(
+            status_code=409,
+            detail="This partner hasn't uploaded all three ID documents yet."
+        )
+
+    rejection_reason = data.reason.strip() if data.reason else ""
+
+    if data.status == "REJECTED" and not rejection_reason:
+        raise HTTPException(status_code=422, detail="A rejection reason is required.")
+
+    partner.id_check_status = data.status
+    partner.id_rejection_reason = (
+        rejection_reason if data.status == "REJECTED" else None
+    )
+    partner.is_verified = data.status == "VERIFIED"
+    db.commit()
+
+    return {
+        "id": partner.id,
+        "status": partner.id_check_status,
+        "rejection_reason": partner.id_rejection_reason,
+        "is_verified": partner.is_verified,
     }
 
 

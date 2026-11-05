@@ -64,6 +64,12 @@ PROMPTS = {
         "ta": "{partner} {km} கிலோமீட்டர் தொலைவில் உள்ளார். {service} கட்டணம் {price} ரூபாய், நம்பிக்கைக் கட்டணம் {fee} ரூபாய். மொத்தம் {total} ரூபாய், வேலை முடிந்ததும் பணமாகச் செலுத்தவும். முன்பதிவு செய்ய 1 அழுத்தவும். ரத்து செய்ய 2 அழுத்தவும்.",
         "kn": "{partner} {km} ಕಿಲೋಮೀಟರ್ ದೂರದಲ್ಲಿದ್ದಾರೆ. {service} ಶುಲ್ಕ {price} ರೂಪಾಯಿ, ಟ್ರಸ್ಟ್ ಶುಲ್ಕ {fee} ರೂಪಾಯಿ. ಒಟ್ಟು {total} ರೂಪಾಯಿ, ಕೆಲಸದ ನಂತರ ನಗದು ಪಾವತಿಸಿ. ಬುಕ್ ಮಾಡಲು 1 ಒತ್ತಿರಿ. ರದ್ದು ಮಾಡಲು 2 ಒತ್ತಿರಿ.",
     },
+    # The same offer while GigEzee charges GST
+    "offer_gst": {
+        "en": "{partner} is {km} kilometres away. {service} costs {price} rupees, plus {fee} rupees trust fee and {gst} rupees GST. Total {total} rupees, paid in cash after the work. Press 1 to book. Press 2 to cancel.",
+        "ta": "{partner} {km} கிலோமீட்டர் தொலைவில் உள்ளார். {service} கட்டணம் {price} ரூபாய், நம்பிக்கைக் கட்டணம் {fee} ரூபாய், ஜிஎஸ்டி {gst} ரூபாய். மொத்தம் {total} ரூபாய், வேலை முடிந்ததும் பணமாகச் செலுத்தவும். முன்பதிவு செய்ய 1 அழுத்தவும். ரத்து செய்ய 2 அழுத்தவும்.",
+        "kn": "{partner} {km} ಕಿಲೋಮೀಟರ್ ದೂರದಲ್ಲಿದ್ದಾರೆ. {service} ಶುಲ್ಕ {price} ರೂಪಾಯಿ, ಟ್ರಸ್ಟ್ ಶುಲ್ಕ {fee} ರೂಪಾಯಿ, ಜಿಎಸ್‌ಟಿ {gst} ರೂಪಾಯಿ. ಒಟ್ಟು {total} ರೂಪಾಯಿ, ಕೆಲಸದ ನಂತರ ನಗದು ಪಾವತಿಸಿ. ಬುಕ್ ಮಾಡಲು 1 ಒತ್ತಿರಿ. ರದ್ದು ಮಾಡಲು 2 ಒತ್ತಿರಿ.",
+    },
     "booked": {
         "en": "Your request is sent to {partner}. Your safety code is {code}. Again, {code}. Give this code to the serviceman only when they reach your home. They will call you for your exact address.",
         "ta": "உங்கள் கோரிக்கை {partner}-க்கு அனுப்பப்பட்டது. உங்கள் பாதுகாப்புக் குறியீடு {code}. மீண்டும், {code}. பணியாளர் உங்கள் வீட்டிற்கு வந்த பிறகே இந்தக் குறியீட்டைக் கொடுக்கவும். சரியான முகவரிக்கு அவர் உங்களை அழைப்பார்.",

@@ -24,6 +24,13 @@ const SEVERITIES = [
   { value: 'STRIKE', label: 'Strike' }
 ];
 
+// The ID documents a partner uploads, by the name the backend uses
+const ID_DOCUMENT_LABELS = [
+  { kind: 'aadhaar', label: 'Aadhaar' },
+  { kind: 'pan', label: 'PAN' },
+  { kind: 'voter_id', label: 'Voter ID' }
+];
+
 const Card = ({ children, className = '' }) => (
   <div className={`bg-white rounded-2xl border border-slate-100 p-3.5 space-y-1.5 text-[11px] ${className}`}>
     {children}
@@ -289,20 +296,22 @@ export const AdminEscalationsScreen = () => {
     }
   };
 
-  const openPoliceCertificate = async (verification) => {
+  // Partner documents are staff-only, so they're fetched with the sign-in
+  // token and opened from memory rather than linked to
+  const openStaffFile = async (path) => {
     try {
       const user = auth?.currentUser;
       if (!user) throw new Error('Please sign in again.');
 
       const token = await user.getIdToken();
       const response = await fetch(
-        `${BACKEND_URL}/partners/${verification.id}/police-certificate`,
+        `${BACKEND_URL}${path}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        throw new Error(body?.detail || 'Unable to open certificate.');
+        throw new Error(body?.detail || 'Unable to open the file.');
       }
 
       const blobUrl = URL.createObjectURL(await response.blob());
@@ -311,6 +320,28 @@ export const AdminEscalationsScreen = () => {
     } catch (openError) {
       showToast(openError.message);
     }
+  };
+
+  const openPoliceCertificate = (verification) =>
+    openStaffFile(`/partners/${verification.id}/police-certificate`);
+
+  const openIdDocument = (verification, kind) =>
+    openStaffFile(`/partners/${verification.id}/id-documents/${kind}/file`);
+
+  const decideIdVerification = (verification, status) => {
+    const reason = status === 'REJECTED'
+      ? window.prompt(`Why reject ${verification.name}'s ID documents? They'll see this reason.`)
+      : '';
+
+    if (status === 'REJECTED' && (!reason || reason.trim().length < 3)) return;
+
+    act(
+      `/admin/partners/${verification.id}/id-verification`,
+      { status, reason: reason || null },
+      status === 'VERIFIED'
+        ? `${verification.name} is verified. Customers now see their Verified tick.`
+        : 'ID documents rejected. The partner can upload them again.'
+    );
   };
 
   const decidePoliceVerification = (verification, status) => {
@@ -364,6 +395,54 @@ export const AdminEscalationsScreen = () => {
           <p className="text-xs text-slate-400 py-6 text-center">Loading...</p>
         ) : (
           <>
+            <SectionTitle>{`ID verification (${data.id_verifications?.length || 0})`}</SectionTitle>
+            <p className="text-[11px] text-slate-400">
+              Open each document and check it against the partner's details. Approving gives them the Verified Partner tick customers see.
+            </p>
+            {!data.id_verifications?.length ? (
+              <p className="text-[11px] text-slate-400">No ID documents are waiting for review.</p>
+            ) : (
+              data.id_verifications.map((verification) => (
+                <Card key={verification.id}>
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#0b1c30] truncate">{verification.name}</p>
+                    <p className="text-amber-600 font-bold">Aadhaar, PAN and Voter ID under review</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {ID_DOCUMENT_LABELS.map(({ kind, label }) => (
+                      <button
+                        key={kind}
+                        type="button"
+                        disabled={!verification.documents?.[kind]}
+                        onClick={() => openIdDocument(verification, kind)}
+                        className="font-bold text-[#a14000] border border-[#dce9ff] rounded-lg px-3 py-2 disabled:opacity-40"
+                      >
+                        {`Open ${label}`}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => decideIdVerification(verification, 'VERIFIED')}
+                      className="flex-1 font-bold text-white bg-[#006c49] rounded-lg py-2 disabled:opacity-60"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => decideIdVerification(verification, 'REJECTED')}
+                      className="flex-1 font-bold text-red-500 border border-red-200 rounded-lg py-2 disabled:opacity-60"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </Card>
+              ))
+            )}
+
             <SectionTitle>{`Police verification (${data.police_verifications?.length || 0})`}</SectionTitle>
             <p className="text-[11px] text-slate-400">
               Open the uploaded certificate, verify it against the partner's details, then approve or reject it.

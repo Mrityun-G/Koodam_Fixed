@@ -166,6 +166,7 @@ export const NearbyMapScreen = () => {
         avatar: helper.avatar,
         rating: helper.rating,
         reviewsCount: helper.reviewsCount,
+        isVerified: helper.isVerified,
         policeVerified: helper.policeVerified,
         distanceKm: helper.distanceKm,
         point: { lat: helper.latitude, lng: helper.longitude },
@@ -312,6 +313,15 @@ export const NearbyMapScreen = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-bold text-[#0b1c30] truncate">{selected.name}</p>
+                  {selected.isVerified && (
+                    <span
+                      className="material-symbols-outlined text-[16px] text-[#00ae78]"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                      title="Verified Partner: ID checked by GigEzee"
+                    >
+                      verified
+                    </span>
+                  )}
                   {selected.policeVerified && (
                     <span className="material-symbols-outlined text-[16px] text-[#006c49]" title="Police verified">
                       verified_user

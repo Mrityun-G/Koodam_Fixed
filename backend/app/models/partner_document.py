@@ -6,6 +6,15 @@ import uuid
 from app.database import Base
 
 
+# The identity documents staff check before a partner gets the
+# "Verified Partner" tick, by the name the app uses for each
+ID_DOCUMENT_TYPES = {
+    "aadhaar": "AADHAAR",
+    "pan": "PAN",
+    "voter_id": "VOTER_ID",
+}
+
+
 class PartnerDocument(Base):
     """
     Verification documents uploaded by a partner (e.g. police clearance
@@ -34,7 +43,7 @@ class PartnerDocument(Base):
         nullable=False
     )
 
-    # e.g. "POLICE_CERTIFICATE"
+    # "POLICE_CERTIFICATE", or one of ID_DOCUMENT_TYPES
     document_type = Column(String, nullable=False)
 
     file_name = Column(String, nullable=False)

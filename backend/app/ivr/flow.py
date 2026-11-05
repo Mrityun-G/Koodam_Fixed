@@ -13,6 +13,7 @@ from app.ivr.prompts import CHOOSE_LANGUAGE, LANGUAGES, rupees, say, spell_digit
 from app.ivr.speech import LANGUAGE_CHOICES, YES_NO_CHOICES, speech_to_digits
 from app.models.booking_detail import BookingDetail
 from app.models.service import Service
+from app.tax import gst_in_force, gst_lines
 
 
 # =========================================================
@@ -335,15 +336,18 @@ def _offer(db: Session, session: Session_) -> Reply:
     session.data["partner_id"] = str(match["partner"].id)
     session.state = "CONFIRM"
     price = float(service.price or 0)
+    fee = setting("trust_fee")
+    bill = gst_lines(price + fee, gst_in_force()[0])
 
     reply = _say(
-        session, "offer", digits=1,
+        session, "offer_gst" if bill["tax"] else "offer", digits=1,
         partner=match["user"].name,
         km=match["km"],
         service=service.title,
         price=rupees(price),
-        fee=rupees(setting("trust_fee")),
-        total=rupees(price + setting("trust_fee"))
+        fee=rupees(fee),
+        gst=rupees(bill["tax"]),
+        total=rupees(bill["total"])
     )
     # "Yes" books, "no" cancels
     reply.choices = YES_NO_CHOICES
