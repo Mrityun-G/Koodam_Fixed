@@ -8,6 +8,7 @@ import { VoiceAssistant } from '../components/VoiceAssistant';
 import { detectService, pickBestHelper, reliabilityPenalty } from '../lib/voiceIntent';
 import { helpersFromServices, withDistance } from '../lib/helpers';
 import { authorizedFetch } from '../lib/authorizedFetch';
+import { serviceImage } from '../lib/serviceImages';
 
 export const UserHomeScreen = () => {
   const {
@@ -120,6 +121,7 @@ useEffect(() => {
         services.map((service) => ({
           id: service.id,
           name: service.title,
+          image: serviceImage(service.title),
           icon: service.icon || 'home_repair_service',
           bg: service.bg_color || '#e5eeff',
           color: service.icon_color || '#4e5c92'
@@ -439,45 +441,59 @@ useEffect(() => {
             )}
           </div>
 
-          {/* 2x4 Grid */}
-          <div className="grid grid-cols-4 gap-2.5">
+          {/* One row of photo cards, swiped sideways */}
+          <div className="-mx-4 px-4 scroll-px-4 flex items-start gap-3 overflow-x-auto snap-x snap-mandatory pt-1 pb-2">
             {categories.length === 0 && helpersLoading &&
-              Array.from({ length: 8 }, (_, index) => (
-                <div
-                  key={index}
-                  className="h-[84px] rounded-2xl bg-slate-100 animate-pulse"
-                />
+              Array.from({ length: 4 }, (_, index) => (
+                <div key={index} className="shrink-0 w-[100px] flex flex-col gap-1.5">
+                  <div className="w-full aspect-[4/5] rounded-2xl bg-slate-100 animate-pulse" />
+                  <div className="h-3 w-3/4 mx-auto rounded bg-slate-100 animate-pulse" />
+                </div>
               ))}
             {categories.map((cat) => {
               const isSelected = selectedCategory === cat.id;
               return (
                 <button
                   key={cat.id}
+                  aria-pressed={isSelected}
                   onClick={() => {
                     setSelectedCategory(isSelected ? null : cat.id);
                     showToast(isSelected ? 'Showing all services' : `Filtered to ${cat.name}`);
                   }}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all active:scale-95 shadow-2xs text-center border ${
-                    isSelected
-                      ? 'bg-[#ff6a00] text-white border-[#ff6a00] shadow-sm'
-                      : 'bg-white hover:bg-slate-50 text-[#0b1c30] border-slate-100'
-                  }`}
+                  className="shrink-0 w-[100px] snap-start flex flex-col items-center gap-1.5 text-center transition-transform active:scale-95"
                 >
                   <div
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-                      isSelected ? 'bg-white/20 text-white' : ''
+                    className={`relative w-full aspect-[4/5] rounded-2xl overflow-hidden shadow-sm ring-2 ring-offset-2 ring-offset-[#f8f9ff] transition-all ${
+                      isSelected ? 'ring-[#ff6a00]' : 'ring-transparent'
                     }`}
-                    style={
-                      isSelected
-                        ? undefined
-                        : { backgroundColor: cat.bg, color: cat.color }
-                    }
                   >
-                    <span className="material-symbols-outlined text-[22px]">{cat.icon}</span>
+                    {cat.image ? (
+                      // The name underneath says what it is
+                      <img
+                        src={cat.image}
+                        alt=""
+                        decoding="async"
+                        draggable={false}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: cat.bg, color: cat.color }}
+                      >
+                        <span className="material-symbols-outlined text-[34px]">{cat.icon}</span>
+                      </div>
+                    )}
+
+                    {isSelected && (
+                      <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#ff6a00] text-white flex items-center justify-center shadow">
+                        <span className="material-symbols-outlined text-[14px]">check</span>
+                      </span>
+                    )}
                   </div>
                   <span
-                    className={`text-[10px] leading-tight font-semibold line-clamp-2 ${
-                      isSelected ? 'text-white' : 'text-[#0b1c30]'
+                    className={`text-[11px] leading-tight font-semibold line-clamp-2 ${
+                      isSelected ? 'text-[#ff6a00]' : 'text-[#0b1c30]'
                     }`}
                   >
                     {cat.name}

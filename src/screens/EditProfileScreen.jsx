@@ -108,7 +108,7 @@ export const EditProfileScreen = () => {
   // Goes through the API rather than straight into the storage bucket:
   // the server checks the sign-in and the file, and the bucket can then
   // refuse every write that doesn't come from it. Uploading from here
-  // with the anon key could not be secured, because KOODAM signs people
+  // with the anon key could not be secured, because GigEzee signs people
   // in with Firebase and Supabase sees no session to match against.
   const uploadPhoto = async (file) => {
     if (!file) {

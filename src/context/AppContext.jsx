@@ -35,18 +35,12 @@ import {
 } from 'firebase/auth';
 
 import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL
-} from 'firebase/storage';
-
-import {
   db,
   auth,
-  storage,
-  isFirebaseConfigured,
-  isStorageConfigured
+  isFirebaseConfigured
 } from '../lib/firebase';
+
+import { gstLines } from '../lib/tax';
 
 import { authorizedFetch, authorizedFetchOrNull } from '../lib/authorizedFetch';
 import { PORTAL } from '../lib/portal';
@@ -169,7 +163,7 @@ const ACTIVE_ORDER_KEY = 'gigezee-active-order';
 
 // Accounts that have been through the getting-started steps. Stored by
 // uid so two people using one phone each see it once.
-const ONBOARDED_KEY = 'koodam-onboarded';
+const ONBOARDED_KEY = 'gigezee-onboarded';
 
 // Where the two keys above are kept: per tab during local development,
 // to match the per-tab sign-in in lib/firebase.js
@@ -763,6 +757,11 @@ const [notificationsEnabled, setNotificationsEnabled] =
   const [platformCommissionPercent, setPlatformCommissionPercent] =
     useState(10);
 
+  // GST added on top of new bookings - 0 until GigEzee has a GSTIN - and
+  // the GSTIN printed on their bills (see lib/tax.js)
+  const [gstPercent, setGstPercent] = useState(0);
+  const [gstin, setGstin] = useState('');
+
   // The number customers without a smartphone call to book (offline mode)
   const [phoneBookingNumber, setPhoneBookingNumber] = useState('');
 
@@ -780,6 +779,8 @@ const [notificationsEnabled, setNotificationsEnabled] =
         setPlatformCommissionPercent(
           Number(config.platform_commission_percent)
         );
+        setGstPercent(Number(config.gst_charged_percent) || 0);
+        setGstin(config.gstin || '');
         setPhoneBookingNumber(config.phone_booking_number || '');
       })
       .catch((error) => {
@@ -1006,6 +1007,10 @@ const hasLiveRequest = Boolean(
       latitude: order.customerLat ?? null,
       longitude: order.customerLng ?? null,
       total_amount: Number(order.totalAmount || 0),
+      // GST included in that total; the backend checks it adds up
+      gst_percent: Number(order.gstPercent || 0),
+      cgst: Number(order.cgst || 0),
+      sgst: Number(order.sgst || 0),
       // The arrival code rotates every minute; storing it would only
       // trigger a sync per rotation and keep a stale secret around
       safety_pin: null,
@@ -2039,6 +2044,12 @@ const requestsRef = ref(db, requestPath);
               latestRequest.area || 'Nearby',
             payout:
               Number(latestRequest.payout || 0),
+            // The job price the partner's share comes from; requests
+            // made before it was sent work it out from the payout
+            servicePrice:
+              latestRequest.servicePrice != null
+                ? Number(latestRequest.servicePrice)
+                : null,
             customerName:
               latestRequest.customerName || 'GigEzee Customer',
             customerAvatar:
@@ -2637,8 +2648,10 @@ const signUp = async (
     }));
 
     // -------------------------------------------------------
-    // Partner KYC
+    // Partner ID documents -> GigEzee staff review
     // -------------------------------------------------------
+
+    let idUploadFailed = false;
 
     if (
       targetRole === 'partner' &&
@@ -2648,14 +2661,14 @@ const signUp = async (
         voterIdFile
       )
     ) {
-      await uploadPartnerKyc(
-        cred?.user?.uid,
+      idUploadFailed = !(await uploadPartnerKyc(
+        backendUser?.id,
         {
           aadhaarFile,
           panFile,
           voterIdFile
         }
-      );
+      ));
     }
 
     // -------------------------------------------------------
@@ -2699,7 +2712,9 @@ const signUp = async (
     setCurrentScreen('onboarding');
 
     showToast(
-      policeUploadFailed
+      idUploadFailed
+        ? 'Account created, but your ID documents didn’t upload — you can upload them from your Profile.'
+        : policeUploadFailed
         ? 'Account created, but the police certificate upload failed — you can upload it from your Profile.'
         : `Welcome to GigEzee, ${name || 'there'}!`
     );
@@ -2728,76 +2743,50 @@ const signUp = async (
 
 
   // =========================================================
-  // Partner KYC Upload
+  // Partner ID documents (Aadhaar, PAN, Voter ID)
+  // Sent to the backend, where GigEzee staff check them in the admin
+  // console. Once they approve, customers see the partner's Verified
+  // tick. Returns whether every file went up.
   // =========================================================
 
   const uploadPartnerKyc = async (
-    uid,
+    partnerIdentifier,
     {
       aadhaarFile,
       panFile,
       voterIdFile
     }
   ) => {
+    if (!partnerIdentifier) {
+      return false;
+    }
 
     const docs = {
       aadhaar: aadhaarFile,
       pan: panFile,
-      voterId: voterIdFile
+      voter_id: voterIdFile
     };
 
-
-    if (
-      !isStorageConfigured ||
-      !storage ||
-      !uid
-    ) {
-      setPartnerKyc(docs);
-      return;
-    }
-
-
     try {
+      let status = null;
 
-      const uploaded = {};
-
-
-      for (
-        const [key, file]
-        of Object.entries(docs)
-      ) {
-
+      for (const [kind, file] of Object.entries(docs)) {
         if (!file) continue;
 
+        const formData = new FormData();
+        formData.append('file', file);
 
-        const path =
-          `partnerDocuments/${uid}/${key}-${Date.now()}-${file.name}`;
-
-
-        const fileRef =
-          storageRef(storage, path);
-
-
-        await uploadBytes(
-          fileRef,
-          file
+        status = await authorizedFetch(
+          `/partners/${partnerIdentifier}/id-documents/${kind}`,
+          { method: 'POST', body: formData }
         );
-
-
-        uploaded[key] =
-          await getDownloadURL(fileRef);
       }
 
-
-      setPartnerKyc(uploaded);
-
+      setPartnerKyc(status);
+      return true;
     } catch (err) {
-
-      setPartnerKyc(docs);
-
-      showToast(
-        'Account created, but document upload failed — you can re-upload documents later.'
-      );
+      console.error('ID document upload failed:', err);
+      return false;
     }
   };
 
@@ -3350,7 +3339,7 @@ const requestPasswordReset = async (email) => {
     // Firebase isn't configured in this build, so no email can go out.
     // Say so plainly instead of implying one was sent.
     showToast(
-      "Password reset isn't available right now. Please contact KOODAM support."
+      "Password reset isn't available right now. Please contact GigEzee support."
     );
   }
 };
@@ -3553,7 +3542,7 @@ const updatePartnerProfile = async (
     }
 
 
-    // Google accounts have no KOODAM password to change
+    // Google accounts have no GigEzee password to change
     const hasPassword = user.providerData.some(
       (provider) => provider.providerId === 'password'
     );
@@ -3646,9 +3635,17 @@ const handleConfirmBooking = async () => {
   const servicePrice = priceForHours(selectedService, bookedHours);
   const durationMinutes = bookedHours ? bookedHours * 60 : null;
 
-  const finalTotal =
-    servicePrice +
-    Number(trustFee || 0);
+  // Everything before tax, then GST on top (none until GigEzee has a
+  // GSTIN). The booking keeps this rate even if the setting changes.
+  const bill = gstLines(servicePrice + Number(trustFee || 0), gstPercent);
+  const finalTotal = bill.total;
+
+  const gstFields = {
+    gstPercent,
+    cgst: bill.cgst,
+    sgst: bill.sgst,
+    gstin: gstPercent ? gstin : ''
+  };
 
   const bookForError = bookForProblem(bookFor);
 
@@ -3814,6 +3811,9 @@ const handleConfirmBooking = async () => {
         payout:
           finalTotal,
 
+        // What the partner's share is worked out from
+        servicePrice,
+
         distance:
           selectedHelper?.distance ||
           'Nearby',
@@ -3881,10 +3881,12 @@ const handleConfirmBooking = async () => {
             selectedService?.tag ||
             'Home Services',
           totalAmount: finalTotal,
-          // The bill as booked; approved extra parts are added on top
-          baseAmount: finalTotal,
+          // The bill as booked, before GST; approved extra parts are
+          // added to it and GST goes on top of the lot
+          baseAmount: bill.taxable,
           servicePrice,
           trustFee: Number(trustFee || 0),
+          ...gstFields,
           totalPaid: 0,
           paymentStatus: 'PENDING',
           bookingStatus: 'PENDING',
@@ -4061,9 +4063,10 @@ const handleConfirmBooking = async () => {
     paymentStatus: 'PENDING',
     totalPaid: 0,
     totalAmount: finalTotal,
-    baseAmount: finalTotal,
+    baseAmount: bill.taxable,
     servicePrice,
     trustFee: Number(trustFee || 0),
+    ...gstFields,
 
     bookedFor,
     durationMinutes,
@@ -4381,9 +4384,16 @@ const respondToExtraCharge = async (chargeId, approve) => {
         current.status = approve ? 'APPROVED' : 'DECLINED';
         current.respondedAt = Date.now();
 
+        // GST at the booking's own rate goes on top of the new subtotal
+        const bill = gstLines(
+          baseAmount + sumApprovedExtras(order.extraCharges),
+          order.gstPercent
+        );
+
         order.baseAmount = baseAmount;
-        order.totalAmount =
-          baseAmount + sumApprovedExtras(order.extraCharges);
+        order.cgst = bill.cgst;
+        order.sgst = bill.sgst;
+        order.totalAmount = bill.total;
 
         return order;
       }
@@ -5100,6 +5110,8 @@ return (
 
       trustFee,
       platformCommissionPercent,
+      gstPercent,
+      gstin,
       appContent,
       // Re-read fees and app text after staff change them
       loadAppSettings,

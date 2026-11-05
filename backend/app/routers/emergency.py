@@ -88,7 +88,7 @@ def get_emergency_request(
             detail="Emergency request not found"
         )
 
-    # The person who raised it, the partner sent to it, or KOODAM staff
+    # The person who raised it, the partner sent to it, or GigEzee staff
     assigned = (
         db.query(Partner)
         .filter(Partner.id == request.assigned_partner_id)

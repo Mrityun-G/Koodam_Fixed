@@ -177,10 +177,12 @@ def partner_share(detail: BookingDetail) -> float:
 
     # Paid before the split was stored
     from app.routers.payment import calculate_split
+    from app.tax import booking_tax
 
     return calculate_split(
         detail.amount_paid or 0.0,
-        detail.extra_amount or 0.0
+        detail.extra_amount or 0.0,
+        booking_tax(detail)
     )["partner_payout"]
 
 

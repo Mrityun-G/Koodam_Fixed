@@ -23,6 +23,7 @@ from app.models.partner_service import PartnerService
 from app.models.service import Service
 from app.models.user import User
 from app.routers.booking_sync import BookingSync, apply_sync
+from app.tax import gst_in_force, gst_lines
 
 
 # =========================================================
@@ -295,7 +296,10 @@ def create_phone_booking(
 
     price = float(service.price or 0)
     trust_fee = setting("trust_fee")
-    total = price + trust_fee
+    # GST on top, while GigEzee has a GSTIN (same rule as the app)
+    gst_percent, gstin = gst_in_force()
+    bill = gst_lines(price + trust_fee, gst_percent)
+    total = bill["total"]
     now_ms = int(time.time() * 1000)
     area = f"PIN {pincode} (phone booking: call the customer for the address)"
     customer_name = customer.name or "Phone customer"
@@ -321,6 +325,8 @@ def create_phone_booking(
         "serviceTitle": service.title,
         "category": service.tag or "Home Services",
         "payout": total,
+        # What the partner's share is worked out from
+        "servicePrice": price,
         "distance": f"{match['km']} km",
         "etaMins": 7,
         "area": area,
@@ -351,9 +357,14 @@ def create_phone_booking(
         "serviceId": str(service.id),
         "category": service.tag or "Home Services",
         "totalAmount": total,
-        "baseAmount": total,
+        # Before GST; approved extra parts are added to it, then GST on top
+        "baseAmount": bill["taxable"],
         "servicePrice": price,
         "trustFee": trust_fee,
+        "gstPercent": gst_percent,
+        "cgst": bill["cgst"],
+        "sgst": bill["sgst"],
+        "gstin": gstin,
         "totalPaid": 0,
         "paymentStatus": "PENDING",
         "bookingStatus": "PENDING",
@@ -389,6 +400,9 @@ def create_phone_booking(
         latitude=coords[0],
         longitude=coords[1],
         total_amount=total,
+        gst_percent=gst_percent,
+        cgst=bill["cgst"],
+        sgst=bill["sgst"],
         payment_status="PENDING",
         scheduled_at=now_ms,
         created_at=now_ms
@@ -504,7 +518,8 @@ def _approved_total(charges: dict) -> float:
 
 
 def answer_extra_charge(order_id: str, charge_id: str, approve: bool) -> Optional[float]:
-    """Same rule as the app: total = booked amount + approved parts. Returns the new total."""
+    """Same rule as the app: total = booked amount + approved parts, then
+    the booking's GST on top. Returns the new total."""
     def respond(current):
         charge = (current or {}).get("extraCharges", {}).get(charge_id)
 
@@ -519,8 +534,14 @@ def answer_extra_charge(order_id: str, charge_id: str, approve: bool) -> Optiona
 
         charge["status"] = "APPROVED" if approve else "DECLINED"
         charge["respondedAt"] = int(time.time() * 1000)
+        bill = gst_lines(
+            base + _approved_total(current["extraCharges"]),
+            float(current.get("gstPercent") or 0)
+        )
         current["baseAmount"] = base
-        current["totalAmount"] = base + _approved_total(current["extraCharges"])
+        current["cgst"] = bill["cgst"]
+        current["sgst"] = bill["sgst"]
+        current["totalAmount"] = bill["total"]
 
         return current
 

@@ -1,6 +1,6 @@
 {
   "//": [
-    "Realtime Database rules for KOODAM's live booking relay.",
+    "Realtime Database rules for GigEzee's live booking relay.",
     "",
     "Two trees are used:",
     "  orders/<order id>           the one shared record of a job",

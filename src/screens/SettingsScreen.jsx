@@ -95,7 +95,7 @@ export const SettingsScreen = () => {
             <div className="min-w-0 text-left">
               <p className="text-sm font-bold text-[#0b1c30]">Terms & Privacy Policy</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                How KOODAM works and what we do with your data
+                How GigEzee works and what we do with your data
               </p>
             </div>
             <span className="material-symbols-outlined text-[18px] text-slate-300 shrink-0">chevron_right</span>

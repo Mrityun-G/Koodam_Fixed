@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Respons
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
+from urllib.parse import quote
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 
@@ -17,7 +18,7 @@ from app.escalations import is_deactivated, is_suspended
 from app.presence import mark_seen
 from app.models.partner import Partner
 from app.models.user import User
-from app.models.partner_document import PartnerDocument
+from app.models.partner_document import ID_DOCUMENT_TYPES, PartnerDocument
 from app.models.booking import Booking
 from app.models.booking_detail import BookingDetail
 from app.models.service import Service
@@ -25,6 +26,7 @@ from app.routers.partner_service import resolve_partner
 from app.routers.payment import calculate_split
 from app.routers.escalations import require_admin
 from app.schemas.partner import PartnerCreate, PartnerResponse
+from app.tax import booking_tax
 
 
 router = APIRouter(
@@ -132,6 +134,44 @@ def get_partner_or_404(db: Session, identifier: UUID) -> Partner:
     return partner
 
 
+async def read_document_upload(file: UploadFile) -> bytes:
+    """The file's bytes, once it's a PDF or image of an allowed size."""
+    if file.content_type not in ALLOWED_CERTIFICATE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Upload a PDF, JPG or PNG file"
+        )
+
+    data = await file.read()
+
+    if not data:
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded file is empty"
+        )
+
+    if len(data) > MAX_CERTIFICATE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail="File must be 5 MB or smaller"
+        )
+
+    return data
+
+
+def document_file_response(document: PartnerDocument) -> Response:
+    # Encoded, so a name with quotes or non-English letters can't break
+    # the header
+    return Response(
+        content=document.data,
+        media_type=document.content_type,
+        headers={
+            "Content-Disposition":
+                f"inline; filename*=UTF-8''{quote(document.file_name or 'document')}"
+        }
+    )
+
+
 def police_verification_response(partner: Partner, document):
     return {
         "partner_id": partner.id,
@@ -167,25 +207,7 @@ async def upload_police_certificate(
 ):
     partner = require_own_partner(db, caller, identifier)
 
-    if file.content_type not in ALLOWED_CERTIFICATE_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail="Upload a PDF, JPG or PNG file"
-        )
-
-    data = await file.read()
-
-    if not data:
-        raise HTTPException(
-            status_code=400,
-            detail="The uploaded file is empty"
-        )
-
-    if len(data) > MAX_CERTIFICATE_BYTES:
-        raise HTTPException(
-            status_code=400,
-            detail="File must be 5 MB or smaller"
-        )
+    data = await read_document_upload(file)
 
     # One certificate per partner; a new upload replaces the old one
     document = db.query(PartnerDocument).filter(
@@ -237,14 +259,138 @@ def download_police_certificate(
             detail="No police certificate uploaded"
         )
 
-    return Response(
-        content=document.data,
-        media_type=document.content_type,
-        headers={
-            "Content-Disposition":
-                f'inline; filename="{document.file_name}"'
+    return document_file_response(document)
+
+
+# =========================================================
+# ID DOCUMENTS
+# Aadhaar, PAN and Voter ID, uploaded at sign-up or from the dashboard.
+# Kept in the database like the police certificate, so GigEzee staff can
+# check them; once staff approve them, customers see the partner's
+# "Verified Partner" tick (partners.is_verified).
+# =========================================================
+
+def id_check_response(db: Session, partner: Partner) -> dict:
+    # Names and dates only; the files themselves are never sent back here
+    rows = db.query(
+        PartnerDocument.document_type,
+        PartnerDocument.file_name,
+        PartnerDocument.uploaded_at
+    ).filter(
+        PartnerDocument.partner_id == partner.id,
+        PartnerDocument.document_type.in_(ID_DOCUMENT_TYPES.values())
+    ).all()
+
+    uploaded = {row.document_type: row for row in rows}
+
+    return {
+        "partner_id": partner.id,
+        "status": partner.id_check_status,
+        "rejection_reason": partner.id_rejection_reason,
+        "documents": {
+            kind: (
+                {
+                    "file_name": uploaded[document_type].file_name,
+                    "uploaded_at": uploaded[document_type].uploaded_at
+                }
+                if document_type in uploaded else None
+            )
+            for kind, document_type in ID_DOCUMENT_TYPES.items()
         }
+    }
+
+
+def id_document_type(kind: str) -> str:
+    document_type = ID_DOCUMENT_TYPES.get(kind)
+
+    if not document_type:
+        raise HTTPException(status_code=404, detail="Unknown document")
+
+    return document_type
+
+
+@router.get("/{identifier}/id-documents")
+def get_id_documents(
+    identifier: UUID,
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
+):
+    partner = require_own_partner(db, caller, identifier)
+
+    return id_check_response(db, partner)
+
+
+@router.post("/{identifier}/id-documents/{kind}")
+async def upload_id_document(
+    identifier: UUID,
+    kind: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    caller: User = Depends(require_user)
+):
+    document_type = id_document_type(kind)
+    partner = require_own_partner(db, caller, identifier)
+    data = await read_document_upload(file)
+
+    # One of each; a new upload replaces the old one
+    document = db.query(PartnerDocument).filter(
+        PartnerDocument.partner_id == partner.id,
+        PartnerDocument.document_type == document_type
+    ).first()
+
+    if not document:
+        document = PartnerDocument(
+            partner_id=partner.id,
+            document_type=document_type
+        )
+        db.add(document)
+
+    document.file_name = file.filename or kind
+    document.content_type = file.content_type
+    document.data = data
+    document.uploaded_at = datetime.utcnow()
+    db.flush()
+
+    uploaded = db.query(PartnerDocument.id).filter(
+        PartnerDocument.partner_id == partner.id,
+        PartnerDocument.document_type.in_(ID_DOCUMENT_TYPES.values())
+    ).count()
+
+    # A changed document hasn't been checked, so the tick waits for staff
+    # again; they're asked to look once all three are in
+    partner.id_check_status = (
+        "UNDER_REVIEW" if uploaded == len(ID_DOCUMENT_TYPES) else "NOT_SUBMITTED"
     )
+    partner.id_rejection_reason = None
+    partner.is_verified = False
+
+    db.commit()
+    db.refresh(partner)
+
+    return id_check_response(db, partner)
+
+
+@router.get("/{identifier}/id-documents/{kind}/file")
+def download_id_document(
+    identifier: UUID,
+    kind: str,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    # For staff checking the document. Nobody else may read it - not
+    # even the partner's customers.
+    document_type = id_document_type(kind)
+    partner = get_partner_or_404(db, identifier)
+
+    document = db.query(PartnerDocument).filter(
+        PartnerDocument.partner_id == partner.id,
+        PartnerDocument.document_type == document_type
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Not uploaded")
+
+    return document_file_response(document)
 
 
 # =========================================================
@@ -488,7 +634,8 @@ def get_partner_overview(
                 if detail.partner_payout is not None
                 else calculate_split(
                     detail.amount_paid or 0.0,
-                    detail.extra_amount or 0.0
+                    detail.extra_amount or 0.0,
+                    booking_tax(detail)
                 )["partner_payout"]
             )
             paid_on = local_date(detail.paid_at)

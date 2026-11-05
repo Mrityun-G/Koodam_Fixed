@@ -7,6 +7,7 @@ import { VoiceAssistant } from '../components/VoiceAssistant';
 import { detectService, reliabilityPenalty } from '../lib/voiceIntent';
 import { helpersFromServices, withDistance } from '../lib/helpers';
 import { authorizedFetch } from '../lib/authorizedFetch';
+import { serviceImage } from '../lib/serviceImages';
 
 // "3 helpers nearby", from the partners the backend sent for a service
 const helperCountLabel = (service) => {
@@ -20,34 +21,47 @@ const helperCountLabel = (service) => {
 };
 
 // One service, as a row to tap
-const ServiceRow = ({ service, onSelect }) => (
-  <button
-    type="button"
-    onClick={() => onSelect(service)}
-    className="w-full bg-white rounded-2xl p-3 flex items-center gap-3 text-left border border-slate-100 shadow-2xs hover:bg-slate-50 active:scale-[0.99] transition-all"
-  >
-    <div
-      className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-      style={{
-        backgroundColor: service.bg_color || '#e5eeff',
-        color: service.icon_color || '#4e5c92'
-      }}
+const ServiceRow = ({ service, onSelect }) => {
+  const image = serviceImage(service.title);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(service)}
+      className="w-full bg-white rounded-2xl p-3 flex items-center gap-3 text-left border border-slate-100 shadow-2xs hover:bg-slate-50 active:scale-[0.99] transition-all"
     >
-      <span className="material-symbols-outlined text-[22px]">
-        {service.icon || 'home_repair_service'}
+      {image ? (
+        <img
+          src={image}
+          alt=""
+          decoding="async"
+          className="w-11 h-11 rounded-xl object-cover shrink-0"
+        />
+      ) : (
+        <div
+          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+          style={{
+            backgroundColor: service.bg_color || '#e5eeff',
+            color: service.icon_color || '#4e5c92'
+          }}
+        >
+          <span className="material-symbols-outlined text-[22px]">
+            {service.icon || 'home_repair_service'}
+          </span>
+        </div>
+      )}
+
+      <div className="flex flex-col min-w-0 flex-1">
+        <span className="text-sm font-bold text-[#0b1c30] truncate">{service.title}</span>
+        <span className="text-[11px] text-[#5a4136] truncate">{helperCountLabel(service)}</span>
+      </div>
+
+      <span className="material-symbols-outlined text-[20px] text-slate-300 shrink-0">
+        chevron_right
       </span>
-    </div>
-
-    <div className="flex flex-col min-w-0 flex-1">
-      <span className="text-sm font-bold text-[#0b1c30] truncate">{service.title}</span>
-      <span className="text-[11px] text-[#5a4136] truncate">{helperCountLabel(service)}</span>
-    </div>
-
-    <span className="material-symbols-outlined text-[20px] text-slate-300 shrink-0">
-      chevron_right
-    </span>
-  </button>
-);
+    </button>
+  );
+};
 
 // The Search tab. Home shows who's near you; this is for when you know
 // what you need: type a trade, a problem or a helper's name.

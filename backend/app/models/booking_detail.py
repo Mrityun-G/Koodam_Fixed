@@ -28,7 +28,7 @@ class BookingDetail(Base):
 
     current_step = Column(Integer, nullable=True)
 
-    # Service price before any approved extra parts cost
+    # The bill before any approved extra parts cost (GST included)
     base_amount = Column(Float, nullable=True)
 
     extra_amount = Column(Float, nullable=False, default=0.0)
@@ -62,6 +62,18 @@ class BookingDetail(Base):
     commission_amount = Column(Float, nullable=True)
 
     partner_payout = Column(Float, nullable=True)
+
+    # GST on the bill (see app/tax.py), added on top of everything else.
+    # Empty or 0 on bookings made while GigEzee had no GSTIN. GigEzee
+    # pays it to the government; it's never part of the partner's share.
+    gst_percent = Column(Float, nullable=True)
+
+    cgst_amount = Column(Float, nullable=True)
+
+    sgst_amount = Column(Float, nullable=True)
+
+    # GigEzee's GSTIN when the tax was charged, printed on the bill
+    gstin = Column(String, nullable=True)
 
     # The Route transfer of partner_payout is in booking_payouts
 

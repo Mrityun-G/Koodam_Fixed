@@ -23,6 +23,7 @@ from app.models.user import User
 from app.razorpay_client import razorpay_request, to_paise
 from app.routers.payouts import CASH_COLLECTED
 from app.app_config import setting
+from app.tax import booking_tax
 
 
 # =========================================================
@@ -92,16 +93,17 @@ def approved_extras_total(db: Session, booking_id) -> float:
     return sum(charge.amount or 0.0 for charge in charges)
 
 
-def calculate_split(total: float, extras: float) -> dict:
+def calculate_split(total: float, extras: float, tax: float = 0.0) -> dict:
     """
-    total  = service price + trust fee + approved extra parts
-    GigEzee keeps the trust fee and a commission on the service price.
-    The partner gets the rest of the service price plus every extra part,
-    since parts are their own cost.
+    total  = service price + trust fee + approved extra parts + GST
+    GigEzee keeps the trust fee and a commission on the service price,
+    and collects the GST to pay it on. The partner gets the rest of the
+    service price plus every extra part, since parts are their own cost.
     """
     commission_percent = setting("platform_commission_percent")
-    trust_fee = min(setting("trust_fee"), max(total - extras, 0.0))
-    service_price = max(total - extras - trust_fee, 0.0)
+    before_tax = max(total - tax, 0.0)
+    trust_fee = min(setting("trust_fee"), max(before_tax - extras, 0.0))
+    service_price = max(before_tax - extras - trust_fee, 0.0)
     commission = round(service_price * commission_percent / 100, 2)
     partner_payout = round(service_price - commission + extras, 2)
 
@@ -110,6 +112,7 @@ def calculate_split(total: float, extras: float) -> dict:
         "service_price": round(service_price, 2),
         "extras": round(extras, 2),
         "trust_fee": round(trust_fee, 2),
+        "tax": round(tax, 2),
         "commission_percent": commission_percent,
         "commission": commission,
         "gigezee_share": round(trust_fee + commission, 2),
@@ -261,7 +264,9 @@ def verify_payment(
 
     # 3. Record it, with how the money is split
     extras = approved_extras_total(db, booking.id)
-    split = calculate_split(booking.total_amount or 0.0, extras)
+    split = calculate_split(
+        booking.total_amount or 0.0, extras, booking_tax(detail)
+    )
 
     detail.payment_status = "PAID"
     detail.amount_paid = payment["amount"] / 100
@@ -367,10 +372,16 @@ def record_cash_payment(
         for charge in (order.get("extraCharges") or {}).values()
         if charge and charge.get("status") == "APPROVED"
     )
-    split = calculate_split(total, extras)
+    cgst = float(order.get("cgst") or 0)
+    sgst = float(order.get("sgst") or 0)
+    split = calculate_split(total, extras, cgst + sgst)
 
     booking.status = "COMPLETED"
     booking.total_amount = total
+
+    if cgst or sgst:
+        detail.cgst_amount = cgst
+        detail.sgst_amount = sgst
 
     detail.payment_status = "PAID"
     detail.amount_paid = total

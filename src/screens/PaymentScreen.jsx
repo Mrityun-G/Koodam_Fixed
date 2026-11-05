@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { RepairBill } from '../components/RepairBill';
 import { authorizedFetch } from '../lib/authorizedFetch';
+import { formatRupees, gstLines, halfRate } from '../lib/tax';
 
 export const PaymentScreen = () => {
   const {
     selectedHelper,
     selectedService,
     trustFee,
+    gstPercent,
     selectedDate,
     selectedTime,
     handleConfirmBooking,
@@ -26,10 +28,15 @@ export const PaymentScreen = () => {
     activeOrder?.currentStep === 5 &&
     activeOrder?.paymentStatus !== 'PAID';
 
+  // Before booking: the price, trust fee and GST on top, as booking saves it
+  const bookingBill = gstLines(
+    Number(selectedService?.price || 0) + Number(trustFee || 0),
+    gstPercent
+  );
+
   const totalAmount = isServicePayment
     ? Number(activeOrder?.totalAmount || 0)
-    : Number(selectedService?.price || 0) +
-      Number(trustFee || 0);
+    : bookingBill.total;
 
   // The bill isn't final while an extra part is still waiting for an answer
   const hasPendingExtraCharges = Object.values(
@@ -232,7 +239,7 @@ export const PaymentScreen = () => {
             </span>
 
             <h1 className="mt-2 text-3xl font-extrabold">
-              ₹{totalAmount}
+              {formatRupees(totalAmount)}
             </h1>
 
             <p className="mt-1 text-xs text-slate-300">
@@ -287,7 +294,7 @@ export const PaymentScreen = () => {
               ? 'Confirming payment...'
               : status === 'opening'
                 ? 'Opening Razorpay...'
-                : `Pay ₹${totalAmount} with Razorpay`}
+                : `Pay ${formatRupees(totalAmount)} with Razorpay`}
 
           </button>
 
@@ -340,7 +347,7 @@ export const PaymentScreen = () => {
           </span>
 
           <h1 className="mt-2 text-2xl font-extrabold">
-            ₹{totalAmount}
+            {formatRupees(totalAmount)}
           </h1>
 
           <p className="mt-1 text-xs text-slate-300">
@@ -382,6 +389,20 @@ export const PaymentScreen = () => {
               ₹{trustFee}
             </span>
           </div>
+
+          {bookingBill.tax > 0 && (
+            <>
+              <div className="mt-2 flex items-center justify-between text-xs">
+                <span className="text-slate-500">{`CGST (${halfRate(gstPercent)}%)`}</span>
+                <span className="font-bold text-[#0b1c30]">{formatRupees(bookingBill.cgst)}</span>
+              </div>
+
+              <div className="mt-2 flex items-center justify-between text-xs">
+                <span className="text-slate-500">{`SGST (${halfRate(gstPercent)}%)`}</span>
+                <span className="font-bold text-[#0b1c30]">{formatRupees(bookingBill.sgst)}</span>
+              </div>
+            </>
+          )}
 
         </div>
 

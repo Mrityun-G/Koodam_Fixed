@@ -90,7 +90,7 @@ export const MIN_PASSWORD_LENGTH = 8;
 const COMMON_PASSWORDS = new Set([
   'password', 'password1', 'password123', '12345678', '123456789',
   '1234567890', 'qwerty123', 'abc12345', 'iloveyou', 'admin123',
-  'welcome1', 'koodam123', 'india123', 'letmein1'
+  'welcome1', 'gigezee123', 'india123', 'letmein1'
 ]);
 
 export const passwordProblem = (password) => {

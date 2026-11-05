@@ -27,7 +27,7 @@ from app.database import get_db
 from app.models.client_error import ClientError
 from app.models.user import User
 
-logger = logging.getLogger("koodam.client")
+logger = logging.getLogger("gigezee.client")
 
 router = APIRouter(tags=["Diagnostics"])
 

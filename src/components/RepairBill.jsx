@@ -1,8 +1,10 @@
 import React from 'react';
+import { formatRupees, halfRate } from '../lib/tax';
 
 // The bill lines for a job: the total is the order's own figure, the lines
 // explain it. Orders made before servicePrice/trustFee were stored fall
-// back to working them out from the total.
+// back to working them out from the total. GST (cgst/sgst) is on top of
+// everything else, and 0 on orders made while none was charged.
 export const getBillLines = (order, fallbackTrustFee = 0) => {
   const total = Number(order?.totalAmount || 0);
 
@@ -15,15 +17,28 @@ export const getBillLines = (order, fallbackTrustFee = 0) => {
     0
   );
 
+  const cgst = Number(order?.cgst || 0);
+  const sgst = Number(order?.sgst || 0);
+  const beforeTax = total - cgst - sgst;
+
   const trustFee = order?.trustFee != null
     ? Number(order.trustFee)
-    : Math.min(Number(fallbackTrustFee || 0), Math.max(total - extrasTotal, 0));
+    : Math.min(Number(fallbackTrustFee || 0), Math.max(beforeTax - extrasTotal, 0));
 
   const servicePrice = order?.servicePrice != null
     ? Number(order.servicePrice)
-    : Math.max(total - extrasTotal - trustFee, 0);
+    : Math.max(beforeTax - extrasTotal - trustFee, 0);
 
-  return { total, approvedExtras, servicePrice, trustFee };
+  return {
+    total,
+    approvedExtras,
+    servicePrice,
+    trustFee,
+    cgst,
+    sgst,
+    gstPercent: Number(order?.gstPercent || 0),
+    gstin: order?.gstin || ''
+  };
 };
 
 /**
@@ -31,8 +46,11 @@ export const getBillLines = (order, fallbackTrustFee = 0) => {
  * what was done and what it costs before paying.
  */
 export const RepairBill = ({ order, fallbackTrustFee = 0 }) => {
-  const { total, approvedExtras, servicePrice, trustFee } =
-    getBillLines(order, fallbackTrustFee);
+  const {
+    total, approvedExtras, servicePrice, trustFee, cgst, sgst, gstPercent, gstin
+  } = getBillLines(order, fallbackTrustFee);
+
+  const hasTax = cgst + sgst > 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -56,12 +74,12 @@ export const RepairBill = ({ order, fallbackTrustFee = 0 }) => {
           <span className="text-slate-500 truncate">
             {order?.serviceTitle || 'Service'}
           </span>
-          <span className="font-bold text-[#0b1c30] shrink-0">₹{servicePrice}</span>
+          <span className="font-bold text-[#0b1c30] shrink-0">{formatRupees(servicePrice)}</span>
         </div>
 
         <div className="flex items-center justify-between gap-2">
           <span className="text-slate-500">Trust Shield fee</span>
-          <span className="font-bold text-[#0b1c30] shrink-0">₹{trustFee}</span>
+          <span className="font-bold text-[#0b1c30] shrink-0">{formatRupees(trustFee)}</span>
         </div>
 
         {approvedExtras.map(([chargeId, charge]) => (
@@ -77,15 +95,40 @@ export const RepairBill = ({ order, fallbackTrustFee = 0 }) => {
               <span className="truncate">{charge.item} (extra part)</span>
             </span>
             <span className="font-bold text-[#0b1c30] shrink-0">
-              ₹{Number(charge.amount || 0)}
+              {formatRupees(charge.amount)}
             </span>
           </div>
         ))}
 
+        {hasTax && (
+          <>
+            <div className="border-t border-dashed border-slate-200 pt-2 flex items-center justify-between gap-2">
+              <span className="text-slate-500">Subtotal</span>
+              <span className="font-bold text-[#0b1c30] shrink-0">
+                {formatRupees(total - cgst - sgst)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-slate-500">{`CGST (${halfRate(gstPercent)}%)`}</span>
+              <span className="font-bold text-[#0b1c30] shrink-0">{formatRupees(cgst)}</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-slate-500">{`SGST (${halfRate(gstPercent)}%)`}</span>
+              <span className="font-bold text-[#0b1c30] shrink-0">{formatRupees(sgst)}</span>
+            </div>
+          </>
+        )}
+
         <div className="border-t border-slate-200 pt-2 flex items-center justify-between">
           <span className="text-sm font-bold text-[#0b1c30]">Total</span>
-          <span className="text-lg font-extrabold text-[#a14000]">₹{total}</span>
+          <span className="text-lg font-extrabold text-[#a14000]">{formatRupees(total)}</span>
         </div>
+
+        {hasTax && gstin && (
+          <p className="text-[10px] text-slate-400">{`GSTIN: ${gstin}`}</p>
+        )}
       </div>
     </div>
   );

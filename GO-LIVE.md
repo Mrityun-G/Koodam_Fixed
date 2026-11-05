@@ -67,13 +67,13 @@ On Render, **Environment** → add anything missing from
 `backend/.env.example`. Two that matter:
 
 - `GIGEZEE_ADMIN_EMAILS` — without it every `/admin/*` endpoint returns
-  403 to everyone, including you. The local `.env` had this under the
-  old `GIGEZEE_` prefix, which `config.py` did not read.
+  403 to everyone, including you.
 - `ALLOWED_ORIGINS` — the deployed frontend URL, or the browser blocks
   every call.
 
-`config.py` still reads the old `GIGEZEE_*` names as a fallback, so a
-stale environment keeps working, but rename them when convenient.
+`config.py` still reads the pre-rename `KOODAM_*` names as a fallback,
+so a stale environment keeps working, but rename them to `GIGEZEE_*`
+when convenient.
 
 ## 5. Set the frontend environment variables
 
@@ -114,7 +114,7 @@ arrive branded as a Firebase project and land in spam.
 
 ## 8. Before the Play Store build
 
-- `capacitor.config.json` now says `in.koodam.app` — the old value was
+- `capacitor.config.json` now says `in.gigezee.app` — the old value was
   `com.example.app`, which the Play Console rejects. Changing it means
   this is a new app listing, so do it before the first upload, not after.
 - The store listing needs a link to a public privacy policy page. The

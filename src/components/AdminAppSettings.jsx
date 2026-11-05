@@ -5,7 +5,8 @@ import { authorizedFetch, BACKEND_URL } from '../lib/authorizedFetch';
 const SETTINGS = [
   { key: 'trust_fee', label: 'Trust fee (₹ per booking)' },
   { key: 'platform_commission_percent', label: 'Commission (% of service price)' },
-  { key: 'min_withdrawal', label: 'Minimum partner withdrawal (₹)' }
+  { key: 'min_withdrawal', label: 'Minimum partner withdrawal (₹)' },
+  { key: 'gst_percent', label: 'GST rate (%; half CGST, half SGST)' }
 ];
 
 // How each piece of app text is edited. "lines" fields are lists edited
@@ -194,7 +195,10 @@ export const AdminAppSettings = () => {
     fetch(`${BACKEND_URL}/config`)
       .then((response) => response.json())
       .then((config) =>
-        setValues(Object.fromEntries(SETTINGS.map(({ key }) => [key, String(config[key])])))
+        setValues({
+          ...Object.fromEntries(SETTINGS.map(({ key }) => [key, String(config[key])])),
+          gstin: config.gstin || ''
+        })
       )
       .catch(() => showToast("Couldn't load the app settings."));
 
@@ -208,9 +212,10 @@ export const AdminAppSettings = () => {
     try {
       await authorizedFetch('/admin/settings', {
         method: 'PUT',
-        body: JSON.stringify(
-          Object.fromEntries(SETTINGS.map(({ key }) => [key, Number(values[key])]))
-        )
+        body: JSON.stringify({
+          ...Object.fromEntries(SETTINGS.map(({ key }) => [key, Number(values[key])])),
+          gstin: values.gstin.trim().toUpperCase()
+        })
       });
       showToast('Settings saved. New bookings use them straight away.');
       loadAppSettings();
@@ -243,6 +248,22 @@ export const AdminAppSettings = () => {
                 />
               </label>
             ))}
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-[#0b1c30] font-bold">GSTIN</span>
+              <input
+                type="text"
+                maxLength={15}
+                placeholder="Not registered"
+                value={values.gstin}
+                onChange={(event) => setValues((previous) => ({ ...previous, gstin: event.target.value }))}
+                className="w-40 border border-slate-200 rounded-lg p-2 text-right uppercase"
+              />
+            </label>
+            <p className="text-slate-400">
+              {values.gstin.trim()
+                ? 'GST is added to every new booking at the rate above, and this GSTIN is printed on bills.'
+                : 'No GST is charged until a GSTIN is entered. Only enter one once GigEzee is registered.'}
+            </p>
             <button
               type="button"
               disabled={saving}

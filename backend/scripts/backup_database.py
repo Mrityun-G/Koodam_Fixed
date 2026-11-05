@@ -50,6 +50,12 @@ from app.database import engine  # noqa: E402
 DEFAULT_OUT = Path(__file__).resolve().parent.parent / "db_backups"
 DEFAULT_KEEP = 14
 
+BACKUP_PREFIX = "gigezee_"
+
+# Backups written before the rename. Still counted when pruning, so they
+# rotate out instead of sitting on the disk forever.
+LEGACY_BACKUP_PREFIX = "koodam_"
+
 # Written row by row rather than table by table, so one enormous table
 # can't take the whole process down with it
 CHUNK = 2000
@@ -65,7 +71,7 @@ def table_names() -> list:
 
 def backup_json(out_dir: Path) -> Path:
     """Every table's rows, gzipped. Uses the app's own connection."""
-    path = out_dir / f"koodam_{timestamp()}.json.gz"
+    path = out_dir / f"{BACKUP_PREFIX}{timestamp()}.json.gz"
     tables = table_names()
 
     if not tables:
@@ -119,7 +125,7 @@ def backup_sql(out_dir: Path) -> Path:
     if not DATABASE_URL:
         raise SystemExit("DATABASE_URL isn't set.")
 
-    path = out_dir / f"koodam_{timestamp()}.dump"
+    path = out_dir / f"{BACKUP_PREFIX}{timestamp()}.dump"
 
     # SQLAlchemy's +psycopg2 suffix means nothing to pg_dump
     url = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql://")
@@ -141,7 +147,8 @@ def backup_sql(out_dir: Path) -> Path:
 def prune(out_dir: Path, keep: int) -> None:
     backups = sorted(
         [p for p in out_dir.iterdir()
-         if p.is_file() and p.name.startswith("koodam_")],
+         if p.is_file()
+         and p.name.startswith((BACKUP_PREFIX, LEGACY_BACKUP_PREFIX))],
         key=lambda p: p.stat().st_mtime,
         reverse=True
     )

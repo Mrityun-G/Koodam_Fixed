@@ -13,6 +13,7 @@ import {
   jobsToTimeRanges
 } from '../lib/schedule';
 import { useSecondsLeft } from '../lib/useSecondsLeft';
+import { documentFileError } from '../lib/validators';
 import { PartnerPayouts } from '../components/PartnerPayouts';
 import { PartnerReliability } from '../components/PartnerReliability';
 import { Avatar } from '../components/Avatar';
@@ -120,15 +121,15 @@ export const PartnerDashboard = () => {
     }
   };
 
-  // What the partner actually takes home from a request: the customer's
-  // total minus GigEzee's trust fee and commission (same split the backend
-  // makes when the customer pays; extra parts added later go to the
-  // partner in full)
-  const partnerShareOf = (customerTotal) => {
-    const servicePrice = Math.max(
-      Number(customerTotal || 0) - Number(trustFee || 0),
-      0
-    );
+  // What the partner actually takes home from a request: the job price
+  // minus GigEzee's commission (same split the backend makes when the
+  // customer pays; the trust fee and GST aren't the partner's, and extra
+  // parts added later go to them in full). Older requests carry only the
+  // customer's total, from before GST was charged.
+  const partnerShareOf = (job) => {
+    const servicePrice = job?.servicePrice != null
+      ? Number(job.servicePrice)
+      : Math.max(Number(job?.payout || 0) - Number(trustFee || 0), 0);
 
     return Math.round(
       servicePrice * (1 - Number(platformCommissionPercent || 0) / 100)
@@ -753,6 +754,127 @@ export const PartnerDashboard = () => {
   }, [activeOrder.orderId]);
 
   // ================================
+  // ID DOCUMENTS (Aadhaar, PAN, Voter ID)
+  // GigEzee staff check them; once they approve, customers see the
+  // partner's Verified tick
+  // ================================
+
+  const ID_DOCUMENTS = [
+    { kind: 'aadhaar', label: 'Aadhaar Card' },
+    { kind: 'pan', label: 'PAN Card' },
+    { kind: 'voter_id', label: 'Voter ID Card' }
+  ];
+
+  const ID_STATUS = {
+    NOT_SUBMITTED: {
+      label: 'Upload all three documents to get your Verified tick',
+      tone: 'bg-amber-100 text-amber-600',
+      icon: 'pending',
+      canReplace: true
+    },
+    UNDER_REVIEW: {
+      label: 'Submitted — GigEzee staff are checking them',
+      tone: 'bg-amber-100 text-amber-600',
+      icon: 'hourglass_top',
+      canReplace: false
+    },
+    VERIFIED: {
+      label: 'Verified — customers see your Verified tick',
+      tone: 'bg-[#00ae78]/15 text-[#006c49]',
+      icon: 'verified',
+      canReplace: false
+    },
+    REJECTED: {
+      label: 'Not approved — please upload again',
+      tone: 'bg-red-50 text-red-500',
+      icon: 'error',
+      canReplace: true
+    }
+  };
+
+  const [idCheck, setIdCheck] = useState({
+    status: 'NOT_SUBMITTED',
+    rejection_reason: null,
+    documents: {}
+  });
+  const [uploadingIdKind, setUploadingIdKind] = useState(null);
+  const idFileInputRef = useRef(null);
+  // Which document the file picker was opened for
+  const idKindRef = useRef(null);
+
+  const idStatusInfo = ID_STATUS[idCheck.status] || ID_STATUS.NOT_SUBMITTED;
+
+  useEffect(() => {
+    if (!partnerProfile?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    authorizedFetchOrNull(`/partners/${partnerProfile.id}/id-documents`)
+      .then((data) => {
+        if (data && !cancelled) {
+          setIdCheck(data);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load ID documents:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [partnerProfile?.id]);
+
+  const pickIdDocument = (kind) => {
+    idKindRef.current = kind;
+    idFileInputRef.current?.click();
+  };
+
+  const handleIdDocumentSelected = async (event) => {
+    const file = event.target.files?.[0];
+    const kind = idKindRef.current;
+    // Allow picking the same file again after an error
+    event.target.value = '';
+
+    if (!file || !kind || !partnerProfile?.id) {
+      return;
+    }
+
+    const problem = documentFileError(file);
+
+    if (problem) {
+      showToast(problem);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadingIdKind(kind);
+
+    try {
+      const data = await authorizedFetch(
+        `/partners/${partnerProfile.id}/id-documents/${kind}`,
+        { method: 'POST', body: formData }
+      );
+
+      setIdCheck(data);
+
+      showToast(
+        data.status === 'UNDER_REVIEW'
+          ? 'All three documents are in. GigEzee staff will check them shortly.'
+          : 'Uploaded. Add the remaining documents to send them for checking.'
+      );
+    } catch (error) {
+      console.error('ID document upload failed:', error);
+      showToast(error.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploadingIdKind(null);
+    }
+  };
+
+  // ================================
   // POLICE VERIFICATION
   // ================================
 
@@ -1249,7 +1371,7 @@ export const PartnerDashboard = () => {
                 Estimated earning
 
                 <span className="font-extrabold text-[#a14000] text-sm">
-                  ₹{partnerShareOf(incomingJobDetails.payout)}
+                  ₹{partnerShareOf(incomingJobDetails)}
                 </span>
               </p>
             </div>
@@ -1648,7 +1770,7 @@ export const PartnerDashboard = () => {
                 </p>
 
                 <p className="text-base font-extrabold text-[#a14000]">
-                  ₹{partnerShareOf(incomingJobDetails.payout)}
+                  ₹{partnerShareOf(incomingJobDetails)}
                 </p>
               </div>
             </div>
@@ -1726,7 +1848,7 @@ export const PartnerDashboard = () => {
                 <span>
                   {acceptingJob
                     ? 'Accepting…'
-                    : `Accept Job (Earn ₹${partnerShareOf(incomingJobDetails.payout)})`}
+                    : `Accept Job (Earn ₹${partnerShareOf(incomingJobDetails)})`}
                 </span>
               </button>
             </div>
@@ -2819,32 +2941,86 @@ export const PartnerDashboard = () => {
           </div>
 
           <div className="bg-white rounded-2xl shadow-xs border border-slate-100 divide-y divide-slate-100 overflow-hidden">
-            <div className="flex items-center gap-3 p-3.5">
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                  partnerProfile?.is_verified
-                    ? 'bg-[#00ae78]/15 text-[#006c49]'
-                    : 'bg-amber-100 text-amber-600'
-                }`}
-              >
-                <span
-                  className="material-symbols-outlined text-[18px]"
-                  style={{
-                    fontVariationSettings:
-                      "'FILL' 1"
-                  }}
+            <div className="p-3.5 space-y-2.5">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${idStatusInfo.tone}`}
                 >
-                  {partnerProfile?.is_verified ? 'verified' : 'pending'}
-                </span>
+                  <span
+                    className="material-symbols-outlined text-[18px]"
+                    style={{
+                      fontVariationSettings:
+                        "'FILL' 1"
+                    }}
+                  >
+                    {idStatusInfo.icon}
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-[#0b1c30]">
+                    ID Verification
+                  </p>
+
+                  <p className="text-[11px] text-slate-500">
+                    {idStatusInfo.label}
+                    {idCheck.status === 'REJECTED' &&
+                      idCheck.rejection_reason &&
+                      `: ${idCheck.rejection_reason}`}
+                  </p>
+                </div>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
-                  Account Verification
-                </p>
+              <input
+                ref={idFileInputRef}
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                onChange={handleIdDocumentSelected}
+                className="hidden"
+              />
 
-                <p className="text-[11px] text-slate-500 truncate">
-                  {partnerProfile?.is_verified ? 'Verified' : 'Verification pending'}
+              <div className="pl-12 space-y-1.5">
+                {ID_DOCUMENTS.map(({ kind, label }) => {
+                  const uploaded = idCheck.documents?.[kind];
+                  // A missing one can always be added; one already sent
+                  // is only replaced before or after a rejection
+                  const canUpload = !uploaded || idStatusInfo.canReplace;
+
+                  return (
+                    <div key={kind} className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 min-w-0 text-[11px]">
+                        <span
+                          className={`material-symbols-outlined text-[15px] ${
+                            uploaded ? 'text-[#00ae78]' : 'text-slate-300'
+                          }`}
+                        >
+                          {uploaded ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        <span className="font-semibold text-[#0b1c30] truncate">
+                          {label}
+                        </span>
+                      </span>
+
+                      {canUpload && (
+                        <button
+                          type="button"
+                          onClick={() => pickIdDocument(kind)}
+                          disabled={Boolean(uploadingIdKind)}
+                          className="shrink-0 px-3 py-1 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] disabled:opacity-50 text-[#a14000] text-[11px] font-bold active:scale-95 transition-all"
+                        >
+                          {uploadingIdKind === kind
+                            ? 'Uploading…'
+                            : uploaded
+                            ? 'Replace'
+                            : 'Upload'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <p className="text-[10px] text-slate-400">
+                  Only GigEzee staff see these documents. They are never shown to customers.
                 </p>
               </div>
             </div>
@@ -2900,26 +3076,6 @@ export const PartnerDashboard = () => {
                     : 'Pending approval'}
                 </span>
               )}
-            </div>
-
-            <div className="w-full flex items-center gap-3 p-3.5 text-left">
-              <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[18px]">
-                  description
-                </span>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0b1c30]">
-                  Documents
-                </p>
-
-                <p className="text-[11px] text-slate-500">
-                  Your Aadhaar, PAN and Voter ID were received at sign-up.
-                  KOODAM staff check them and they are never shown to
-                  customers.
-                </p>
-              </div>
             </div>
           </div>
         </section>
