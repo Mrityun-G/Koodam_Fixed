@@ -31,12 +31,12 @@ const INDIAN_STATES = [
 const ACCOUNT_STATUS = {
   NOT_SET: {
     label: 'Add your bank account to get paid',
-    tone: 'bg-[#FFF3D5] text-[#101F55]',
+    tone: 'bg-amber-100 text-amber-700',
     icon: 'account_balance'
   },
   UNDER_REVIEW: {
     label: 'Razorpay is verifying your bank account',
-    tone: 'bg-[#FFE7A8] text-[#4E5C92]',
+    tone: 'bg-[#dce1ff] text-[#4e5c92]',
     icon: 'hourglass_top'
   },
   NEEDS_CLARIFICATION: {
@@ -51,25 +51,25 @@ const ACCOUNT_STATUS = {
   },
   ACTIVATED: {
     label: 'Payouts active',
-    tone: 'bg-[#FFE7A8] text-[#101F55]',
+    tone: 'bg-[#c8f7e1] text-[#006c49]',
     icon: 'verified'
   }
 };
 
 const PAYOUT_STATUS = {
-  SETTLED: { label: 'In your bank', tone: 'bg-[#FFE7A8] text-[#101F55]', icon: 'check_circle' },
-  SENT: { label: 'On the way', tone: 'bg-[#FFE7A8] text-[#4E5C92]', icon: 'schedule_send' },
-  WAITING_FOR_ACCOUNT: { label: 'In your balance', tone: 'bg-[#FFF3D5] text-[#101F55]', icon: 'account_balance_wallet' },
+  SETTLED: { label: 'In your bank', tone: 'bg-[#c8f7e1] text-[#006c49]', icon: 'check_circle' },
+  SENT: { label: 'On the way', tone: 'bg-[#dce1ff] text-[#4e5c92]', icon: 'schedule_send' },
+  WAITING_FOR_ACCOUNT: { label: 'In your balance', tone: 'bg-amber-100 text-amber-700', icon: 'account_balance_wallet' },
   FAILED: { label: 'Transfer failed', tone: 'bg-red-100 text-red-600', icon: 'error' },
-  CASH_COLLECTED: { label: 'Collected in cash', tone: 'bg-[#FFE7A8] text-[#101F55]', icon: 'payments' },
-  WITHDRAWAL_REQUESTED: { label: 'Withdrawal requested', tone: 'bg-[#FFE7A8] text-[#4E5C92]', icon: 'hourglass_top' },
-  WITHDRAWN: { label: 'Withdrawn', tone: 'bg-[#FFE7A8] text-[#101F55]', icon: 'check_circle' }
+  CASH_COLLECTED: { label: 'Collected in cash', tone: 'bg-[#ffdbcc] text-[#7b2f00]', icon: 'payments' },
+  WITHDRAWAL_REQUESTED: { label: 'Withdrawal requested', tone: 'bg-[#dce1ff] text-[#4e5c92]', icon: 'hourglass_top' },
+  WITHDRAWN: { label: 'Withdrawn', tone: 'bg-[#c8f7e1] text-[#006c49]', icon: 'check_circle' }
 };
 
 const WITHDRAWAL_STATUS = {
-  REQUESTED: { label: 'Waiting to be paid', tone: 'bg-[#FFE7A8] text-[#4E5C92]', icon: 'hourglass_top' },
-  PROCESSING: { label: 'On the way', tone: 'bg-[#FFE7A8] text-[#4E5C92]', icon: 'schedule_send' },
-  PAID: { label: 'Paid', tone: 'bg-[#FFE7A8] text-[#101F55]', icon: 'check_circle' },
+  REQUESTED: { label: 'Waiting to be paid', tone: 'bg-[#dce1ff] text-[#4e5c92]', icon: 'hourglass_top' },
+  PROCESSING: { label: 'On the way', tone: 'bg-[#dce1ff] text-[#4e5c92]', icon: 'schedule_send' },
+  PAID: { label: 'Paid', tone: 'bg-[#c8f7e1] text-[#006c49]', icon: 'check_circle' },
   FAILED: { label: 'Failed', tone: 'bg-red-100 text-red-600', icon: 'error' },
   REJECTED: { label: 'Rejected', tone: 'bg-red-100 text-red-600', icon: 'cancel' }
 };
@@ -284,14 +284,14 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
     withdrawal?.allowed && !withdrawal.pending && withdrawal.available >= withdrawal.minimum;
 
   const inputClass =
-    'w-full bg-[#FFF3D5] border border-slate-200 rounded-xl px-3 py-2 text-xs text-[#101F55] outline-none focus:border-[#FFC928]';
+    'w-full bg-[#f8f9ff] border border-slate-200 rounded-xl px-3 py-2 text-xs text-[#0b1c30] outline-none focus:border-[#ff6a00]';
 
   return (
     <>
       <section className="space-y-2 pt-1">
         <div className="px-1 flex items-end justify-between gap-2">
           <div>
-            <h2 className="text-sm font-bold text-[#101F55]">Payouts</h2>
+            <h2 className="text-sm font-bold text-[#0b1c30]">Payouts</h2>
             <p className="text-[10px] text-slate-400 mt-0.5">
               Your share of each paid job • withdraw it whenever you like
             </p>
@@ -300,7 +300,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
           <button
             type="button"
             onClick={load}
-            className="text-[11px] font-bold text-[#101F55] flex items-center gap-0.5"
+            className="text-[11px] font-bold text-[#a14000] flex items-center gap-0.5"
           >
             <span className="material-symbols-outlined text-[15px]">refresh</span>
             Refresh
@@ -314,7 +314,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[#101F55] truncate">
+            <p className="text-xs font-bold text-[#0b1c30] truncate">
               {account.bank_last4
                 ? `${account.beneficiary_name} · A/c ••••${account.bank_last4}`
                 : 'No bank account yet'}
@@ -327,7 +327,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
           <button
             type="button"
             onClick={() => onSetupOpenChange(true)}
-            className="shrink-0 px-3 py-1.5 rounded-full bg-[#FFF3D5] text-[#101F55] text-xs font-bold hover:bg-[#FFE7A8] transition-colors"
+            className="shrink-0 px-3 py-1.5 rounded-full bg-[#eff4ff] text-[#a14000] text-xs font-bold hover:bg-[#ffdbcc] transition-colors"
           >
             {account.bank_last4 ? 'Change' : 'Add bank'}
           </button>
@@ -336,9 +336,9 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
         {/* Totals */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            ['In your bank', totals.settled, 'text-[#101F55]'],
-            ['On the way', totals.in_transit, 'text-[#4E5C92]'],
-            ['Waiting', (totals.waiting || 0) + (totals.failed || 0), 'text-[#101F55]']
+            ['In your bank', totals.settled, 'text-[#006c49]'],
+            ['On the way', totals.in_transit, 'text-[#4e5c92]'],
+            ['Waiting', (totals.waiting || 0) + (totals.failed || 0), 'text-amber-700']
           ].map(([label, value, tone]) => (
             <div key={label} className="bg-white rounded-2xl p-2.5 border border-slate-100 text-center">
               <p className={`text-sm font-extrabold ${tone}`}>{formatRupees(value)}</p>
@@ -349,7 +349,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
 
         {/* Withdraw: only while Route isn't paying the partner automatically */}
         {withdrawal?.allowed && (
-          <div className="bg-[#101F55] rounded-2xl p-3.5 text-white flex items-center gap-3">
+          <div className="bg-[#0b1c30] rounded-2xl p-3.5 text-white flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-[10px] uppercase tracking-wide text-white/60 font-bold">Available to withdraw</p>
               <p className={`text-xl font-extrabold ${withdrawal.available < 0 ? 'text-red-300' : ''}`}>
@@ -372,7 +372,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
               type="button"
               onClick={openWithdraw}
               disabled={!canWithdraw}
-              className="shrink-0 px-4 py-2 rounded-full bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-white/15 disabled:text-white/50 text-[#101F55] text-xs font-bold active:scale-95 transition-all"
+              className="shrink-0 px-4 py-2 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-white/15 disabled:text-white/50 text-white text-xs font-bold active:scale-95 transition-all"
             >
               Withdraw
             </button>
@@ -392,7 +392,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-[#101F55] truncate" data-no-translate>
+                    <p className="text-xs font-bold text-[#0b1c30] truncate" data-no-translate>
                       {item.method === 'UPI' ? `UPI · ${item.upi_id}` : `Bank · A/c ••••${item.account_last4}${item.method === 'ROUTE' ? ' (Razorpay)' : ''}`}
                     </p>
                     <p className="text-[10px] text-slate-400 truncate">
@@ -420,7 +420,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
                     )}
                   </div>
 
-                  <p className="text-sm font-extrabold text-[#101F55] shrink-0">
+                  <p className="text-sm font-extrabold text-[#0b1c30] shrink-0">
                     {formatRupees(item.amount)}
                   </p>
                 </div>
@@ -430,7 +430,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
         )}
 
         {totals.cash_collected > 0 && (
-          <div className="bg-[#FFF7E0] rounded-2xl p-3 border border-[#FFE7A8] text-[11px] text-[#101F55]">
+          <div className="bg-[#fff8f4] rounded-2xl p-3 border border-[#ffdbcc] text-[11px] text-[#7b2f00]">
             <p className="font-bold">
               {`Phone bookings: you kept ${formatRupees(totals.cash_collected)} as your share in cash`}
             </p>
@@ -443,7 +443,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
         {/* List */}
         {loading && !data ? (
           <div className="py-6 flex flex-col items-center text-slate-400">
-            <span className="material-symbols-outlined animate-spin text-[#F47B16] text-2xl">
+            <span className="material-symbols-outlined animate-spin text-[#ff6a00] text-2xl">
               progress_activity
             </span>
             <p className="text-xs mt-2">Loading payouts...</p>
@@ -473,7 +473,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-[#101F55] truncate">
+                    <p className="text-xs font-bold text-[#0b1c30] truncate">
                       <span>{payout.service_title}</span> <span>service</span>
                     </p>
                     <p className="text-[11px] text-slate-500 truncate">
@@ -527,7 +527,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
                     )}
                   </div>
 
-                  <p className="text-sm font-extrabold text-[#101F55] shrink-0">
+                  <p className="text-sm font-extrabold text-[#006c49] shrink-0">
                     {formatRupees(payout.amount)}
                   </p>
                 </div>
@@ -548,10 +548,10 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
           >
             <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
                   <span className="material-symbols-outlined text-base">account_balance</span>
                 </div>
-                <h3 className="font-bold text-[#101F55] text-base">Payout bank account</h3>
+                <h3 className="font-bold text-[#0b1c30] text-base">Payout bank account</h3>
               </div>
 
               <button
@@ -605,7 +605,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-3 rounded-full bg-[#101F55] hover:bg-[#101F55] disabled:opacity-60 text-white font-bold text-sm shadow-md active:scale-95 transition-all"
+              className="w-full py-3 rounded-full bg-[#00ae78] hover:bg-[#006c49] disabled:opacity-60 text-white font-bold text-sm shadow-md active:scale-95 transition-all"
             >
               {saving ? 'Saving...' : 'Save bank account'}
             </button>
@@ -624,10 +624,10 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
           >
             <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
                   <span className="material-symbols-outlined text-base">savings</span>
                 </div>
-                <h3 className="font-bold text-[#101F55] text-base">Withdraw earnings</h3>
+                <h3 className="font-bold text-[#0b1c30] text-base">Withdraw earnings</h3>
               </div>
 
               <button
@@ -640,9 +640,9 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-3">
-              <div className="bg-[#FFF3D5] rounded-2xl p-3 text-center mb-3">
+              <div className="bg-[#f8f9ff] rounded-2xl p-3 text-center mb-3">
                 <p className="text-[10px] text-slate-400 font-bold uppercase">Amount</p>
-                <p className="text-2xl font-extrabold text-[#101F55]">{formatRupees(withdrawal?.available)}</p>
+                <p className="text-2xl font-extrabold text-[#0b1c30]">{formatRupees(withdrawal?.available)}</p>
                 <p className="text-[10px] text-slate-500">{withdrawal?.route || withdrawal?.instant
                     ? 'Your full balance, sent by Razorpay straight away.'
                     : 'Your full balance, paid by GigEzee after a quick check.'}</p>
@@ -651,11 +651,11 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
               {withdrawal?.route ? (
                 // Verified through Razorpay: nothing to type
                 <div className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3">
-                  <div className="w-9 h-9 rounded-full bg-[#FFE7A8] text-[#101F55] flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#c8f7e1] text-[#006c49] flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-[18px]">verified</span>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-[#101F55] truncate" data-no-translate>
+                    <p className="text-xs font-bold text-[#0b1c30] truncate" data-no-translate>
                       {`${account.beneficiary_name} · A/c ••••${account.bank_last4}`}
                     </p>
                     <p className="text-[10px] text-slate-500">
@@ -672,7 +672,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
                     type="button"
                     onClick={() => setWithdrawForm((previous) => ({ ...previous, method: value }))}
                     className={`py-1.5 rounded-full text-xs font-bold transition-colors ${
-                      withdrawForm.method === value ? 'bg-white text-[#101F55] shadow-xs' : 'text-slate-500'
+                      withdrawForm.method === value ? 'bg-white text-[#a14000] shadow-xs' : 'text-slate-500'
                     }`}
                   >
                     {label}
@@ -709,7 +709,7 @@ export const PartnerPayouts = ({ setupOpen, onSetupOpenChange, refreshKey = 0 })
               <button
                 type="submit"
                 disabled={withdrawing}
-                className="w-full py-3 rounded-full bg-[#101F55] hover:bg-[#101F55] disabled:opacity-60 text-white font-bold text-sm shadow-md active:scale-95 transition-all"
+                className="w-full py-3 rounded-full bg-[#00ae78] hover:bg-[#006c49] disabled:opacity-60 text-white font-bold text-sm shadow-md active:scale-95 transition-all"
               >
                 {withdrawing ? 'Requesting...' : `Withdraw ${formatRupees(withdrawal?.available)}`}
               </button>

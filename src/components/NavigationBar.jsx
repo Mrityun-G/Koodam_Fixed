@@ -13,10 +13,8 @@ export const NavigationBar = () => {
   ];
 
   return (
-    // White bar, navy icons and labels, a golden-yellow pill behind the
-    // active tab and an orange dot for anything waiting
-    <nav className="sticky bottom-0 inset-x-0 z-40 bg-white shadow-[0_-4px_18px_rgba(16,31,85,0.08)] border-t border-[#E6E9F4] rounded-t-3xl pb-safe">
-      <div className="grid grid-cols-5 items-center h-[70px] px-2 max-w-lg mx-auto">
+    <nav className="sticky bottom-0 inset-x-0 z-40 bg-[#f8f9ff]/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(27,42,94,0.06)] border-t border-slate-100 pb-safe">
+      <div className="flex justify-around items-center h-18 px-2 max-w-lg mx-auto py-1">
         {navItems.map(item => {
           const isActive = activeTab === item.id;
           return (
@@ -30,14 +28,15 @@ export const NavigationBar = () => {
                   navigateTo(item.screen, item.id);
                 }
               }}
-              aria-current={isActive ? 'page' : undefined}
-              className="flex flex-col items-center justify-center min-h-[44px] gap-1 text-[#101F55] transition-all active:scale-95"
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-1 transition-all ${
+                isActive
+                  ? 'text-[#a14000] font-bold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
             >
               <div
-                className={`w-12 h-8 rounded-full flex items-center justify-center relative transition-all ${
-                  isActive
-                    ? 'bg-[#FFC928] shadow-md shadow-[#FFC928]/40'
-                    : 'hover:bg-[#FFF3D5]'
+                className={`w-11 h-7 rounded-full flex items-center justify-center relative transition-colors ${
+                  isActive ? 'bg-[#ffdbcc] text-[#a14000]' : 'text-slate-600'
                 }`}
               >
                 <span
@@ -47,12 +46,10 @@ export const NavigationBar = () => {
                   {item.icon}
                 </span>
                 {item.badge && (
-                  <span className="absolute top-0.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#F47B16] ring-2 ring-white animate-pulse"></span>
+                  <span className="absolute top-0 right-1 w-2.5 h-2.5 rounded-full bg-[#ff6a00] ring-2 ring-[#f8f9ff] animate-pulse"></span>
                 )}
               </div>
-              <span className={`text-[11px] leading-none ${isActive ? 'font-extrabold' : 'font-semibold text-[#101F55]/75'}`}>
-                {item.label}
-              </span>
+              <span className="text-[11px] font-medium leading-none">{item.label}</span>
             </button>
           );
         })}

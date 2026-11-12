@@ -38,7 +38,7 @@ export const TermsScreen = () => {
   const sections = appContent.terms?.length ? appContent.terms : DEFAULT_SECTIONS;
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5] min-h-screen">
+    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
       <SubHeader title="Terms & Policy" />
 
       <main className="flex-1 flex flex-col relative w-full pb-10 px-4 space-y-3.5 pt-4">
@@ -46,11 +46,11 @@ export const TermsScreen = () => {
 
         {sections.map((section, idx) => (
           <section key={idx} className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100">
-            <h2 className="text-sm font-bold text-[#101F55] mb-2">{section.title}</h2>
+            <h2 className="text-sm font-bold text-[#0b1c30] mb-2">{section.title}</h2>
             <ul className="space-y-2">
               {section.points.map((point, i) => (
                 <li key={i} className="text-xs text-slate-600 leading-relaxed flex gap-2">
-                  <span className="text-[#101F55] shrink-0">•</span>
+                  <span className="text-[#ff6a00] shrink-0">•</span>
                   <span>{point}</span>
                 </li>
               ))}

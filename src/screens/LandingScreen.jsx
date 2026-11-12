@@ -53,10 +53,10 @@ export const LandingScreen = () => {
     // height and the frame scrolls, rather than crushing the photo.
     <main className="flex-1 flex flex-col relative w-full bg-white min-h-full overflow-hidden">
       {/* Warm sweep in the top-left corner, echoing the orange wave below */}
-      <div className="absolute -top-24 -left-24 w-56 h-56 rounded-full border-[18px] border-[#FFD65A]/50 pointer-events-none" />
+      <div className="absolute -top-24 -left-24 w-56 h-56 rounded-full border-[18px] border-[#ffb36b]/50 pointer-events-none" />
 
       {/* Headline */}
-      <div className="relative flex flex-col items-center text-center px-6 pt-8 pb-2 shrink-0 bg-gradient-to-b from-[#FFF7E0] to-[#FFF7E0]">
+      <div className="relative flex flex-col items-center text-center px-6 pt-8 pb-2 shrink-0 bg-gradient-to-b from-[#fff6ee] to-[#fdf8f3]">
         <div
           className="flex items-center gap-2 mb-5 animate-pop-in"
           style={step(60)}
@@ -68,22 +68,22 @@ export const LandingScreen = () => {
             height="28"
             className="w-7 h-7 rounded-lg"
           />
-          <span className="text-sm font-extrabold tracking-tight text-[#101F55]">
+          <span className="text-sm font-extrabold tracking-tight text-[#0b1c30]">
             {t.name}
-            {isPartnerApp && <span className="text-[#101F55]"> Partner</span>}
+            {isPartnerApp && <span className="text-[#1b2a5e]"> Partner</span>}
           </span>
         </div>
 
         <h1
-          className="text-[28px] leading-[1.15] font-extrabold tracking-tight text-[#101F55] max-w-[320px] animate-fade-up"
+          className="text-[28px] leading-[1.15] font-extrabold tracking-tight text-[#0b1c30] max-w-[320px] animate-fade-up"
           style={step(180)}
         >
           {t.quoteLead}{' '}
-          <span className="text-[#101F55]">{t.quoteAccent}</span>
+          <span className="text-[#ff6a00]">{t.quoteAccent}</span>
         </h1>
 
         <span
-          className="w-16 h-1 bg-[#FFC928] rounded-full mt-3 animate-fade-in origin-center"
+          className="w-16 h-1 bg-[#ff6a00] rounded-full mt-3 animate-fade-in origin-center"
           style={step(300)}
         />
 
@@ -100,7 +100,7 @@ export const LandingScreen = () => {
           the slack on tall screens; object-bottom keeps the wave and skyline
           in frame and trims sky first when the box is short. */}
       <div
-        className="relative flex-1 min-h-[260px] w-full overflow-hidden bg-gradient-to-b from-[#FFF7E0] via-[#FFE7A8] to-white animate-fade-in"
+        className="relative flex-1 min-h-[260px] w-full overflow-hidden bg-gradient-to-b from-[#fdf8f3] via-[#ffdbcc] to-white animate-fade-in"
         style={step(420)}
       >
         <img
@@ -117,14 +117,14 @@ export const LandingScreen = () => {
         />
 
         {/* Blends the top edge of the photo into the headline panel */}
-        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#FFF7E0] to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#fdf8f3] to-transparent pointer-events-none" />
       </div>
 
       {/* CTA below the image */}
       <div className="w-full px-6 pt-3 pb-6 shrink-0 bg-white">
         <button
           onClick={() => navigateTo('welcome')}
-          className="w-full py-3.5 px-4 rounded-full bg-gradient-to-r from-[#FFC928] to-[#FFD65A] text-[#101F55] text-base font-bold shadow-lg shadow-[#FFC928]/30 flex items-center justify-center gap-2 active:scale-98 transition-all animate-fade-up"
+          className="w-full py-3.5 px-4 rounded-full bg-gradient-to-r from-[#ff6a00] to-[#ff9a56] text-white text-base font-bold shadow-lg shadow-[#ff6a00]/30 flex items-center justify-center gap-2 active:scale-98 transition-all animate-fade-up"
           style={step(560)}
           type="button"
         >
@@ -136,11 +136,11 @@ export const LandingScreen = () => {
         {!isPartnerApp && (
           <button
             onClick={() => navigateTo('offline')}
-            className="w-full mt-2.5 py-3 px-4 rounded-full border border-[#FFE7A8] bg-white text-[#101F55] text-sm font-bold flex items-center justify-center gap-2 active:scale-98 transition-all animate-fade-up"
+            className="w-full mt-2.5 py-3 px-4 rounded-full border border-[#ffcf9f] bg-white text-[#0b1c30] text-sm font-bold flex items-center justify-center gap-2 active:scale-98 transition-all animate-fade-up"
             style={step(660)}
             type="button"
           >
-            <span className="material-symbols-outlined text-[18px] text-[#F47B16]">call</span>
+            <span className="material-symbols-outlined text-[18px] text-[#ff6a00]">call</span>
             {t.offline}
           </button>
         )}

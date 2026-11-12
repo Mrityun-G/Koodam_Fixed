@@ -35,21 +35,21 @@ export const VerifyEmailBanner = () => {
   };
 
   return (
-    <div className="shrink-0 bg-[#FFF3D5] border-b border-[#FFE7A8] px-4 py-2.5">
+    <div className="shrink-0 bg-[#fff3ea] border-b border-[#ffdbcc] px-4 py-2.5">
       <div className="flex items-start gap-2.5">
         <span
-          className="material-symbols-outlined mt-0.5 shrink-0 text-[18px] text-[#F47B16]"
+          className="material-symbols-outlined mt-0.5 shrink-0 text-[18px] text-[#a14000]"
           style={{ fontVariationSettings: "'FILL' 1" }}
         >
           mark_email_unread
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold text-[#101F55]">
+          <p className="text-[11px] font-bold text-[#7b2f00]">
             Confirm your email address
           </p>
 
-          <p className="mt-0.5 text-[10px] leading-relaxed text-[#101F55]">
+          <p className="mt-0.5 text-[10px] leading-relaxed text-[#a14000]">
             {`We sent a link to ${authUser.email}. Confirming it lets you reset your password and receive booking receipts.`}
           </p>
 
@@ -58,7 +58,7 @@ export const VerifyEmailBanner = () => {
               type="button"
               disabled={busy}
               onClick={() => run(resendVerificationEmail)}
-              className="text-[10px] font-bold text-[#101F55] underline disabled:opacity-50"
+              className="text-[10px] font-bold text-[#a14000] underline disabled:opacity-50"
             >
               {busy ? 'Working…' : 'Resend link'}
             </button>
@@ -67,7 +67,7 @@ export const VerifyEmailBanner = () => {
               type="button"
               disabled={busy}
               onClick={() => run(refreshEmailVerified)}
-              className="text-[10px] font-bold text-[#101F55] underline disabled:opacity-50"
+              className="text-[10px] font-bold text-[#a14000] underline disabled:opacity-50"
             >
               I&apos;ve confirmed it
             </button>
@@ -78,7 +78,7 @@ export const VerifyEmailBanner = () => {
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="Hide this reminder"
-          className="-mr-1 shrink-0 rounded-full p-1 text-[#101F55]/60 hover:bg-[#FFE7A8] hover:text-[#101F55]"
+          className="-mr-1 shrink-0 rounded-full p-1 text-[#a14000]/60 hover:bg-[#ffdbcc] hover:text-[#a14000]"
         >
           <span className="material-symbols-outlined text-[16px]">close</span>
         </button>

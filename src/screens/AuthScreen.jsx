@@ -45,9 +45,9 @@ const copy = {
     signupSub: 'Create a free account to start booking verified local helpers.',
     badgeIcon: Home,
     trustChips: [
-      { icon: ShieldCheck, label: 'Verified Helpers', bg: 'bg-[#FFE7A8]/60', color: 'text-[#101F55]' },
-      { icon: Zap, label: 'Instant Booking', bg: 'bg-[#FFE7A8]', color: 'text-[#101F55]' },
-      { icon: Shield, label: 'Safe & Secure', bg: 'bg-[#FFE7A8]', color: 'text-[#101F55]' }
+      { icon: ShieldCheck, label: 'Verified Helpers', bg: 'bg-[#6ffbbe]/60', color: 'text-[#005236]' },
+      { icon: Zap, label: 'Instant Booking', bg: 'bg-[#ffdbcc]', color: 'text-[#7b2f00]' },
+      { icon: Shield, label: 'Safe & Secure', bg: 'bg-[#d3e4fe]', color: 'text-[#354479]' }
     ]
   },
   partner: {
@@ -58,9 +58,9 @@ const copy = {
     signupSub: 'Sign up to offer your skills and start earning locally.',
     badgeIcon: Wrench,
     trustChips: [
-      { icon: Wallet, label: 'Low Commission', bg: 'bg-[#FFC928]/20', color: 'text-[#F5B301]' },
-      { icon: Clock, label: 'Flexible Hours', bg: 'bg-[#101F55]/20', color: 'text-[#FFD65A]' },
-      { icon: BadgeCheck, label: 'Trusted Network', bg: 'bg-[#101F55]/20', color: 'text-[#FFD65A]' }
+      { icon: Wallet, label: 'Low Commission', bg: 'bg-amber-400/20', color: 'text-amber-200' },
+      { icon: Clock, label: 'Flexible Hours', bg: 'bg-sky-400/20', color: 'text-sky-200' },
+      { icon: BadgeCheck, label: 'Trusted Network', bg: 'bg-emerald-400/20', color: 'text-emerald-200' }
     ]
   }
 };
@@ -87,14 +87,14 @@ const FieldInput = ({ icon: Icon, label, type, value, onChange, placeholder, isP
           error
             ? 'border-red-300 bg-red-50/60 text-red-900 placeholder:text-red-300 focus:ring-red-300/50'
             : valid
-            ? 'border-[#FFE7A8] focus:ring-[#FFE7A8]/50 ' + (isPartner ? 'bg-[#101F55]/10 text-white' : 'bg-[#FFF7E0]/60 text-[#101F55]')
+            ? 'border-emerald-300 focus:ring-emerald-300/50 ' + (isPartner ? 'bg-emerald-400/10 text-white' : 'bg-emerald-50/60 text-[#0b1c30]')
             : isPartner
-            ? 'border-white/15 bg-white/10 text-white placeholder:text-white/35 focus:ring-[#FFD65A]/50 focus:bg-white/15'
-            : 'border-slate-200 bg-[#FFF3D5] text-[#101F55] placeholder:text-slate-400 focus:ring-[#FFC928]/40 focus:bg-white'
+            ? 'border-white/15 bg-white/10 text-white placeholder:text-white/35 focus:ring-[#b3c1ff]/50 focus:bg-white/15'
+            : 'border-slate-200 bg-[#f8f9ff] text-[#0b1c30] placeholder:text-slate-400 focus:ring-[#ff6a00]/40 focus:bg-white'
         }`}
       />
       {valid && !endAdornment && (
-        <CheckCircle2 size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#101F55]" />
+        <CheckCircle2 size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500" />
       )}
       {endAdornment}
     </div>
@@ -110,7 +110,7 @@ const PasswordToggle = ({ shown, onToggle, isPartner }) => {
       onClick={onToggle}
       aria-label={shown ? 'Hide password' : 'Show password'}
       className={`absolute right-3.5 top-1/2 -translate-y-1/2 ${
-        isPartner ? 'text-white/50 hover:text-white' : 'text-slate-400 hover:text-[#101F55]'
+        isPartner ? 'text-white/50 hover:text-white' : 'text-slate-400 hover:text-[#a14000]'
       }`}
     >
       <Icon size={18} />
@@ -130,7 +130,7 @@ const GoogleLogo = () => (
 
 // Four segments that fill as the password gets harder to guess. Gives
 // people a reason to go past the minimum instead of stopping at it.
-const STRENGTH_COLORS = ['bg-red-400', 'bg-red-400', 'bg-[#FFC928]', 'bg-[#101F55]', 'bg-[#101F55]'];
+const STRENGTH_COLORS = ['bg-red-400', 'bg-red-400', 'bg-amber-400', 'bg-emerald-400', 'bg-emerald-500'];
 
 const PasswordStrength = ({ strength, isPartner }) => (
   <div className="-mt-2 flex items-center gap-2" aria-live="polite">
@@ -151,9 +151,9 @@ const PasswordStrength = ({ strength, isPartner }) => (
     <span
       className={`text-[10px] font-bold ${
         strength.score >= 3
-          ? 'text-[#101F55]'
+          ? 'text-emerald-500'
           : strength.score === 2
-          ? 'text-[#F5B301]'
+          ? 'text-amber-500'
           : 'text-red-400'
       }`}
     >
@@ -167,24 +167,24 @@ const formatFileSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 // Distinct accent per document type so the KYC section reads as colorful, not one flat block.
 const DOCUMENT_ACCENTS = {
   sky: {
-    icon: 'text-[#FFD65A]',
-    badge: 'bg-[#101F55]/20',
-    border: 'border-[#101F55]/30 bg-[#101F55]/5 hover:border-[#101F55]/60 hover:bg-[#101F55]/10'
+    icon: 'text-sky-300',
+    badge: 'bg-sky-400/20',
+    border: 'border-sky-400/30 bg-sky-400/5 hover:border-sky-400/60 hover:bg-sky-400/10'
   },
   emerald: {
-    icon: 'text-[#FFD65A]',
-    badge: 'bg-[#101F55]/20',
-    border: 'border-[#101F55]/30 bg-[#101F55]/5 hover:border-[#101F55]/60 hover:bg-[#101F55]/10'
+    icon: 'text-emerald-300',
+    badge: 'bg-emerald-400/20',
+    border: 'border-emerald-400/30 bg-emerald-400/5 hover:border-emerald-400/60 hover:bg-emerald-400/10'
   },
   violet: {
-    icon: 'text-[#FFD65A]',
-    badge: 'bg-[#101F55]/20',
-    border: 'border-[#101F55]/30 bg-[#101F55]/5 hover:border-[#101F55]/60 hover:bg-[#101F55]/10'
+    icon: 'text-violet-300',
+    badge: 'bg-violet-400/20',
+    border: 'border-violet-400/30 bg-violet-400/5 hover:border-violet-400/60 hover:bg-violet-400/10'
   },
   amber: {
-    icon: 'text-[#F5B301]',
-    badge: 'bg-[#FFC928]/20',
-    border: 'border-[#FFC928]/30 bg-[#FFC928]/5 hover:border-[#FFC928]/60 hover:bg-[#FFC928]/10'
+    icon: 'text-amber-300',
+    badge: 'bg-amber-400/20',
+    border: 'border-amber-400/30 bg-amber-400/5 hover:border-amber-400/60 hover:bg-amber-400/10'
   }
 };
 
@@ -235,7 +235,7 @@ const DocumentUpload = ({ icon: Icon, label, accent, file, onSelect, onRemove, e
       ) : (
         <div
           className={`mt-1.5 w-full flex items-center gap-3 rounded-2xl border p-2.5 ${
-            error ? 'border-red-400/50 bg-red-500/5' : 'border-[#101F55]/40 bg-[#101F55]/5'
+            error ? 'border-red-400/50 bg-red-500/5' : 'border-emerald-400/40 bg-emerald-400/5'
           }`}
         >
           {previewUrl ? (
@@ -249,7 +249,7 @@ const DocumentUpload = ({ icon: Icon, label, accent, file, onSelect, onRemove, e
             <p className="text-xs font-semibold text-white truncate">{file.name}</p>
             <p className="text-[10px] text-white/50">{formatFileSize(file.size)}</p>
           </div>
-          {!error && <CheckCircle2 size={20} className="text-[#101F55] shrink-0" />}
+          {!error && <CheckCircle2 size={20} className="text-emerald-400 shrink-0" />}
           <button
             type="button"
             onClick={onRemove}
@@ -355,8 +355,8 @@ export const AuthScreen = () => {
   };
 
   const themeBg = isPartner
-    ? 'bg-gradient-to-b from-[#13286B] via-[#101F55] to-[#071233]'
-    : 'bg-gradient-to-b from-[#FFF3D5] via-[#FFF3D5] to-[#FFF3D5]';
+    ? 'bg-gradient-to-b from-[#141f47] via-[#0f1a3d] to-[#0b1430]'
+    : 'bg-gradient-to-b from-[#fff3ea] via-[#f8f9ff] to-[#f8f9ff]';
 
   return (
     <div className={`flex-1 flex flex-col relative w-full ${themeBg}`}>
@@ -367,18 +367,18 @@ export const AuthScreen = () => {
         <div className="relative flex flex-col items-center text-center gap-3 mb-1 pt-2 pb-1">
           <div
             className={`absolute -top-16 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full blur-2xl pointer-events-none ${
-              isPartner ? 'bg-[#FFC928]/15' : 'bg-[#FFE7A8]/50'
+              isPartner ? 'bg-[#4e5c92]/30' : 'bg-[#ffdbcc]/50'
             }`}
           ></div>
           <div
             className={`absolute -bottom-8 -right-6 w-36 h-36 rounded-full blur-2xl pointer-events-none ${
-              isPartner ? 'bg-[#1B3380]/50' : 'bg-[#FFD65A]/30'
+              isPartner ? 'bg-[#00ae78]/20' : 'bg-[#b3c1ff]/30'
             }`}
           ></div>
 
           <div
             className={`relative z-10 inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-xs ${
-              isPartner ? 'bg-white/15 text-[#C9D3F5]' : 'bg-[#FFE7A8] text-[#101F55]'
+              isPartner ? 'bg-white/15 text-[#dce1ff]' : 'bg-[#ffdbcc] text-[#7b2f00]'
             }`}
           >
             <img src="/logo.svg" alt="GigEzee" className="w-4 h-4 object-contain" />
@@ -388,18 +388,18 @@ export const AuthScreen = () => {
           <div
             className={`relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
               isPartner
-                ? 'bg-gradient-to-br from-[#1B3380] to-[#101F55] text-[#FFC928] ring-1 ring-[#FFC928]/40'
-                : 'bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55]'
+                ? 'bg-gradient-to-br from-[#4e5c92] to-[#1b2a5e] text-white'
+                : 'bg-gradient-to-br from-[#ff9a56] to-[#ff6a00] text-white'
             }`}
           >
             <c.badgeIcon size={30} />
           </div>
 
           <div className="relative z-10">
-            <h1 className={`text-xl font-extrabold ${isPartner ? 'text-white' : 'text-[#101F55]'}`}>
+            <h1 className={`text-xl font-extrabold ${isPartner ? 'text-white' : 'text-[#0b1c30]'}`}>
               {isSignup ? c.signupHeadline : c.loginHeadline}
             </h1>
-            <p className={`text-xs max-w-xs mx-auto mt-1 ${isPartner ? 'text-[#C9D3F5]' : 'text-[#4E5C92]'}`}>
+            <p className={`text-xs max-w-xs mx-auto mt-1 ${isPartner ? 'text-[#dce1ff]' : 'text-[#4e5c92]'}`}>
               {isSignup ? c.signupSub : c.loginSub}
             </p>
           </div>
@@ -426,15 +426,15 @@ export const AuthScreen = () => {
               disabled={authLoading}
               className={`w-full py-3.5 rounded-full text-sm font-bold flex items-center justify-center gap-3 shadow-lg border active:scale-98 transition-all disabled:opacity-60 ${
                 isPartner
-                  ? 'bg-white text-[#101F55] border-white hover:bg-slate-100'
-                  : 'bg-white text-[#101F55] border-slate-200 hover:bg-slate-50'
+                  ? 'bg-white text-[#05164b] border-white hover:bg-slate-100'
+                  : 'bg-white text-[#0b1c30] border-slate-200 hover:bg-slate-50'
               }`}
             >
               <GoogleLogo />
               <span>{authLoading ? 'Please wait…' : 'Continue with Google'}</span>
             </button>
 
-            <p className={`text-center text-[11px] ${isPartner ? 'text-[#C9D3F5]/70' : 'text-slate-400'}`}>
+            <p className={`text-center text-[11px] ${isPartner ? 'text-[#dce1ff]/70' : 'text-slate-400'}`}>
               Log in securely with your Google account
             </p>
 
@@ -454,11 +454,11 @@ export const AuthScreen = () => {
         <div
           className={`p-[1.5px] rounded-2xl shadow-lg ${
             isPartner
-              ? 'bg-gradient-to-br from-[#FFD65A]/70 via-[#1B3380]/60 to-[#13286B]/40'
-              : 'bg-gradient-to-br from-[#FFD65A] via-[#FFC928] to-[#FFE7A8]'
+              ? 'bg-gradient-to-br from-[#b3c1ff]/70 via-[#4e5c92]/60 to-[#00ae78]/40'
+              : 'bg-gradient-to-br from-[#ffb694] via-[#ff6a00] to-[#ffdbcc]'
           }`}
         >
-          <div className={`rounded-2xl p-4 space-y-3.5 ${isPartner ? 'bg-[#13286B]' : 'bg-white'}`}>
+          <div className={`rounded-2xl p-4 space-y-3.5 ${isPartner ? 'bg-[#101c42]' : 'bg-white'}`}>
             {isSignup && (
               <FieldInput
                 icon={User}
@@ -506,7 +506,7 @@ export const AuthScreen = () => {
             {isSignup && isPartner && (
               <div className="space-y-3.5 pt-1 border-t border-white/10">
                 <div className="flex items-center gap-1.5 pt-2">
-                  <ShieldCheck size={16} className="text-[#C9D3F5]" />
+                  <ShieldCheck size={16} className="text-[#b3c1ff]" />
                   <span className="text-[11px] font-bold uppercase tracking-wide text-white/60">
                     Identity Verification (KYC)
                   </span>
@@ -552,12 +552,12 @@ export const AuthScreen = () => {
                   error={policeError}
                 />
 
-                <p className="-mt-1 text-[10px] text-[#F5B301]/80 leading-relaxed">
+                <p className="-mt-1 text-[10px] text-amber-200/80 leading-relaxed">
                   Optional now — you can also upload it later from your Profile. Partners
                   with a verified certificate get a Police Verified badge.
                 </p>
 
-                <p className="text-[10px] text-[#C9D3F5]/70 leading-relaxed">
+                <p className="text-[10px] text-[#dce1ff]/70 leading-relaxed">
                   Used only to verify your identity as a service partner. Your documents are never shared with
                   members.
                 </p>
@@ -609,7 +609,7 @@ export const AuthScreen = () => {
               <button
                 type="button"
                 onClick={() => requestPasswordReset(email.trim())}
-                className={`text-xs font-bold hover:underline ${isPartner ? 'text-[#C9D3F5]' : 'text-[#101F55]'}`}
+                className={`text-xs font-bold hover:underline ${isPartner ? 'text-[#b3c1ff]' : 'text-[#a14000]'}`}
               >
                 Forgot password?
               </button>
@@ -621,9 +621,9 @@ export const AuthScreen = () => {
                   type="checkbox"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded accent-[#FFC928]"
+                  className="mt-0.5 w-4 h-4 rounded accent-[#ff6a00]"
                 />
-                <span className={`text-xs ${isPartner ? 'text-[#C9D3F5]' : 'text-[#4E5C92]'}`}>
+                <span className={`text-xs ${isPartner ? 'text-[#dce1ff]' : 'text-[#5a4136]'}`}>
                   I agree to the{' '}
                   <button type="button" onClick={() => navigateTo('terms')} className="font-bold underline">
                     Terms & Policy
@@ -639,8 +639,8 @@ export const AuthScreen = () => {
           disabled={!canSubmit || authLoading}
           className={`w-full py-3.5 rounded-full text-sm font-bold flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all ${
             isPartner
-              ? 'bg-gradient-to-r from-white to-[#FFF7E0] hover:from-slate-100 hover:to-white text-[#101F55] shadow-[#FFD65A]/30 disabled:from-white/10 disabled:to-white/10 disabled:text-white/40 disabled:shadow-none'
-              : 'bg-gradient-to-r from-[#FFC928] to-[#FFD65A] hover:from-[#F5B301] hover:to-[#FFC928] text-[#101F55] shadow-[#FFC928]/30 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none'
+              ? 'bg-gradient-to-r from-white to-[#eef1ff] hover:from-slate-100 hover:to-white text-[#05164b] shadow-[#b3c1ff]/30 disabled:from-white/10 disabled:to-white/10 disabled:text-white/40 disabled:shadow-none'
+              : 'bg-gradient-to-r from-[#ff6a00] to-[#ff9a56] hover:from-[#a14000] hover:to-[#ff6a00] text-white shadow-[#ff6a00]/30 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none'
           }`}
         >
           <span>{authLoading ? 'Please wait…' : isSignup ? 'Create Account' : 'Log In'}</span>
@@ -649,17 +649,17 @@ export const AuthScreen = () => {
         </>
 
         {isSignup && blockingReason && hasStartedForm && (
-          <p className={`-mt-2 text-center text-xs font-semibold ${isPartner ? 'text-[#F5B301]' : 'text-red-500'}`}>
+          <p className={`-mt-2 text-center text-xs font-semibold ${isPartner ? 'text-amber-300' : 'text-red-500'}`}>
             {blockingReason}
           </p>
         )}
 
-        <div className={`text-center text-xs ${isPartner ? 'text-[#C9D3F5]' : 'text-[#4E5C92]'}`}>
+        <div className={`text-center text-xs ${isPartner ? 'text-[#dce1ff]' : 'text-[#4e5c92]'}`}>
           {isSignup ? 'Already have an account?' : 'New to GigEzee?'}{' '}
           <button
             type="button"
             onClick={() => navigateTo(isSignup ? `${role}Login` : `${role}Signup`)}
-            className={`font-bold hover:underline ${isPartner ? 'text-white' : 'text-[#101F55]'}`}
+            className={`font-bold hover:underline ${isPartner ? 'text-white' : 'text-[#a14000]'}`}
           >
             {isSignup ? 'Log In' : 'Sign Up'}
           </button>

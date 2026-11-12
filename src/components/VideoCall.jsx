@@ -82,9 +82,9 @@ const startRingTone = () => {
 
 const RoundButton = ({ icon, label, onClick, tone = 'glass', active = false, size = 'md' }) => {
   const tones = {
-    glass: active ? 'bg-white text-[#101F55]' : 'bg-white/15 text-white hover:bg-white/25',
+    glass: active ? 'bg-white text-[#0b1c30]' : 'bg-white/15 text-white hover:bg-white/25',
     red: 'bg-red-500 text-white hover:bg-red-600',
-    gold: 'bg-[#FFC928] text-[#101F55] hover:bg-[#FFC928]'
+    green: 'bg-[#00ae78] text-white hover:bg-[#009266]'
   };
 
   return (
@@ -675,7 +675,7 @@ export const VideoCall = () => {
       role="dialog"
       aria-modal="true"
       aria-label={`Video call with ${peer.name}`}
-      className="absolute inset-0 z-[10001] isolate bg-[#101F55] text-white flex flex-col overflow-hidden"
+      className="absolute inset-0 z-[10001] isolate bg-[#0b1c30] text-white flex flex-col overflow-hidden"
     >
       {/* ---------- Pictures ---------- */}
       {live && remoteStream && (
@@ -714,7 +714,7 @@ export const VideoCall = () => {
           <div className="mt-16 flex flex-col items-center gap-4">
             <div className="relative">
               {(phase === 'incoming' || phase === 'outgoing') && (
-                <span className="absolute inset-0 rounded-full bg-[#FFC928]/50 animate-ping" />
+                <span className="absolute inset-0 rounded-full bg-[#ff6a00]/50 animate-ping" />
               )}
               <Avatar
                 src={peer.avatar}
@@ -767,7 +767,7 @@ export const VideoCall = () => {
         {phase === 'incoming' && (
           <div className="flex items-start justify-center gap-20">
             <RoundButton icon="call_end" label="Decline" tone="red" size="lg" onClick={() => finish('declined', true)} />
-            <RoundButton icon="videocam" label="Accept" tone="gold" size="lg" onClick={acceptCall} />
+            <RoundButton icon="videocam" label="Accept" tone="green" size="lg" onClick={acceptCall} />
           </div>
         )}
 

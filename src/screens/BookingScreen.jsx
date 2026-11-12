@@ -692,15 +692,15 @@ export const BookingScreen = () => {
   const hasSelectedService = Boolean(activeService);
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5] min-h-screen">
+    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
       {/* Header */}
-      <header className="sticky top-0 inset-x-0 z-40 bg-[#FFF3D5]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-slate-100">
+      <header className="sticky top-0 inset-x-0 z-40 bg-[#f8f9ff]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-slate-100">
         <div className="h-16 px-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <button
               aria-label="Go Back"
               onClick={() => navigateTo('home', 'home')}
-              className="w-10 h-10 flex items-center justify-center rounded-full text-[#101F55] hover:bg-[#FFF3D5] active:scale-95 transition-all shrink-0"
+              className="w-10 h-10 flex items-center justify-center rounded-full text-[#0b1c30] hover:bg-[#eff4ff] active:scale-95 transition-all shrink-0"
               type="button"
             >
               <span className="material-symbols-outlined text-[24px]">
@@ -722,10 +722,10 @@ export const BookingScreen = () => {
             </button>
 
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold text-[#101F55] truncate">
+              <span className="text-sm font-bold text-[#0b1c30] truncate">
                 Helper Profile
               </span>
-              <span className="text-[11px] text-[#4E5C92] truncate">
+              <span className="text-[11px] text-[#5a4136] truncate">
                 {helperLocation || helperTitle}
               </span>
             </div>
@@ -733,7 +733,7 @@ export const BookingScreen = () => {
 
           <button
             aria-label="More Options"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-[#101F55] hover:bg-[#FFF3D5]"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-[#0b1c30] hover:bg-[#eff4ff]"
             type="button"
           >
             <span className="material-symbols-outlined text-[20px]">
@@ -745,18 +745,18 @@ export const BookingScreen = () => {
 
       <main className="flex-1 flex flex-col relative w-full pb-36">
         {/* Top Banner */}
-        <div className="relative w-full h-32 bg-gradient-to-r from-[#FFD65A] via-[#FFE7A8] to-[#FFE7A8] overflow-hidden">
-          <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-[#F5B301]/10 blur-2xl" />
+        <div className="relative w-full h-32 bg-gradient-to-r from-[#b3c1ff] via-[#dce9ff] to-[#ffdbcc] overflow-hidden">
+          <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-[#a14000]/10 blur-2xl" />
 
           <div className="absolute left-4 bottom-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/85 backdrop-blur-md shadow-xs">
             <span
-              className="material-symbols-outlined text-[#101F55] text-[16px]"
+              className="material-symbols-outlined text-[#00ae78] text-[16px]"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               {isVerified ? 'verified' : 'handyman'}
             </span>
 
-            <span className="text-xs font-semibold text-[#101F55]">
+            <span className="text-xs font-semibold text-[#0b1c30]">
               {isVerified ? 'Verified Partner' : helperTitle}
               {helperLocation ? ` · ${helperLocation}` : ''}
             </span>
@@ -777,7 +777,7 @@ export const BookingScreen = () => {
                 />
 
                 {isVerified && (
-                  <div className="absolute -bottom-1 -right-1 bg-[#101F55] text-white rounded-full p-1 shadow-xs flex items-center justify-center">
+                  <div className="absolute -bottom-1 -right-1 bg-[#00ae78] text-white rounded-full p-1 shadow-xs flex items-center justify-center">
                     <span
                       className="material-symbols-outlined text-[14px]"
                       style={{ fontVariationSettings: "'FILL' 1" }}
@@ -789,9 +789,9 @@ export const BookingScreen = () => {
               </div>
 
               <div className="flex flex-col items-end gap-1">
-                <div className="flex items-center gap-1 bg-[#FFE7A8] text-[#101F55] px-2.5 py-0.5 rounded-full">
+                <div className="flex items-center gap-1 bg-[#dce1ff] text-[#05164b] px-2.5 py-0.5 rounded-full">
                   <span
-                    className="material-symbols-outlined text-[#F47B16] text-[14px]"
+                    className="material-symbols-outlined text-[#a14000] text-[14px]"
                     style={{ fontVariationSettings: "'FILL' 1" }}
                   >
                     shield
@@ -804,12 +804,12 @@ export const BookingScreen = () => {
                   </span>
                 </div>
 
-                <span className="text-[11px] text-[#101F55] font-medium flex items-center gap-1">
+                <span className="text-[11px] text-[#006c49] font-medium flex items-center gap-1">
                   <span
                     className={`w-2 h-2 rounded-full ${
                       helper.is_available === false
                         ? 'bg-slate-400'
-                        : 'bg-[#101F55]'
+                        : 'bg-[#00ae78]'
                     }`}
                   />
 
@@ -823,13 +823,13 @@ export const BookingScreen = () => {
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-extrabold text-[#101F55] tracking-tight">
+                <h2 className="text-xl font-extrabold text-[#0b1c30] tracking-tight">
                   {helperName}
                 </h2>
                 {isVerified && <VerifiedTag />}
               </div>
 
-              <p className="text-xs text-[#4E5C92] font-semibold">
+              <p className="text-xs text-[#4e5c92] font-semibold">
                 {helperTitle}
               </p>
 
@@ -845,8 +845,8 @@ export const BookingScreen = () => {
 
             {/* Profile Metrics */}
             <div className="grid grid-cols-4 gap-2 pt-1">
-              <div className="bg-[#FFF3D5] rounded-xl p-2 flex flex-col items-center text-center">
-                <div className="flex items-center gap-0.5 text-[#101F55]">
+              <div className="bg-[#eff4ff] rounded-xl p-2 flex flex-col items-center text-center">
+                <div className="flex items-center gap-0.5 text-[#ff6a00]">
                   <span
                     className="material-symbols-outlined text-[15px]"
                     style={{ fontVariationSettings: "'FILL' 1" }}
@@ -854,32 +854,32 @@ export const BookingScreen = () => {
                     star
                   </span>
 
-                  <span className="text-xs font-bold text-[#101F55]">
+                  <span className="text-xs font-bold text-[#0b1c30]">
                     {rating != null && Number.isFinite(Number(rating))
                       ? Number(rating).toFixed(1)
                       : '—'}
                   </span>
                 </div>
 
-                <span className="text-[10px] text-[#4E5C92]">
+                <span className="text-[10px] text-[#5a4136]">
                   {reviewsCount ?? '—'} reviews
                 </span>
               </div>
 
-              <div className="bg-[#FFF3D5] rounded-xl p-2 flex flex-col items-center text-center">
-                <span className="text-xs font-bold text-[#101F55]">
+              <div className="bg-[#eff4ff] rounded-xl p-2 flex flex-col items-center text-center">
+                <span className="text-xs font-bold text-[#0b1c30]">
                   {completionRate != null
                     ? `${completionRate}%`
                     : '—'}
                 </span>
 
-                <span className="text-[10px] text-[#4E5C92]">
+                <span className="text-[10px] text-[#5a4136]">
                   Complete
                 </span>
               </div>
 
-              <div className="bg-[#FFF3D5] rounded-xl p-2 flex flex-col items-center text-center">
-                <span className="text-xs font-bold text-[#101F55]">
+              <div className="bg-[#eff4ff] rounded-xl p-2 flex flex-col items-center text-center">
+                <span className="text-xs font-bold text-[#0b1c30]">
                   {distance != null
                     ? typeof distance === 'number'
                       ? `${distance} km`
@@ -887,13 +887,13 @@ export const BookingScreen = () => {
                     : '—'}
                 </span>
 
-                <span className="text-[10px] text-[#4E5C92]">
+                <span className="text-[10px] text-[#5a4136]">
                   Away
                 </span>
               </div>
 
-              <div className="bg-[#FFF3D5] rounded-xl p-2 flex flex-col items-center text-center">
-                <span className="text-xs font-bold text-[#101F55]">
+              <div className="bg-[#eff4ff] rounded-xl p-2 flex flex-col items-center text-center">
+                <span className="text-xs font-bold text-[#0b1c30]">
                   {experience != null
                     ? typeof experience === 'number'
                       ? `${experience}+ yrs`
@@ -901,7 +901,7 @@ export const BookingScreen = () => {
                     : '—'}
                 </span>
 
-                <span className="text-[10px] text-[#4E5C92]">
+                <span className="text-[10px] text-[#5a4136]">
                   Exp.
                 </span>
               </div>
@@ -910,8 +910,8 @@ export const BookingScreen = () => {
             {/* Verification Information */}
             {(helper.background_checked ||
               helper.insurance_coverage != null) && (
-              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#FFE7A8] text-[#101F55]">
-                <span className="material-symbols-outlined text-[#F47B16] text-[20px] shrink-0">
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#dce9ff] text-[#0b1c30]">
+                <span className="material-symbols-outlined text-[#a14000] text-[20px] shrink-0">
                   history_edu
                 </span>
 
@@ -923,7 +923,7 @@ export const BookingScreen = () => {
                   </span>
 
                   {helper.insurance_coverage != null && (
-                    <span className="text-[10px] text-[#4E5C92]">
+                    <span className="text-[10px] text-[#5a4136]">
                       Coverage: ₹
                       {Number(
                         helper.insurance_coverage
@@ -938,29 +938,29 @@ export const BookingScreen = () => {
           {/* About Helper */}
           <div className="bg-white rounded-2xl p-4 shadow-xs flex flex-col gap-2 border border-slate-100">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-bold text-[#101F55] flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[#4E5C92] text-[18px]">
+              <h3 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[#4e5c92] text-[18px]">
                   badge
                 </span>
                 About {helperName}
               </h3>
 
               {helper.neighbor_favorite && (
-                <span className="text-[11px] text-[#4E5C92] bg-[#FFF3D5] px-2 py-0.5 rounded-full font-medium">
+                <span className="text-[11px] text-[#4e5c92] bg-[#eff4ff] px-2 py-0.5 rounded-full font-medium">
                   Neighbor favorite
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-[#4E5C92] leading-relaxed">
+            <p className="text-xs text-[#5a4136] leading-relaxed">
               {helperDescription ||
                 'This helper has not added a profile description yet.'}
             </p>
 
             {helperLanguages.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-[#FFF3D5] text-[#101F55] text-[11px] font-medium flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[#F47B16] text-[13px]">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#eff4ff] text-[#0b1c30] text-[11px] font-medium flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[#a14000] text-[13px]">
                     translate
                   </span>
                   {helperLanguages.join(', ')}
@@ -973,9 +973,9 @@ export const BookingScreen = () => {
                 {helperSkills.map((skill, index) => (
                   <span
                     key={`${skill}-${index}`}
-                    className="px-2.5 py-0.5 rounded-full bg-[#FFF3D5] text-[#101F55] text-[11px] font-medium flex items-center gap-1"
+                    className="px-2.5 py-0.5 rounded-full bg-[#eff4ff] text-[#0b1c30] text-[11px] font-medium flex items-center gap-1"
                   >
-                    <span className="material-symbols-outlined text-[#101F55] text-[13px]">
+                    <span className="material-symbols-outlined text-[#00ae78] text-[13px]">
                       handyman
                     </span>
                     {skill}
@@ -988,8 +988,8 @@ export const BookingScreen = () => {
           {/* Profession-filtered Services */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-bold text-[#101F55] flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[#F47B16] text-[18px]">
+              <h3 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[#a14000] text-[18px]">
                   handyman
                 </span>
                 Select Service Needed
@@ -1015,7 +1015,7 @@ export const BookingScreen = () => {
                       onClick={() => setSelectedService(svc)}
                       className={`w-full text-left cursor-pointer p-3.5 rounded-2xl shadow-xs flex items-center justify-between transition-all border ${
                         isSelected
-                          ? 'bg-[#FFF3D5] border-[#FFC928] shadow-sm'
+                          ? 'bg-[#eff4ff] border-[#ff6a00] shadow-sm'
                           : 'bg-white hover:bg-slate-50 border-slate-100'
                       }`}
                     >
@@ -1023,7 +1023,7 @@ export const BookingScreen = () => {
                         <div
                           className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors shrink-0 ${
                             isSelected
-                              ? 'bg-[#FFC928]'
+                              ? 'bg-[#ff6a00]'
                               : 'bg-slate-200'
                           }`}
                         >
@@ -1038,19 +1038,19 @@ export const BookingScreen = () => {
 
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-[#101F55]">
+                            <span className="text-xs font-bold text-[#0b1c30]">
                               {svc.title}
                             </span>
 
                             {svc.tag && (
-                              <span className="bg-[#FFC928]/15 text-[#101F55] px-1.5 py-0.2 rounded text-[9px] font-extrabold tracking-wide">
+                              <span className="bg-[#ff6a00]/15 text-[#ff6a00] px-1.5 py-0.2 rounded text-[9px] font-extrabold tracking-wide">
                                 {svc.tag}
                               </span>
                             )}
                           </div>
 
                           {svc.desc && (
-                            <span className="text-[11px] text-[#4E5C92]">
+                            <span className="text-[11px] text-[#5a4136]">
                               {svc.desc}
                             </span>
                           )}
@@ -1058,7 +1058,7 @@ export const BookingScreen = () => {
                       </div>
 
                       <div className="flex flex-col items-end shrink-0 pl-2">
-                        <span className="text-sm font-extrabold text-[#101F55]">
+                        <span className="text-sm font-extrabold text-[#a14000]">
                           ₹{svc.price.toLocaleString('en-IN')}
                         </span>
 
@@ -1078,7 +1078,7 @@ export const BookingScreen = () => {
                   handyman
                 </span>
 
-                <p className="text-sm font-semibold text-[#101F55] mt-1">
+                <p className="text-sm font-semibold text-[#0b1c30] mt-1">
                   No matching services listed
                 </p>
 
@@ -1094,15 +1094,15 @@ export const BookingScreen = () => {
           {/* Who the booking is for */}
           <div className="bg-white rounded-2xl p-4 shadow-xs flex flex-col gap-3 border border-slate-100">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-bold text-[#101F55] flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[#4E5C92] text-[18px]">
+              <h3 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[#4e5c92] text-[18px]">
                   diversity_3
                 </span>
                 Who is this for?
               </h3>
 
               {isForSomeoneElse && (
-                <span className="text-[11px] text-[#4E5C92] bg-[#FFF3D5] px-2 py-0.5 rounded-full font-medium">
+                <span className="text-[11px] text-[#4e5c92] bg-[#eff4ff] px-2 py-0.5 rounded-full font-medium">
                   You manage & pay
                 </span>
               )}
@@ -1120,8 +1120,8 @@ export const BookingScreen = () => {
                     aria-pressed={isSelected}
                     className={`shrink-0 flex items-center gap-1 px-3 py-2 rounded-full text-xs font-bold border transition-all ${
                       isSelected
-                        ? 'bg-[#FFC928] text-[#101F55] border-[#FFC928] shadow-sm'
-                        : 'bg-[#FFF3D5] text-[#101F55] border-transparent hover:bg-slate-100'
+                        ? 'bg-[#ff6a00] text-white border-[#ff6a00] shadow-sm'
+                        : 'bg-[#eff4ff] text-[#0b1c30] border-transparent hover:bg-slate-100'
                     }`}
                   >
                     <span className="material-symbols-outlined text-[15px]">
@@ -1142,7 +1142,7 @@ export const BookingScreen = () => {
                     placeholder={isForChild ? "Child's name" : 'Their name'}
                     aria-label={isForChild ? "Child's name" : 'Name of the person'}
                     autoComplete="off"
-                    className="w-full rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-xs text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                    className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                   />
 
                   {isForChild && (
@@ -1152,7 +1152,7 @@ export const BookingScreen = () => {
                       placeholder="Age"
                       aria-label="Child's age"
                       inputMode="numeric"
-                      className="w-full rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-xs text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                      className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                     />
                   )}
                 </div>
@@ -1164,7 +1164,7 @@ export const BookingScreen = () => {
                   aria-label="Phone number"
                   inputMode="tel"
                   autoComplete="off"
-                  className="w-full rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-xs text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                  className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                 />
 
                 <input
@@ -1172,7 +1172,7 @@ export const BookingScreen = () => {
                   onChange={event => updateBookFor({ address: event.target.value.slice(0, 300) })}
                   placeholder="Address the helper should go to"
                   aria-label="Visit address"
-                  className="w-full rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-xs text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                  className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                 />
 
                 <textarea
@@ -1185,11 +1185,11 @@ export const BookingScreen = () => {
                   }
                   aria-label="Notes for the helper"
                   rows={3}
-                  className="w-full rounded-xl border border-slate-200 bg-[#FFF3D5] px-3 py-2.5 text-xs text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40 resize-none"
+                  className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-xs text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40 resize-none"
                 />
 
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#FFE7A8] text-[#101F55]">
-                  <span className="material-symbols-outlined text-[#F47B16] text-[18px] shrink-0">
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#dce9ff] text-[#0b1c30]">
+                  <span className="material-symbols-outlined text-[#a14000] text-[18px] shrink-0">
                     lock
                   </span>
                   <p className="text-[11px] leading-relaxed">
@@ -1200,7 +1200,7 @@ export const BookingScreen = () => {
                 </div>
 
                 {bookForError && (
-                  <p className="text-[11px] text-[#101F55] font-semibold">
+                  <p className="text-[11px] text-[#a14000] font-semibold">
                     {bookForError}
                   </p>
                 )}
@@ -1211,7 +1211,7 @@ export const BookingScreen = () => {
               <div
                 className={`flex items-start gap-2 p-2.5 rounded-xl ${
                   isPoliceVerified
-                    ? 'bg-[#FFE7A8]/30 text-[#101F55]'
+                    ? 'bg-[#6ffbbe]/30 text-[#002113]'
                     : 'bg-red-50 text-red-700'
                 }`}
               >
@@ -1234,13 +1234,13 @@ export const BookingScreen = () => {
           {isCare && (
             <div className="bg-white rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3 border border-slate-100">
               <div className="flex flex-col min-w-0">
-                <h3 className="text-sm font-bold text-[#101F55] flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[#4E5C92] text-[18px]">
+                <h3 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[#4e5c92] text-[18px]">
                     hourglass_top
                   </span>
                   How many hours?
                 </h3>
-                <span className="text-[11px] text-[#4E5C92]">
+                <span className="text-[11px] text-[#5a4136]">
                   {selectedStart != null
                     ? careEndLabel(selectedStart, bookedHours)
                     : 'Pick a start time below; evening slots run up to midnight'}
@@ -1253,12 +1253,12 @@ export const BookingScreen = () => {
                   aria-label="Fewer hours"
                   onClick={() => setCareHours(Math.max(1, bookedHours - 1))}
                   disabled={bookedHours <= 1}
-                  className="w-8 h-8 rounded-full bg-[#FFF3D5] text-[#101F55] disabled:opacity-40 flex items-center justify-center active:scale-95"
+                  className="w-8 h-8 rounded-full bg-[#eff4ff] text-[#0b1c30] disabled:opacity-40 flex items-center justify-center active:scale-95"
                 >
                   <span className="material-symbols-outlined text-[18px]">remove</span>
                 </button>
 
-                <span className="text-sm font-extrabold text-[#101F55] min-w-[44px] text-center">
+                <span className="text-sm font-extrabold text-[#0b1c30] min-w-[44px] text-center">
                   {bookedHours} hr{bookedHours === 1 ? '' : 's'}
                 </span>
 
@@ -1267,7 +1267,7 @@ export const BookingScreen = () => {
                   aria-label="More hours"
                   onClick={() => setCareHours(Math.min(MAX_CARE_HOURS, bookedHours + 1))}
                   disabled={bookedHours >= MAX_CARE_HOURS}
-                  className="w-8 h-8 rounded-full bg-[#FFF3D5] text-[#101F55] disabled:opacity-40 flex items-center justify-center active:scale-95"
+                  className="w-8 h-8 rounded-full bg-[#eff4ff] text-[#0b1c30] disabled:opacity-40 flex items-center justify-center active:scale-95"
                 >
                   <span className="material-symbols-outlined text-[18px]">add</span>
                 </button>
@@ -1278,15 +1278,15 @@ export const BookingScreen = () => {
           {/* Date and Time Selection */}
           <div className="bg-white rounded-2xl p-4 shadow-xs flex flex-col gap-3 border border-slate-100">
             <div className="flex items-center justify-between gap-2">
-  <h3 className="text-sm font-bold text-[#101F55] flex items-center gap-1.5">
-    <span className="material-symbols-outlined text-[#4E5C92] text-[18px]">
+  <h3 className="text-sm font-bold text-[#0b1c30] flex items-center gap-1.5">
+    <span className="material-symbols-outlined text-[#4e5c92] text-[18px]">
       calendar_today
     </span>
     Choose Date & Time
   </h3>
 
-  <label className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FFF3D5] text-[#101F55] text-xs font-bold cursor-pointer hover:bg-[#FFE7A8]">
-    <span className="material-symbols-outlined text-[17px] text-[#F47B16]">
+  <label className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#eff4ff] text-[#0b1c30] text-xs font-bold cursor-pointer hover:bg-[#dce9ff]">
+    <span className="material-symbols-outlined text-[17px] text-[#ff6a00]">
       calendar_month
     </span>
     <span>Calendar</span>
@@ -1338,7 +1338,7 @@ export const BookingScreen = () => {
   </label>
 </div>
 
-<div className="text-[11px] text-[#101F55] font-bold">
+<div className="text-[11px] text-[#006c49] font-bold">
   {!selectedDateEntry
     ? 'Select a date to see free slots'
     : selectedDay.off
@@ -1352,9 +1352,9 @@ export const BookingScreen = () => {
 
             {/* The partner's own working days and hours */}
             {(hourGroups.length > 0 || daysOff.length > 0) && (
-              <div className="rounded-xl bg-[#FFF3D5] p-3 flex flex-col gap-1.5">
-                <p className="text-xs font-bold text-[#101F55] flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px] text-[#4E5C92]">
+              <div className="rounded-xl bg-[#eff4ff] p-3 flex flex-col gap-1.5">
+                <p className="text-xs font-bold text-[#0b1c30] flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px] text-[#4e5c92]">
                     schedule
                   </span>
                   {helperName}'s working hours
@@ -1364,13 +1364,13 @@ export const BookingScreen = () => {
                   <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
                     {hourGroups.map(group => (
                       <React.Fragment key={group.days}>
-                        <span className="font-semibold text-[#4E5C92]">
+                        <span className="font-semibold text-[#5a4136]">
                           {group.days}
                         </span>
                         <span
                           className={
                             group.hours
-                              ? 'font-bold text-[#101F55]'
+                              ? 'font-bold text-[#0b1c30]'
                               : 'font-semibold text-slate-400'
                           }
                         >
@@ -1382,7 +1382,7 @@ export const BookingScreen = () => {
                 )}
 
                 {daysOff.length > 0 && (
-                  <p className="text-[11px] text-[#4E5C92]">
+                  <p className="text-[11px] text-[#5a4136]">
                     <span className="font-semibold">Days off: </span>
                     {daysOff.slice(0, 6).map(formatDayOff).join(', ')}
                     {daysOff.length > 6 ? ` and ${daysOff.length - 6} more` : ''}
@@ -1396,7 +1396,7 @@ export const BookingScreen = () => {
   className="flex gap-2 overflow-x-auto overflow-y-hidden pb-3"
   style={{
     scrollbarWidth: 'thin',
-    scrollbarColor: '#FFC928 #FFF3D5',
+    scrollbarColor: '#ff6a00 #eff4ff',
     WebkitOverflowScrolling: 'touch'
   }}
 >
@@ -1424,10 +1424,10 @@ export const BookingScreen = () => {
                       isSelected
                         ? isDayOff
                           ? 'bg-slate-200 text-slate-500 border-slate-300'
-                          : 'bg-[#FFC928] text-[#101F55] border-[#FFC928] shadow-sm'
+                          : 'bg-[#ff6a00] text-white border-[#ff6a00] shadow-sm'
                         : isDayOff
                           ? 'bg-slate-50 text-slate-300 border-dashed border-slate-200'
-                          : 'bg-[#FFF3D5] text-[#101F55] border-transparent hover:bg-slate-100'
+                          : 'bg-[#eff4ff] text-[#0b1c30] border-transparent hover:bg-slate-100'
                     }`}
                     type="button"
                   >
@@ -1437,7 +1437,7 @@ export const BookingScreen = () => {
                           ? 'text-slate-400'
                           : isSelected
                             ? 'text-white'
-                            : 'text-[#4E5C92]'
+                            : 'text-[#5a4136]'
                       }`}
                     >
                       {date.label}
@@ -1464,7 +1464,7 @@ export const BookingScreen = () => {
               </span>
 
               {!selectedDateEntry ? (
-                <div className="rounded-xl bg-[#FFF3D5] p-3 text-xs text-slate-600">
+                <div className="rounded-xl bg-[#eff4ff] p-3 text-xs text-slate-600">
                   Pick a date above to see this helper's free time slots.
                 </div>
               ) : selectedDay.off ? (
@@ -1477,7 +1477,7 @@ export const BookingScreen = () => {
                     : `${helperName} doesn't work on this day. Please pick another date.`}
                 </div>
               ) : upcomingSlots.length === 0 ? (
-                <div className="rounded-xl bg-[#FFF3D5] p-3 text-xs text-slate-600">
+                <div className="rounded-xl bg-[#eff4ff] p-3 text-xs text-slate-600">
                   {selectedDay.hours
                     ? `No more times left in ${helperName}'s working hours on this date. Please pick another date.`
                     : 'No more time slots today. Please pick another date.'}
@@ -1496,8 +1496,8 @@ export const BookingScreen = () => {
                           !isAvailable
                             ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
                             : isSelected
-                              ? 'bg-[#FFF3D5] text-[#101F55] border-[#FFC928]'
-                              : 'bg-white hover:bg-slate-50 text-[#101F55] border-slate-200'
+                              ? 'bg-[#eff4ff] text-[#a14000] border-[#ff6a00]'
+                              : 'bg-white hover:bg-slate-50 text-[#0b1c30] border-slate-200'
                         }`}
                         type="button"
                       >
@@ -1518,7 +1518,7 @@ export const BookingScreen = () => {
                         )}
 
                         {isSelected && isAvailable && (
-                          <span className="text-[10px] bg-[#FFE7A8] text-[#101F55] px-2 py-0.5 rounded-full font-bold">
+                          <span className="text-[10px] bg-[#ffdbcc] text-[#7b2f00] px-2 py-0.5 rounded-full font-bold">
                             Selected
                           </span>
                         )}
@@ -1536,9 +1536,9 @@ export const BookingScreen = () => {
               Transparent Bill Breakdown
             </h4>
 
-            <div className="space-y-1.5 text-xs text-[#101F55]">
+            <div className="space-y-1.5 text-xs text-[#0b1c30]">
               <div className="flex justify-between gap-3">
-                <span className="text-[#4E5C92]">
+                <span className="text-[#5a4136]">
                   {activeService?.title || 'No service selected'}
                   {bookedHours ? ` · ${bookedHours} hr${bookedHours === 1 ? '' : 's'}` : ''}
                   {isForSomeoneElse && bookFor.name.trim() ? ` · for ${bookFor.name.trim()}` : ''}
@@ -1550,10 +1550,10 @@ export const BookingScreen = () => {
               </div>
 
               <div className="flex justify-between gap-3">
-                <span className="text-[#4E5C92] flex items-center gap-1">
+                <span className="text-[#5a4136] flex items-center gap-1">
                   <span>Trust Shield & Neighbor Guarantee</span>
 
-                  <span className="material-symbols-outlined text-[13px] text-[#101F55]">
+                  <span className="material-symbols-outlined text-[13px] text-[#00ae78]">
                     verified
                   </span>
                 </span>
@@ -1566,12 +1566,12 @@ export const BookingScreen = () => {
               {bill.tax > 0 && (
                 <>
                   <div className="flex justify-between gap-3">
-                    <span className="text-[#4E5C92]">{`CGST (${halfRate(gstPercent)}%)`}</span>
+                    <span className="text-[#5a4136]">{`CGST (${halfRate(gstPercent)}%)`}</span>
                     <span className="font-bold shrink-0">{formatRupees(bill.cgst)}</span>
                   </div>
 
                   <div className="flex justify-between gap-3">
-                    <span className="text-[#4E5C92]">{`SGST (${halfRate(gstPercent)}%)`}</span>
+                    <span className="text-[#5a4136]">{`SGST (${halfRate(gstPercent)}%)`}</span>
                     <span className="font-bold shrink-0">{formatRupees(bill.sgst)}</span>
                   </div>
 
@@ -1581,15 +1581,15 @@ export const BookingScreen = () => {
                 </>
               )}
 
-              <div className="flex justify-between text-[#101F55] font-medium">
+              <div className="flex justify-between text-[#006c49] font-medium">
                 <span>No hidden charges</span>
                 <span>Extra parts only with your approval</span>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex justify-between items-center bg-[#FFF3D5] p-2.5 rounded-xl">
+            <div className="pt-2 border-t border-slate-100 flex justify-between items-center bg-[#eff4ff] p-2.5 rounded-xl">
               <div>
-                <span className="text-xs font-bold text-[#101F55] block">
+                <span className="text-xs font-bold text-[#0b1c30] block">
                   Total Amount Payable
                 </span>
 
@@ -1598,7 +1598,7 @@ export const BookingScreen = () => {
                 </span>
               </div>
 
-              <span className="text-lg font-extrabold text-[#101F55]">
+              <span className="text-lg font-extrabold text-[#a14000]">
                 {formatRupees(totalAmount)}
               </span>
             </div>
@@ -1614,7 +1614,7 @@ export const BookingScreen = () => {
               Total Cost
             </span>
 
-            <span className="text-xl font-extrabold text-[#101F55]">
+            <span className="text-xl font-extrabold text-[#0b1c30]">
               {formatRupees(totalAmount)}
             </span>
           </div>
@@ -1630,7 +1630,7 @@ export const BookingScreen = () => {
     Boolean(bookForError) ||
     blockedByPoliceCheck
   }
-  className="flex-1 py-3.5 px-4 rounded-full bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-slate-300 disabled:cursor-not-allowed text-[#101F55] text-sm font-bold shadow-lg shadow-[#FFC928]/30 active:scale-98 transition-all flex items-center justify-center gap-1.5"
+  className="flex-1 py-3.5 px-4 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold shadow-lg shadow-[#ff6a00]/30 active:scale-98 transition-all flex items-center justify-center gap-1.5"
   type="button"
 >
   <span>

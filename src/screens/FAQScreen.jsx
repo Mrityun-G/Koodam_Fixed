@@ -58,7 +58,7 @@ export const FAQScreen = () => {
       });
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5] min-h-screen">
+    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
       <SubHeader title="FAQ" />
 
       <main className="flex-1 flex flex-col relative w-full pb-10 px-4 space-y-2 pt-4">
@@ -70,9 +70,9 @@ export const FAQScreen = () => {
                 onClick={() => setOpenIndex(isOpen ? -1 : idx)}
                 className="w-full flex items-center justify-between gap-3 p-3.5 text-left"
               >
-                <span className="text-sm font-bold text-[#101F55]">{item.q}</span>
+                <span className="text-sm font-bold text-[#0b1c30]">{item.q}</span>
                 <span
-                  className={`material-symbols-outlined text-[18px] text-[#F47B16] shrink-0 transition-transform ${
+                  className={`material-symbols-outlined text-[18px] text-[#a14000] shrink-0 transition-transform ${
                     isOpen ? 'rotate-180' : ''
                   }`}
                 >

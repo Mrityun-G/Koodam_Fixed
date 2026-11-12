@@ -156,20 +156,20 @@ export const LiveTrackingScreen = () => {
   // No booking yet (or it was cleared): don't show an empty order
   if (!activeOrder.orderId) {
     return (
-      <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5]">
+      <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
         <Header subtitle="Requests" />
 
         <main className="flex-1 flex flex-col items-center justify-center gap-3 px-6 pb-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55] flex items-center justify-center shadow-lg shadow-[#FFC928]/40">
-            <span className="material-symbols-outlined text-[30px]" style={{ fontVariationSettings: "'FILL' 1" }}>fact_check</span>
+          <div className="w-14 h-14 rounded-full bg-[#eff4ff] text-[#a14000] flex items-center justify-center">
+            <span className="material-symbols-outlined text-[28px]">fact_check</span>
           </div>
-          <h1 className="text-base font-extrabold text-[#101F55]">No active booking</h1>
-          <p className="text-xs text-[#4E5C92]">
+          <h1 className="text-base font-extrabold text-[#0b1c30]">No active booking</h1>
+          <p className="text-xs text-slate-500">
             Book a helper from Home and you can follow the job here. Past bills are in Profile → Billing History.
           </p>
           <button
             onClick={() => navigateTo('home', 'home')}
-            className="mt-1 px-5 py-2.5 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold shadow-md active:scale-95 transition-all"
+            className="mt-1 px-5 py-2.5 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold shadow-md active:scale-95 transition-all"
           >
             Find a helper
           </button>
@@ -181,27 +181,24 @@ export const LiveTrackingScreen = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5]">
+    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
       <Header subtitle="Requests" />
 
       <main className="flex-1 flex flex-col relative w-full pb-6">
         <div className="px-4 pt-3 pb-6 flex flex-col gap-3.5">
           {/* Top Status Banner */}
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF7E0] border border-[#E6E9F4] shadow-lg shadow-[#101F55]/10 p-4 pt-5 flex flex-col gap-3">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#101F55] via-[#FFC928] to-[#101F55]" />
-            <div className="absolute -right-10 -bottom-12 w-36 h-36 bg-[#FFF4CC] rounded-full pointer-events-none"></div>
+          <div className="bg-[#eff4ff] rounded-2xl p-4 shadow-xs flex items-start justify-between gap-3 relative overflow-hidden border border-slate-100">
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-[#ffdbcc]/40 rounded-full blur-xl pointer-events-none"></div>
 
-          <div className="relative flex items-start justify-between gap-3">
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="material-symbols-outlined text-[14px] text-[#F47B16]">receipt_long</span>
-                <span className="text-[10px] text-[#F47B16] font-extrabold uppercase tracking-wider">
+                <span className="text-[10px] text-[#a14000] font-extrabold uppercase tracking-wider">
                   Order Reference
                 </span>
-                <span className="text-[10px] text-[#4E5C92]/70">•</span>
-                <span className="text-xs text-[#101F55] font-bold">{activeOrder.orderId}</span>
+                <span className="text-[10px] text-slate-400">•</span>
+                <span className="text-xs text-[#0b1c30] font-bold">{activeOrder.orderId}</span>
               </div>
-              <h1 className="text-xl font-extrabold text-[#101F55] tracking-tight leading-tight">
+              <h1 className="text-xl font-extrabold text-[#0b1c30] tracking-tight">
                 {isWithdrawn
                   ? 'Request cancelled'
                   : isClosed
@@ -214,7 +211,7 @@ export const LiveTrackingScreen = () => {
                   ? 'Service Completed!'
                   : `Waiting for ${helperName}`}
               </h1>
-              <p className="text-xs text-[#4E5C92] mt-1 font-medium leading-relaxed">
+              <p className="text-xs text-[#5a4136] mt-0.5 font-medium">
                 {isWithdrawn
                   ? 'You cancelled this request. Book again whenever you are ready.'
                   : isClosed
@@ -233,11 +230,8 @@ export const LiveTrackingScreen = () => {
               </p>
             </div>
 
-            <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-[#FFC928] text-[#101F55] rounded-full text-xs font-extrabold shadow-md shadow-[#FFC928]/40">
-              <span className="relative flex w-2 h-2">
-                <span className="absolute inset-0 rounded-full bg-[#F47B16] animate-ping"></span>
-                <span className="relative w-2 h-2 rounded-full bg-[#F47B16]"></span>
-              </span>
+            <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 bg-[#ffdbcc] text-[#7b2f00] rounded-full text-xs font-bold shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-[#ff6a00] animate-ping"></span>
               <span>
                 {isWithdrawn
                   ? 'Cancelled'
@@ -254,22 +248,6 @@ export const LiveTrackingScreen = () => {
             </div>
           </div>
 
-            {/* How far along the booking is, in five steps */}
-            {!isClosed && (
-              <div className="relative flex flex-col gap-1">
-                <div className="h-1.5 rounded-full bg-[#FFF3D5] overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#FFD65A] to-[#FFC928] transition-all duration-500"
-                    style={{ width: `${Math.max(6, Math.min(100, (Math.min(progressStep, 6) - 1) * 20 + 10))}%` }}
-                  />
-                </div>
-                <span className="text-[10px] font-bold text-[#4E5C92]">
-                  {`Step ${Math.max(1, Math.min(progressStep, 5))} of 5 · ${steps[Math.max(1, Math.min(progressStep, 5)) - 1].title}`}
-                </span>
-              </div>
-            )}
-          </div>
-
           {canCancel && (
             <button
               onClick={handleCancelRequest}
@@ -283,16 +261,16 @@ export const LiveTrackingScreen = () => {
 
           {/* Extra Parts Cost requested by the partner during the work */}
           {extraCharges.length > 0 && (
-            <div className="bg-white rounded-2xl p-4 shadow-md shadow-[#101F55]/5 border border-[#E6E9F4] flex flex-col gap-3">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-amber-200 flex flex-col gap-3">
 
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 shadow-sm shadow-[#FFC928]/40">
-                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>build</span>
+                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined">build</span>
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-[#101F55]">Extra Parts Cost</h3>
-                  <p className="text-[11px] text-[#4E5C92]">
+                  <h3 className="text-sm font-bold text-[#0b1c30]">Extra Parts Cost</h3>
+                  <p className="text-[11px] text-slate-500">
                     {activeOrder.helperName || 'Your partner'} found parts needed for the job. Approved costs are added to your bill.
                   </p>
                 </div>
@@ -300,13 +278,10 @@ export const LiveTrackingScreen = () => {
 
               <div className="space-y-2">
                 {extraCharges.map(([chargeId, charge]) => (
-                  <div key={chargeId} className="bg-[#FFF7E0] border border-[#FFC928]/30 rounded-xl px-3 py-2.5 flex flex-col gap-2">
+                  <div key={chargeId} className="bg-[#f8f9ff] rounded-xl px-3 py-2.5 flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 min-w-0">
-                        <span className="material-symbols-outlined text-[16px] text-[#F47B16] shrink-0">handyman</span>
-                        <span className="text-[13px] font-bold text-[#101F55] truncate">{charge.item}</span>
-                      </span>
-                      <span className="text-base font-extrabold text-[#101F55] shrink-0">₹{charge.amount}</span>
+                      <span className="text-xs font-bold text-[#0b1c30] truncate">{charge.item}</span>
+                      <span className="text-sm font-extrabold text-[#0b1c30] shrink-0">₹{charge.amount}</span>
                     </div>
 
                     {charge.photoUrl && (
@@ -314,7 +289,7 @@ export const LiveTrackingScreen = () => {
                         <img
                           src={charge.photoUrl}
                           alt={charge.item}
-                          className="w-full max-h-40 object-contain bg-white rounded-lg border border-[#E6E9F4]"
+                          className="w-full max-h-40 object-contain bg-slate-50"
                         />
                       </a>
                     )}
@@ -323,28 +298,25 @@ export const LiveTrackingScreen = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => respondToExtraCharge(chargeId, false)}
-                          className="flex-1 py-2 rounded-full bg-white border border-[#E6E9F4] hover:bg-[#FFF3D5] text-[#101F55] text-xs font-bold active:scale-95 transition-all"
+                          className="flex-1 py-2 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold active:scale-95 transition-all"
                         >
                           Decline
                         </button>
                         <button
                           onClick={() => respondToExtraCharge(chargeId, true)}
-                          className="flex-1 py-2 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold shadow-sm shadow-[#FFC928]/40 active:scale-95 transition-all"
+                          className="flex-1 py-2 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold active:scale-95 transition-all"
                         >
                           Approve
                         </button>
                       </div>
                     ) : (
                       <span
-                        className={`self-start inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`self-start text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           charge.status === 'APPROVED'
-                            ? 'bg-[#FFE7A8] text-[#101F55] border border-[#FFC928]/50'
+                            ? 'bg-[#00ae78]/15 text-[#006c49]'
                             : 'bg-red-50 text-red-500'
                         }`}
                       >
-                        <span className="material-symbols-outlined text-[12px]">
-                          {charge.status === 'APPROVED' ? 'check_circle' : 'cancel'}
-                        </span>
                         {charge.status === 'APPROVED' ? 'Approved • added to bill' : 'Declined'}
                       </span>
                     )}
@@ -356,15 +328,15 @@ export const LiveTrackingScreen = () => {
 
           {/* Finished repair: the partner's photo with the bill so far */}
           {activeOrder.currentStep === 4 && activeOrder.repairPhotoUrl && (
-            <div className="bg-white rounded-2xl p-4 shadow-md shadow-[#101F55]/5 border border-[#E6E9F4] flex flex-col gap-3">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 shadow-sm shadow-[#FFC928]/40">
-                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
+                <div className="w-10 h-10 rounded-full bg-[#6ffbbe]/40 text-[#006c49] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined">photo_camera</span>
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-[#101F55]">Repair Finished</h3>
-                  <p className="text-[11px] text-[#4E5C92]">
+                  <h3 className="text-sm font-bold text-[#0b1c30]">Repair Finished</h3>
+                  <p className="text-[11px] text-slate-500">
                     {`Check the work and the bill. If you're happy, ask ${helperFirstName} for the completion code below.`}
                   </p>
                 </div>
@@ -373,7 +345,7 @@ export const LiveTrackingScreen = () => {
               <RepairBill order={activeOrder} fallbackTrustFee={trustFee} />
 
               {hasPendingExtraCharges && (
-                <p className="text-[11px] font-medium text-[#101F55] text-center">
+                <p className="text-[11px] font-medium text-amber-700 text-center">
                   Approve or decline the extra parts cost above first.
                 </p>
               )}
@@ -383,21 +355,21 @@ export const LiveTrackingScreen = () => {
           {/* Payment Required After Completion */}
 {activeOrder.currentStep === 5 &&
   activeOrder.paymentStatus !== 'PAID' && (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#FFC928]/30 flex flex-col gap-3">
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#ff6a00]/30 flex flex-col gap-3">
 
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55] flex items-center justify-center shadow-sm shadow-[#FFC928]/40">
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+        <div className="w-10 h-10 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
+          <span className="material-symbols-outlined">
             payments
           </span>
         </div>
 
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-[#101F55]">
+          <h3 className="text-sm font-bold text-[#0b1c30]">
             Service Completed
           </h3>
 
-          <p className="text-[11px] text-[#4E5C92]">
+          <p className="text-[11px] text-slate-500">
             Completion code verified. Complete payment to finish the booking.
           </p>
         </div>
@@ -406,7 +378,7 @@ export const LiveTrackingScreen = () => {
       <RepairBill order={activeOrder} fallbackTrustFee={trustFee} />
 
       {hasPendingExtraCharges && (
-        <p className="text-[11px] font-medium text-[#101F55] text-center">
+        <p className="text-[11px] font-medium text-amber-700 text-center">
           Approve or decline the extra parts cost above before paying.
         </p>
       )}
@@ -414,7 +386,7 @@ export const LiveTrackingScreen = () => {
       <button
         onClick={() => navigateTo('payment')}
         disabled={hasPendingExtraCharges}
-        className="w-full py-3 rounded-full bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-slate-200 disabled:text-slate-400 text-[#101F55] text-sm font-bold shadow-md active:scale-95 transition-all"
+        className="w-full py-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-bold shadow-md active:scale-95 transition-all"
       >
         Pay Now with Razorpay
       </button>
@@ -423,19 +395,19 @@ export const LiveTrackingScreen = () => {
 
           {/* Rate Your Experience Card (shown once the job is paid for) */}
           {activeOrder.currentStep === 5 && isPaid && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#E6E9F4] flex flex-col gap-3">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
               {activeOrder.rating ? (
                 <div className="flex flex-col items-center text-center gap-1 py-2">
-                  <div className="w-11 h-11 rounded-full bg-[#FFC928] text-[#101F55] flex items-center justify-center shadow-sm shadow-[#FFC928]/40">
+                  <div className="w-11 h-11 rounded-full bg-[#00ae78]/15 text-[#006c49] flex items-center justify-center">
                     <span className="material-symbols-outlined text-[22px]">task_alt</span>
                   </div>
-                  <h3 className="text-sm font-bold text-[#101F55]">Thanks for rating {activeOrder.helperName}!</h3>
+                  <h3 className="text-sm font-bold text-[#0b1c30]">Thanks for rating {activeOrder.helperName}!</h3>
                   <div className="flex items-center gap-0.5">
                     {[1, 2, 3, 4, 5].map(i => (
                       <span
                         key={i}
                         className={`material-symbols-outlined text-[20px] ${
-                          i <= activeOrder.rating ? 'text-[#FFC928]' : 'text-[#E6E9F4]'
+                          i <= activeOrder.rating ? 'text-[#ff6a00]' : 'text-slate-200'
                         }`}
                         style={{ fontVariationSettings: "'FILL' 1" }}
                       >
@@ -444,14 +416,14 @@ export const LiveTrackingScreen = () => {
                     ))}
                   </div>
                   {activeOrder.feedback && (
-                    <p className="text-xs text-[#4E5C92] mt-1">"{activeOrder.feedback}"</p>
+                    <p className="text-xs text-slate-500 mt-1">"{activeOrder.feedback}"</p>
                   )}
                 </div>
               ) : (
                 <>
                   <div>
-                    <h3 className="text-sm font-bold text-[#101F55]">Rate your experience</h3>
-                    <p className="text-[11px] text-[#4E5C92]">
+                    <h3 className="text-sm font-bold text-[#0b1c30]">Rate your experience</h3>
+                    <p className="text-[11px] text-slate-500">
                       How was the service by {activeOrder.helperName}?
                     </p>
                   </div>
@@ -468,7 +440,7 @@ export const LiveTrackingScreen = () => {
                       >
                         <span
                           className={`material-symbols-outlined text-[32px] ${
-                            i <= (hoverStar || selectedStar) ? 'text-[#FFC928]' : 'text-[#E6E9F4]'
+                            i <= (hoverStar || selectedStar) ? 'text-[#ff6a00]' : 'text-slate-200'
                           }`}
                           style={{ fontVariationSettings: "'FILL' 1" }}
                         >
@@ -483,13 +455,13 @@ export const LiveTrackingScreen = () => {
                     onChange={(e) => setFeedbackText(e.target.value)}
                     placeholder="Add a comment (optional)"
                     rows={2}
-                    className="w-full resize-none rounded-xl border border-[#E6E9F4] bg-[#FFF3D5] p-2.5 text-xs text-[#101F55] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                    className="w-full resize-none rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-xs text-[#0b1c30] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                   />
 
                   <button
                     onClick={handleSubmitRating}
                     disabled={selectedStar === 0}
-                    className="w-full py-2.5 rounded-full bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-slate-200 disabled:text-slate-400 text-[#101F55] text-xs font-bold active:scale-95 transition-all shadow-md"
+                    className="w-full py-2.5 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all shadow-md"
                   >
                     Submit Rating
                   </button>
@@ -499,7 +471,7 @@ export const LiveTrackingScreen = () => {
                   <button
                     type="button"
                     onClick={finishActiveOrder}
-                    className="w-full py-1.5 text-xs font-bold text-[#4E5C92] hover:text-[#101F55] transition-colors"
+                    className="w-full py-1.5 text-xs font-bold text-slate-500 hover:text-[#0b1c30] transition-colors"
                   >
                     Not now
                   </button>
@@ -509,46 +481,45 @@ export const LiveTrackingScreen = () => {
           )}
 
           {/* Live Helper Card with Safety PIN */}
-          <div className="bg-white rounded-3xl p-4 shadow-lg shadow-[#101F55]/10 flex flex-col gap-3 relative overflow-hidden border border-[#E6E9F4]">
-            <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-[#FFF4CC] pointer-events-none" />
+          <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3 relative overflow-hidden border border-slate-100">
             {/* Profile row */}
-            <div className="relative flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <div className="relative shrink-0">
                 <Avatar
                   src={activeOrder.helperAvatar}
                   name={activeOrder.helperName}
-                  className="w-16 h-16 rounded-2xl ring-2 ring-[#FFC928] ring-offset-2 ring-offset-white"
+                  className="w-14 h-14 rounded-2xl"
                   textClassName="text-xl"
                 />
                 {activeOrder.helperVerified && (
-                  <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#101F55] text-[#FFC928] flex items-center justify-center shadow-sm ring-2 ring-white">
-                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#00ae78] text-white flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[13px]">verified</span>
                   </div>
                 )}
               </div>
 
               <div className="flex flex-col min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1">
-                  <h2 className="text-base font-extrabold text-[#101F55] truncate tracking-tight">
+                  <h2 className="text-sm font-bold text-[#0b1c30] truncate">
                     {activeOrder.helperName}
                   </h2>
                   {activeOrder.helperRating > 0 && (
-                    <div className="flex items-center gap-0.5 bg-[#FFE7A8] border border-[#FFC928]/50 px-2 py-0.5 rounded-full shrink-0">
+                    <div className="flex items-center gap-0.5 bg-[#eff4ff] px-2 py-0.5 rounded-full shrink-0">
                       <span
-                        className="material-symbols-outlined text-[14px] text-[#F47B16]"
+                        className="material-symbols-outlined text-[13px] text-[#ff6a00]"
                         style={{ fontVariationSettings: "'FILL' 1" }}
                       >
                         star
                       </span>
-                      <span className="text-xs font-bold text-[#101F55]">
+                      <span className="text-xs font-bold text-[#0b1c30]">
                         {Number(activeOrder.helperRating).toFixed(1)}
                       </span>
                     </div>
                   )}
                 </div>
 
-                <p className="text-xs text-[#4E5C92] flex items-center gap-1 mt-0.5">
-                  <span className="material-symbols-outlined text-[14px] text-[#F47B16]">
+                <p className="text-xs text-[#5a4136] flex items-center gap-1 mt-0.5">
+                  <span className="material-symbols-outlined text-[14px] text-[#00ae78]">
                     home_repair_service
                   </span>
                   <span>{activeOrder.serviceTitle}</span> <span>partner</span>
@@ -559,10 +530,10 @@ export const LiveTrackingScreen = () => {
                 )}
 
                 {(activeOrder.helperVehicle || activeOrder.helperVehicleNumber) && (
-                  <div className="flex items-center gap-1 text-[#4E5C92] text-[11px] mt-1 bg-[#FFF3D5] px-2 py-0.5 rounded-md self-start font-medium">
+                  <div className="flex items-center gap-1 text-[#5a4136] text-[11px] mt-1 bg-[#eff4ff] px-2 py-0.5 rounded-md self-start font-medium">
                     <span className="material-symbols-outlined text-[13px]">two_wheeler</span>
                     {activeOrder.helperVehicle && (
-                      <span className="font-semibold text-[#101F55]">{activeOrder.helperVehicle}</span>
+                      <span className="font-semibold text-[#0b1c30]">{activeOrder.helperVehicle}</span>
                     )}
                     {activeOrder.helperVehicleNumber && (
                       <span>{activeOrder.helperVehicle ? '• ' : ''}{activeOrder.helperVehicleNumber}</span>
@@ -573,7 +544,7 @@ export const LiveTrackingScreen = () => {
             </div>
 
             {/* Action Buttons: Call & Chat */}
-            <div className="relative grid grid-cols-2 gap-2.5 pt-1">
+            <div className="grid grid-cols-2 gap-2 pt-1">
               <a
                 href={activeOrder.helperPhone ? `tel:${activeOrder.helperPhone}` : undefined}
                 onClick={(event) => {
@@ -582,9 +553,9 @@ export const LiveTrackingScreen = () => {
                     showToast('This partner has not added a phone number. Use In-App Chat instead.');
                   }
                 }}
-                className="h-11 px-3 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] border border-[#FFC928]/50 text-[#101F55] text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                className="h-10 px-3 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[#0b1c30] text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition-all"
               >
-                <span className="material-symbols-outlined text-[17px] text-[#F47B16]">call</span>
+                <span className="material-symbols-outlined text-[17px] text-[#a14000]">call</span>
                 <span>Call</span> <span>{helperFirstName}</span>
               </a>
 
@@ -598,19 +569,19 @@ export const LiveTrackingScreen = () => {
                   });
                   setIsChatOpen(true);
                 }}
-                className="h-11 px-3 rounded-full bg-gradient-to-r from-[#101F55] to-[#1B3380] hover:from-[#13286B] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-[#101F55]/25 border border-[#FFC928]/40 active:scale-95 transition-all"
+                className="h-10 px-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all"
               >
-                <span className="material-symbols-outlined text-[17px] text-[#FFC928]" style={{ fontVariationSettings: "'FILL' 1" }}>chat_bubble</span>
+                <span className="material-symbols-outlined text-[17px]">chat_bubble</span>
                 <span>In-App Chat</span>
               </button>
             </div>
 
             {activeOrder.bookedFor?.name && (
-              <div className="bg-[#FFF3D5] rounded-2xl p-3 flex items-start gap-2 border border-[#FFC928]/30">
-                <span className="material-symbols-outlined text-[18px] text-[#4E5C92] shrink-0">
+              <div className="bg-[#eff4ff] rounded-2xl p-3 flex items-start gap-2 border border-slate-200/60">
+                <span className="material-symbols-outlined text-[18px] text-[#4e5c92] shrink-0">
                   {activeOrder.bookedFor.relation === 'CHILD' ? 'child_care' : 'person'}
                 </span>
-                <p className="text-[11px] text-[#101F55] leading-relaxed">
+                <p className="text-[11px] text-[#0b1c30] leading-relaxed">
                   <span className="font-bold">
                     {`For ${activeOrder.bookedFor.name} (${relationLabel(activeOrder.bookedFor.relation)})`}
                   </span>
@@ -626,18 +597,18 @@ export const LiveTrackingScreen = () => {
             )}
 
             {/* Verification PIN Box */}
-            <div className="relative bg-[#FFF7E0] rounded-2xl p-3 flex items-center justify-between gap-2 border border-[#FFC928]/50">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 shadow-sm shadow-[#FFC928]/40">
-                  <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <div className="bg-[#dce9ff]/70 rounded-2xl p-3 flex items-center justify-between gap-2 border border-slate-200/60">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">
                     {activeOrder.currentStep >= 4 ? 'verified' : 'lock'}
                   </span>
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-extrabold text-[#101F55] uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Arrival Safety Code
                   </span>
-                  <span className="text-[11px] text-[#4E5C92] font-medium leading-snug">
+                  <span className="text-xs text-[#0b1c30] font-medium truncate">
                     {activeOrder.currentStep >= 4 ? 'Verified — work has started' : 'Share only upon arrival'}
                     {activeOrder.currentStep < 4 && pinSecondsLeft != null && (
                       <span> · <span>changes in</span> {pinSecondsLeft}s</span>
@@ -646,14 +617,13 @@ export const LiveTrackingScreen = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 bg-white pl-3 pr-1.5 py-1.5 rounded-xl shadow-sm border border-[#FFC928]/50">
-                <span className="text-lg tracking-[0.25em] text-[#101F55] font-extrabold font-mono">
+              <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl shadow-xs border border-slate-100">
+                <span className="text-base tracking-widest text-[#a14000] font-extrabold font-mono">
                   {activeOrder.safetyPin}
                 </span>
                 <button
                   onClick={handleCopyPin}
-                  aria-label="Copy code"
-                  className="ml-0.5 w-7 h-7 rounded-lg bg-[#FFF3D5] text-[#F47B16] hover:bg-[#FFE7A8] flex items-center justify-center"
+                  className="ml-1 text-slate-400 hover:text-[#a14000] flex items-center p-0.5"
                   title="Copy code"
                 >
                   <span className="material-symbols-outlined text-[16px]">
@@ -666,14 +636,14 @@ export const LiveTrackingScreen = () => {
 
           {/* Completion Verification Card — shown once the partner has started work */}
           {activeOrder.currentStep === 4 && (
-            <div className="bg-white rounded-2xl p-4 shadow-md shadow-[#101F55]/5 border border-[#E6E9F4] flex flex-col gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 shadow-sm shadow-[#FFC928]/40">
-                  <span className="material-symbols-outlined text-[20px]">task_alt</span>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-[#6ffbbe]/40 text-[#006c49] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">task_alt</span>
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-[#101F55]">Confirm Job Completion</h3>
-                  <p className="text-[11px] text-[#4E5C92]">
+                  <h3 className="text-sm font-bold text-[#0b1c30]">Confirm Job Completion</h3>
+                  <p className="text-[11px] text-slate-500">
                     {!activeOrder.repairPhotoUrl
                       ? `Waiting for ${helperName} to upload a photo of the finished repair.`
                       : hasPendingExtraCharges
@@ -682,19 +652,19 @@ export const LiveTrackingScreen = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 bg-[#FFF3D5] rounded-2xl p-2">
+              <div className="flex items-center gap-2">
                 <input
                   value={completionInput}
                   onChange={(e) => setCompletionInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   placeholder="Enter 4-digit code"
                   inputMode="numeric"
                   disabled={!isReadyToComplete}
-                  className="flex-1 min-w-0 disabled:opacity-50 rounded-xl border border-[#FFC928]/40 bg-white px-3 py-2.5 text-sm font-mono tracking-widest text-[#101F55] placeholder:text-[#4E5C92]/60 placeholder:tracking-normal placeholder:font-sans focus:outline-none focus:ring-2 focus:ring-[#F47B16]/30"
+                  className="flex-1 min-w-0 disabled:opacity-50 rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-sm font-mono tracking-widest text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                 />
                 <button
                   onClick={handleVerifyCompletion}
                   disabled={completionInput.length !== 4 || !isReadyToComplete}
-                  className="shrink-0 px-4 py-2.5 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none text-[#101F55] text-xs font-extrabold shadow-md shadow-[#FFC928]/40 active:scale-95 transition-all"
+                  className="shrink-0 px-4 py-2.5 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold active:scale-95 transition-all"
                 >
                   Verify & Pay
                 </button>
@@ -704,7 +674,7 @@ export const LiveTrackingScreen = () => {
 
           {/* Live GPS Map Card */}
           <div
-            className={`relative w-full rounded-2xl overflow-hidden shadow-xs flex flex-col justify-end p-3 border border-[#E6E9F4] transition-[height] duration-300 ${
+            className={`relative w-full rounded-2xl overflow-hidden shadow-xs flex flex-col justify-end p-3 border border-slate-200 transition-[height] duration-300 ${
               mapExpanded ? 'h-[420px]' : 'h-44'
             }`}
           >
@@ -714,11 +684,11 @@ export const LiveTrackingScreen = () => {
               route={liveRoute?.path}
               interactive={mapExpanded}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#101F55]/90 via-[#101F55]/10 to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0b1c30]/90 via-[#0b1c30]/10 to-transparent pointer-events-none"></div>
 
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex items-center gap-2 text-white">
-                <div className="w-7 h-7 rounded-full bg-[#FFC928] text-[#101F55] flex items-center justify-center shadow-md animate-bounce">
+                <div className="w-7 h-7 rounded-full bg-[#ff6a00] text-white flex items-center justify-center shadow-md animate-bounce">
                   <span className="material-symbols-outlined text-[16px]">near_me</span>
                 </div>
                 <div className="flex flex-col">
@@ -737,7 +707,7 @@ export const LiveTrackingScreen = () => {
 
               <button
                 onClick={() => setMapExpanded((expanded) => !expanded)}
-                className="px-3 py-1 rounded-full bg-white text-[#101F55] text-xs font-bold shadow-md hover:bg-slate-100 transition-colors flex items-center gap-1 active:scale-95"
+                className="px-3 py-1 rounded-full bg-white text-[#a14000] text-xs font-bold shadow-md hover:bg-slate-100 transition-colors flex items-center gap-1 active:scale-95"
               >
                 <span>{mapExpanded ? 'Collapse' : 'Expand Map'}</span>
                 <span className="material-symbols-outlined text-[14px]">
@@ -748,18 +718,18 @@ export const LiveTrackingScreen = () => {
           </div>
 
           {/* Interactive Status Stepper */}
-          <div className="bg-white rounded-2xl p-4 shadow-xs flex flex-col gap-3 border border-[#E6E9F4]">
+          <div className="bg-white rounded-2xl p-4 shadow-xs flex flex-col gap-3 border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-[#101F55]">Timeline Progress</h3>
-                <p className="text-[11px] text-[#4E5C92]">Live status of your booking</p>
+                <h3 className="text-sm font-bold text-[#0b1c30]">Timeline Progress</h3>
+                <p className="text-[11px] text-slate-500">Live status of your booking</p>
               </div>
               {activeOrder.currentStep === 3 ? (
-                <span className="text-[11px] font-bold text-[#4E5C92]/70">Waiting for arrival code…</span>
+                <span className="text-[11px] font-bold text-slate-400">Waiting for arrival code…</span>
               ) : activeOrder.currentStep === 4 ? (
-                <span className="text-[11px] font-bold text-[#4E5C92]/70">Waiting for completion code…</span>
+                <span className="text-[11px] font-bold text-slate-400">Waiting for completion code…</span>
               ) : activeOrder.currentStep <= 1 && !isClosed ? (
-                <span className="text-[11px] font-bold text-[#4E5C92]/70">Waiting for acceptance…</span>
+                <span className="text-[11px] font-bold text-slate-400">Waiting for acceptance…</span>
               ) : null}
             </div>
 
@@ -776,7 +746,7 @@ export const LiveTrackingScreen = () => {
                     {!isLast && (
                       <div
                         className={`absolute top-6 left-3.5 -bottom-0 w-0.5 ${
-                          isPassed ? 'bg-[#101F55]' : isCurrent ? 'bg-[#FFC928]' : 'bg-[#E6E9F4]'
+                          isPassed ? 'bg-[#00ae78]' : isCurrent ? 'bg-[#ff6a00]' : 'bg-slate-200'
                         }`}
                       ></div>
                     )}
@@ -784,15 +754,15 @@ export const LiveTrackingScreen = () => {
                     {/* Node circle */}
                     <div className="relative w-7 h-7 shrink-0 z-10 flex items-center justify-center">
                       {isCurrent && (
-                        <span className="absolute inset-0 rounded-full bg-[#FFC928] opacity-40 animate-ping"></span>
+                        <span className="absolute inset-0 rounded-full bg-[#ff6a00] opacity-40 animate-ping"></span>
                       )}
                       <div
                         className={`w-7 h-7 rounded-full flex items-center justify-center shadow-xs text-xs font-bold ${
                           isPassed
-                            ? 'bg-[#101F55] text-white'
+                            ? 'bg-[#00ae78] text-white'
                             : isCurrent
-                            ? 'bg-[#FFC928] text-[#101F55]'
-                            : 'bg-[#FFF3D5] text-[#4E5C92]/70'
+                            ? 'bg-[#ff6a00] text-white'
+                            : 'bg-slate-100 text-slate-400'
                         }`}
                       >
                         {isPassed ? (
@@ -808,24 +778,24 @@ export const LiveTrackingScreen = () => {
                     {/* Step details */}
                     <div
                       className={`flex flex-col min-w-0 flex-1 pt-0.5 rounded-xl p-2 transition-all ${
-                        isCurrent ? 'bg-[#FFF3D5] border border-[#FFE7A8]' : ''
+                        isCurrent ? 'bg-[#eff4ff] border border-[#dce9ff]' : ''
                       }`}
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <span
                           className={`text-xs font-bold ${
                             isCurrent
-                              ? 'text-[#101F55]'
+                              ? 'text-[#a14000]'
                               : isPassed
-                              ? 'text-[#101F55]'
-                              : 'text-[#4E5C92]/70'
+                              ? 'text-[#0b1c30]'
+                              : 'text-slate-400'
                           }`}
                         >
                           {step.title}
                         </span>
                         <span
                           className={`text-[10px] font-semibold ${
-                            isCurrent ? 'text-[#101F55]' : 'text-[#4E5C92]/70'
+                            isCurrent ? 'text-[#ff6a00]' : 'text-slate-400'
                           }`}
                         >
                           {step.time}
@@ -833,7 +803,7 @@ export const LiveTrackingScreen = () => {
                       </div>
                       <p
                         className={`text-[11px] mt-0.5 ${
-                          isFuture ? 'text-[#4E5C92]/70' : 'text-[#4E5C92]'
+                          isFuture ? 'text-slate-400' : 'text-[#5a4136]'
                         }`}
                       >
                         {step.desc}
