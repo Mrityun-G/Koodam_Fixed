@@ -472,15 +472,6 @@ export const LiveTrackingScreen = () => {
                   >
                     Submit Rating
                   </button>
-                  {/* Paid, so nothing else is owed: the member can close the
-                      booking without rating it */}
-                  <button
-                    type="button"
-                    onClick={finishActiveOrder}
-                    className="w-full py-1.5 text-xs font-bold text-slate-500 hover:text-[#0b1c30] transition-colors"
-                  >
-                    Not now
-                  </button>
                 </>
               )}
             </div>
@@ -492,7 +483,7 @@ export const LiveTrackingScreen = () => {
             <div className="bg-white rounded-2xl p-4 shadow-md shadow-[#101F55]/5 border border-[#E6E9F4] flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 shadow-sm shadow-[#FFC928]/40">
-                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>history</span>
+                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>work_history</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-bold text-[#101F55]">Work is over</h3>
