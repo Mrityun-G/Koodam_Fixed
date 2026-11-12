@@ -7,7 +7,7 @@ import { VoiceAssistant } from '../components/VoiceAssistant';
 import { detectService, reliabilityPenalty } from '../lib/voiceIntent';
 import { helpersFromServices, withDistance } from '../lib/helpers';
 import { authorizedFetch } from '../lib/authorizedFetch';
-import { serviceImage } from '../lib/serviceImages';
+import { ServiceCard, ServiceCardSkeleton } from '../components/ServiceCard';
 
 // "3 helpers nearby", from the partners the backend sent for a service
 const helperCountLabel = (service) => {
@@ -20,48 +20,20 @@ const helperCountLabel = (service) => {
   return count === 1 ? '1 helper nearby' : `${count} helpers nearby`;
 };
 
-// One service, as a row to tap
-const ServiceRow = ({ service, onSelect }) => {
-  const image = serviceImage(service.title);
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(service)}
-      className="w-full bg-white rounded-2xl p-3 flex items-center gap-3 text-left border border-slate-100 shadow-2xs hover:bg-slate-50 active:scale-[0.99] transition-all"
-    >
-      {image ? (
-        <img
-          src={image}
-          alt=""
-          decoding="async"
-          className="w-11 h-11 rounded-xl object-cover shrink-0"
-        />
-      ) : (
-        <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-          style={{
-            backgroundColor: service.bg_color || '#e5eeff',
-            color: service.icon_color || '#4e5c92'
-          }}
-        >
-          <span className="material-symbols-outlined text-[22px]">
-            {service.icon || 'home_repair_service'}
-          </span>
-        </div>
-      )}
-
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-bold text-[#0b1c30] truncate">{service.title}</span>
-        <span className="text-[11px] text-[#5a4136] truncate">{helperCountLabel(service)}</span>
-      </div>
-
-      <span className="material-symbols-outlined text-[20px] text-slate-300 shrink-0">
-        chevron_right
-      </span>
-    </button>
-  );
-};
+// Services as the same three-across photo cards as Home, with how many
+// helpers can reach the member under each name
+const ServiceGrid = ({ services, onSelect }) => (
+  <div className="grid grid-cols-3 gap-2.5 pt-1">
+    {services.map((service) => (
+      <ServiceCard
+        key={service.id}
+        service={service}
+        caption={helperCountLabel(service)}
+        onClick={() => onSelect(service)}
+      />
+    ))}
+  </div>
+);
 
 // The Search tab. Home shows who's near you; this is for when you know
 // what you need: type a trade, a problem or a helper's name.
@@ -216,9 +188,9 @@ export const SearchScreen = () => {
         </div>
 
         {loading ? (
-          <div className="px-4 pt-2 flex flex-col gap-2">
-            {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="h-[66px] rounded-2xl bg-slate-100 animate-pulse" />
+          <div className="px-4 pt-2 grid grid-cols-3 gap-2.5">
+            {Array.from({ length: 9 }, (_, index) => (
+              <ServiceCardSkeleton key={index} />
             ))}
           </div>
         ) : loadFailed && services.length === 0 ? (
@@ -251,9 +223,7 @@ export const SearchScreen = () => {
               </p>
             </div>
 
-            {services.map((service) => (
-              <ServiceRow key={service.id} service={service} onSelect={selectService} />
-            ))}
+            <ServiceGrid services={services} onSelect={selectService} />
           </section>
         ) : (
           <>
@@ -261,9 +231,7 @@ export const SearchScreen = () => {
               <section className="px-4 pt-2 flex flex-col gap-2">
                 <h2 className="text-base font-bold text-[#0b1c30]">Services</h2>
 
-                {matchingServices.map((service) => (
-                  <ServiceRow key={service.id} service={service} onSelect={selectService} />
-                ))}
+                <ServiceGrid services={matchingServices} onSelect={selectService} />
               </section>
             )}
 

@@ -19,6 +19,7 @@ import { PartnerReliability } from '../components/PartnerReliability';
 import { PartnerWorkingHours } from '../components/PartnerWorkingHours';
 import { Avatar } from '../components/Avatar';
 import { LiveMap } from '../components/LiveMap';
+import { ServiceCard, ServiceThumb } from '../components/ServiceCard';
 import {
   authorizedFetch,
   authorizedFetchOrNull,
@@ -1529,11 +1530,11 @@ export const PartnerDashboard = () => {
 
                 <div className="flex items-start gap-3 min-w-0">
 
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${nextJob.tone}`}>
-                    <span className="material-symbols-outlined text-[20px]">
-                      {nextJob.icon}
-                    </span>
-                  </div>
+                  <ServiceThumb
+                    title={nextJob.title}
+                    icon={nextJob.icon}
+                    fallbackClassName={nextJob.tone}
+                  />
 
                   <div className="min-w-0">
                     <h3 className="font-bold text-sm text-[#0b1c30] truncate">
@@ -2496,12 +2497,11 @@ export const PartnerDashboard = () => {
 
                 <div className="flex items-start gap-3 min-w-0">
 
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${job.tone}`}>
-
-                    <span className="material-symbols-outlined text-[20px]">
-                      {job.icon}
-                    </span>
-                  </div>
+                  <ServiceThumb
+                    title={job.title}
+                    icon={job.icon}
+                    fallbackClassName={job.tone}
+                  />
 
                   <div className="min-w-0">
 
@@ -2644,12 +2644,10 @@ export const PartnerDashboard = () => {
 
                         <div className="flex items-start gap-3 min-w-0">
 
-                          <div className="w-10 h-10 rounded-xl bg-[#dce1ff] text-[#4e5c92] flex items-center justify-center shrink-0">
-
-                            <span className="material-symbols-outlined text-[20px]">
-                              handyman
-                            </span>
-                          </div>
+                          <ServiceThumb
+                            title={title}
+                            icon={service?.icon || 'handyman'}
+                          />
 
                           <div className="min-w-0">
 
@@ -3359,7 +3357,7 @@ export const PartnerDashboard = () => {
       {serviceModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
 
-          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150">
+          <div className="w-full max-w-sm max-h-full overflow-y-auto bg-white rounded-3xl p-5 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150">
 
             <div className="flex items-center justify-between mb-4">
 
@@ -3396,47 +3394,45 @@ export const PartnerDashboard = () => {
               </button>
             </div>
 
-            {/* SERVICE SELECT */}
+            {/* SERVICE: the same photo cards customers see on Home. The
+                grid scrolls on its own so the price and the buttons
+                stay on screen on a small phone. */}
 
             <div className="space-y-1.5 mb-3">
 
-              <label className="text-[11px] font-bold text-[#0b1c30]">
+              <p className="text-[11px] font-bold text-[#0b1c30]">
                 Service
-              </label>
+              </p>
 
-              <select
-                value={selectedServiceId}
-                onChange={(e) =>
-                  setSelectedServiceId(
-                    e.target.value
-                  )
-                }
-                disabled={
-                  Boolean(editingService) ||
-                  serviceSaving
-                }
-                className="w-full rounded-xl border border-slate-200 bg-[#f8f9ff] px-3 py-2.5 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40 disabled:bg-slate-100 disabled:text-slate-500"
-              >
-                <option value="">
-                  Select a service
-                </option>
+              {editingService ? (
+                <>
+                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                    <ServiceThumb
+                      title={getServiceTitle(selectedServiceId)}
+                      icon={getServiceDetails(selectedServiceId)?.icon}
+                    />
 
-                {availableServices.map(
-                  service => (
-                    <option
+                    <span className="text-sm font-bold text-[#0b1c30] truncate">
+                      {getServiceTitle(selectedServiceId)}
+                    </span>
+                  </div>
+
+                  <p className="text-[9px] text-slate-400">
+                    Service type cannot be changed while editing.
+                  </p>
+                </>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 max-h-[42vh] overflow-y-auto p-0.5">
+                  {availableServices.map(service => (
+                    <ServiceCard
                       key={service.id}
-                      value={service.id}
-                    >
-                      {service.title}
-                    </option>
-                  )
-                )}
-              </select>
-
-              {editingService && (
-                <p className="text-[9px] text-slate-400">
-                  Service type cannot be changed while editing.
-                </p>
+                      service={service}
+                      selected={selectedServiceId === service.id}
+                      disabled={serviceSaving}
+                      onClick={() => setSelectedServiceId(service.id)}
+                    />
+                  ))}
+                </div>
               )}
             </div>
 
