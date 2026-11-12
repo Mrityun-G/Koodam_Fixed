@@ -29,12 +29,12 @@ export const HelperCard = ({ helper }) => {
   const status =
     now?.state === 'now'
       ? {
-          tone: 'bg-[#FFE7A8] text-[#101F55]',
+          tone: 'bg-[#c8f7e1] text-[#006c49]',
           text: `Working now · till ${formatTime(now.until)}`
         }
       : now?.state === 'later'
         ? {
-            tone: 'bg-[#FFF7E0] text-[#101F55]',
+            tone: 'bg-amber-50 text-amber-700',
             text: `Starts today at ${formatTime(now.from)}`
           }
         : now?.state === 'next'
@@ -59,7 +59,7 @@ export const HelperCard = ({ helper }) => {
             textClassName="text-xl"
           />
           {(helper.isVerified || helper.policeVerified) && (
-            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#101F55] flex items-center justify-center text-white shadow-xs">
+            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#00ae78] flex items-center justify-center text-white shadow-xs">
               <span className="material-symbols-outlined text-[12px]">check</span>
             </span>
           )}
@@ -67,10 +67,10 @@ export const HelperCard = ({ helper }) => {
 
         <div className="flex flex-col flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1">
-            <h3 className="font-bold text-sm text-[#101F55] truncate">{helper.name}</h3>
-            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#FFF3D5] text-[#101F55] text-xs shrink-0">
+            <h3 className="font-bold text-sm text-[#0b1c30] truncate">{helper.name}</h3>
+            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#eff4ff] text-[#0b1c30] text-xs shrink-0">
               <span
-                className="material-symbols-outlined text-[13px] text-[#F5B301]"
+                className="material-symbols-outlined text-[13px] text-amber-500"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
                 star
@@ -80,7 +80,7 @@ export const HelperCard = ({ helper }) => {
             </div>
           </div>
 
-          <p className="text-xs text-[#4E5C92] truncate mt-0.5">{helper.title}</p>
+          <p className="text-xs text-[#5a4136] truncate mt-0.5">{helper.title}</p>
 
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
             {/* Staff approved all their ID documents */}
@@ -93,7 +93,7 @@ export const HelperCard = ({ helper }) => {
               </span>
             )}
             {helper.policeVerified && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#FFE7A8] text-[#101F55]">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#6ffbbe] text-[#002113]">
                 <span className="material-symbols-outlined text-[12px]">local_police</span>
                 <span>Police Verified</span>
               </span>
@@ -112,7 +112,7 @@ export const HelperCard = ({ helper }) => {
                 </span>
               )}
               {hoursText && (
-                <span className="flex items-center gap-1 text-[11px] font-medium text-[#4E5C92] min-w-0 max-w-full">
+                <span className="flex items-center gap-1 text-[11px] font-medium text-[#4e5c92] min-w-0 max-w-full">
                   <span className="material-symbols-outlined text-[14px] shrink-0">schedule</span>
                   <span className="truncate">{hoursText}</span>
                 </span>
@@ -127,7 +127,7 @@ export const HelperCard = ({ helper }) => {
         <div className="flex flex-col">
           <span className="text-[10px] text-slate-400 font-medium">Starting from</span>
           <div className="flex items-baseline gap-0.5">
-            <span className="text-base font-extrabold text-[#101F55]">
+            <span className="text-base font-extrabold text-[#a14000]">
               {helper.rate}
             </span>
             <span className="text-xs text-slate-500">{helper.unit}</span>
@@ -146,13 +146,13 @@ export const HelperCard = ({ helper }) => {
               });
               setIsChatOpen(true);
             }}
-            className="w-9 h-9 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] text-[#101F55] flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[#1b2a5e] flex items-center justify-center transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">chat</span>
           </button>
           <button
             onClick={() => handleBookHelper(helper)}
-            className="px-3.5 py-1.5 rounded-full bg-[#FFC928] hover:bg-[#F5B301] text-[#101F55] text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
+            className="px-3.5 py-1.5 rounded-full bg-[#ff6a00] hover:bg-[#a14000] text-white text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
           >
             <span>Quick Book</span>
             <span className="material-symbols-outlined text-[14px]">bolt</span>

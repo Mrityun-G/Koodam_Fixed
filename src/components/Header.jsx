@@ -214,10 +214,10 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
     <>
       <header
         ref={headerRef}
-        className={`sticky top-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-b border-[#E6E9F4] transition-transform duration-300 motion-reduce:transition-none focus-within:translate-y-0 ${
+        className={`sticky top-0 inset-x-0 z-40 bg-[#f8f9ff]/90 backdrop-blur-xl border-b border-slate-100 transition-transform duration-300 motion-reduce:transition-none focus-within:translate-y-0 ${
           headerHidden
             ? '-translate-y-full'
-            : 'translate-y-0 shadow-[0_2px_12px_rgba(16,31,85,0.06)]'
+            : 'translate-y-0 shadow-[0_1px_8px_rgba(0,0,0,0.04)]'
         }`}
       >
         <div className="h-16 px-4 flex items-center justify-between gap-2">
@@ -237,14 +237,13 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
 
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1">
-                <span className="font-bold text-[17px] text-[#101F55] leading-none tracking-tight">
+                <span className="font-bold text-[17px] text-[#0b1c30] leading-none tracking-tight">
                   GigEzee
                 </span>
-                <span className="text-xs text-[#F47B16] opacity-70">
+                <span className="text-xs text-[#5a4136] opacity-70">
                   •
                 </span>
-                {/* The page title, as orange secondary text */}
-                <span className="text-xs text-[#F47B16] font-bold truncate">
+                <span className="text-xs text-[#5a4136] font-medium truncate">
                   {subtitle}
                 </span>
               </div>
@@ -254,14 +253,11 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
                 onClick={() => setShowLocationMenu(!showLocationMenu)}
                 className="flex items-center gap-0.5 text-left text-primary min-h-[20px] group"
               >
-                <span className="material-symbols-outlined text-[13px] leading-none text-[#F47B16]">
-                  location_on
-                </span>
-                <span className="text-[11px] font-semibold truncate max-w-[130px] sm:max-w-none text-[#101F55]/80">
+                <span className="text-[11px] font-bold truncate max-w-[130px] sm:max-w-none text-[#a14000]">
                   {location || 'Detecting location...'}
                 </span>
 
-                <span className="material-symbols-outlined text-[15px] leading-none text-[#F47B16] group-hover:translate-y-0.5 transition-transform">
+                <span className="material-symbols-outlined text-[15px] leading-none text-[#a14000] group-hover:translate-y-0.5 transition-transform">
                   expand_more
                 </span>
               </button>
@@ -279,7 +275,7 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
                 disabled={refreshing}
                 aria-label={refreshing ? 'Refreshing' : 'Refresh page'}
                 title="Refresh"
-                className="w-10 h-10 flex items-center justify-center rounded-full text-[#101F55] hover:bg-[#FFF3D5] active:scale-95 transition-all disabled:opacity-50"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-[#0b1c30] hover:bg-[#eff4ff] active:scale-95 transition-all disabled:opacity-50"
               >
                 <span
                   className={`material-symbols-outlined text-[22px] ${
@@ -298,14 +294,14 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
                 onClick={() =>
                   setShowNotificationMenu(!showNotificationMenu)
                 }
-                className="w-10 h-10 flex items-center justify-center rounded-full text-[#101F55] relative hover:bg-[#FFF3D5] active:scale-95 transition-all"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-[#0b1c30] relative hover:bg-[#eff4ff] active:scale-95 transition-all"
               >
                 <span className="material-symbols-outlined text-[23px]">
                   notifications
                 </span>
 
                 {hasUnread && (
-                  <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#F47B16] ring-2 ring-white"></span>
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#ff6a00] ring-2 ring-[#f8f9ff]"></span>
                 )}
               </button>
 
@@ -313,7 +309,7 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
               {showNotificationMenu && (
                 <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
-                    <span className="font-bold text-sm text-[#101F55]">
+                    <span className="font-bold text-sm text-[#0b1c30]">
                       Notifications
                     </span>
 
@@ -337,7 +333,7 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
                         key={n.id}
                         className={`p-2 rounded-xl text-left transition-colors cursor-pointer ${
                           n.unread
-                            ? 'bg-[#FFF3D5]'
+                            ? 'bg-[#eff4ff]'
                             : 'hover:bg-slate-50'
                         }`}
                         onClick={() => {
@@ -352,7 +348,7 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
                         }}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-[#101F55]">
+                          <span className="font-bold text-xs text-[#0b1c30]">
                             {n.title}
                           </span>
 
@@ -376,7 +372,7 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
               aria-label="User Profile"
               onClick={() => navigateTo('profile', 'profile')}
               title="View profile & settings"
-              className="w-10 h-10 flex items-center justify-center rounded-full p-0.5 hover:ring-2 hover:ring-[#FFC928]/30 active:scale-95 transition-all"
+              className="w-10 h-10 flex items-center justify-center rounded-full p-0.5 hover:ring-2 hover:ring-[#ff6a00]/30 active:scale-95 transition-all"
             >
               {headerAvatar && !avatarFailed ? (
                 <img
@@ -388,7 +384,7 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
                 />
               ) : (
                 // No photo (or it failed to load): show their initial
-                <span className="w-8 h-8 rounded-full bg-[#FFC928] text-[#101F55] text-sm font-extrabold flex items-center justify-center shadow-sm ring-2 ring-[#FFF3D5]">
+                <span className="w-8 h-8 rounded-full bg-[#ffdbcc] text-[#a14000] text-sm font-bold flex items-center justify-center shadow-sm ring-1 ring-slate-200">
                   {headerInitial}
                 </span>
               )}
@@ -404,11 +400,11 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
 
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#F47B16]">
+                <span className="material-symbols-outlined text-[#a14000]">
                   location_on
                 </span>
 
-                <h3 className="font-bold text-[#101F55] text-base">
+                <h3 className="font-bold text-[#0b1c30] text-base">
                   Select Neighborhood
                 </h3>
               </div>
@@ -427,7 +423,7 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
               <button
                 onClick={() => detectLocation(true)}
                 disabled={locating}
-                className="flex items-center gap-2 p-3 rounded-2xl text-left text-sm font-semibold bg-[#FFF3D5] text-[#101F55] border-2 border-[#FFC928] disabled:opacity-60"
+                className="flex items-center gap-2 p-3 rounded-2xl text-left text-sm font-semibold bg-[#eff4ff] text-[#a14000] border-2 border-[#ff6a00] disabled:opacity-60"
               >
                 <span className="material-symbols-outlined text-lg">my_location</span>
                 {locating ? 'Finding you…' : 'Use my current location'}
@@ -438,12 +434,12 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
                   value={placeQuery}
                   onChange={(event) => setPlaceQuery(event.target.value)}
                   placeholder="Search area, e.g. Velachery"
-                  className="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                  className="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                 />
                 <button
                   type="submit"
                   disabled={searchingPlaces || placeQuery.trim().length < 3}
-                  className="px-4 rounded-2xl bg-[#FFC928] text-[#101F55] text-xs font-bold disabled:opacity-50"
+                  className="px-4 rounded-2xl bg-[#ff6a00] text-white text-xs font-bold disabled:opacity-50"
                 >
                   {searchingPlaces ? '…' : 'Search'}
                 </button>
@@ -453,7 +449,7 @@ export const Header = ({ subtitle = 'Home', onRefresh, refreshing }) => {
                 <button
                   key={place.id}
                   onClick={() => pickPlace(place)}
-                  className="flex items-center gap-2 p-3 rounded-2xl text-left text-sm font-semibold bg-slate-50 hover:bg-slate-100 text-[#101F55]"
+                  className="flex items-center gap-2 p-3 rounded-2xl text-left text-sm font-semibold bg-slate-50 hover:bg-slate-100 text-[#0b1c30]"
                 >
                   <span className="material-symbols-outlined text-slate-400 text-lg">location_on</span>
                   <span className="truncate">{place.label}</span>

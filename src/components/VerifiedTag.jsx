@@ -10,7 +10,7 @@ export const VerifiedTag = ({ size = 'md', className = '' }) => {
   return (
     <span
       title="ID documents checked and approved by GigEzee"
-      className={`inline-flex items-center gap-0.5 shrink-0 rounded-full bg-[#FFC928] text-[#101F55] shadow-sm shadow-[#FFC928]/40 font-bold leading-none ${
+      className={`inline-flex items-center gap-0.5 shrink-0 rounded-full bg-[#6ffbbe] text-[#002113] font-bold leading-none ${
         small ? 'pl-1 pr-1.5 py-0.5 text-[9px]' : 'pl-1.5 pr-2 py-1 text-[10px]'
       } ${className}`}
     >

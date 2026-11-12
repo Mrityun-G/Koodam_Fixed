@@ -64,11 +64,11 @@ const HoursTable = ({ workingHours }) => (
   <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
     {groupHours(workingHours).map((group) => (
       <React.Fragment key={group.days}>
-        <span className="font-semibold text-[#4E5C92]">{group.days}</span>
+        <span className="font-semibold text-[#5a4136]">{group.days}</span>
         <span
           className={
             group.hours
-              ? 'font-bold text-[#101F55]'
+              ? 'font-bold text-[#0b1c30]'
               : 'font-semibold text-slate-400'
           }
         >
@@ -200,13 +200,13 @@ export const PartnerWorkingHours = () => {
   return (
     <section className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col gap-3">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 shadow-sm">
+        <div className="w-10 h-10 rounded-xl bg-[#ff6a00] text-white flex items-center justify-center shrink-0 shadow-sm">
           <span className="material-symbols-outlined text-[20px]">schedule</span>
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-bold text-[#101F55]">My Working Hours</h2>
-          <p className="text-[11px] text-[#4E5C92] leading-snug">
+          <h2 className="text-sm font-bold text-[#0b1c30]">My Working Hours</h2>
+          <p className="text-[11px] text-[#5a4136] leading-snug">
             Customers see these and can only book you inside them
           </p>
         </div>
@@ -214,7 +214,7 @@ export const PartnerWorkingHours = () => {
         <button
           type="button"
           onClick={openEditor}
-          className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#FFF3D5] hover:bg-[#FFE7A8] text-[11px] font-bold text-[#101F55] active:scale-95 transition-all"
+          className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#eff4ff] hover:bg-[#dce9ff] text-[11px] font-bold text-[#a14000] active:scale-95 transition-all"
         >
           <span className="material-symbols-outlined text-[15px]">edit</span>
           {savedHours ? 'Change' : 'Set hours'}
@@ -222,11 +222,11 @@ export const PartnerWorkingHours = () => {
       </div>
 
       {savedHours ? (
-        <div className="rounded-xl bg-[#FFF3D5] p-3">
+        <div className="rounded-xl bg-[#f8f9ff] p-3">
           <HoursTable workingHours={savedHours} />
         </div>
       ) : (
-        <p className="rounded-xl bg-[#FFF7E0] p-3 text-[11px] text-[#4E5C92] leading-relaxed">
+        <p className="rounded-xl bg-[#fff8f4] p-3 text-[11px] text-[#5a4136] leading-relaxed">
           Not set yet, so customers can book you at any time from 8 AM to
           8 PM. Set your hours so you only get jobs when you work.
         </p>
@@ -234,7 +234,7 @@ export const PartnerWorkingHours = () => {
 
       {savedDaysOff.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <p className="text-[11px] font-bold text-[#4E5C92]">Days off</p>
+          <p className="text-[11px] font-bold text-[#5a4136]">Days off</p>
           <DayOffChips days={savedDaysOff} />
         </div>
       )}
@@ -252,11 +252,11 @@ export const PartnerWorkingHours = () => {
               <div>
                 <h3
                   id="working-hours-title"
-                  className="text-base font-bold text-[#101F55]"
+                  className="text-base font-bold text-[#0b1c30]"
                 >
                   My Working Hours
                 </h3>
-                <p className="text-[11px] text-[#4E5C92]">
+                <p className="text-[11px] text-[#5a4136]">
                   Pick your days, then your start and end times
                 </p>
               </div>
@@ -265,7 +265,7 @@ export const PartnerWorkingHours = () => {
                 type="button"
                 onClick={() => setEditing(false)}
                 aria-label="Close"
-                className="w-9 h-9 rounded-full bg-[#FFF3D5] text-[#101F55] flex items-center justify-center active:scale-95"
+                className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#0b1c30] flex items-center justify-center active:scale-95"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -284,7 +284,7 @@ export const PartnerWorkingHours = () => {
                         setError('');
                         setHours(presetHours(preset));
                       }}
-                      className="px-2.5 py-1.5 rounded-full border border-[#FFE7A8] bg-[#FFF7E0] text-[11px] font-bold text-[#101F55] active:scale-95"
+                      className="px-2.5 py-1.5 rounded-full border border-[#ffc9ad] bg-[#fff8f4] text-[11px] font-bold text-[#a14000] active:scale-95"
                     >
                       {preset.label}
                     </button>
@@ -309,7 +309,7 @@ export const PartnerWorkingHours = () => {
                       >
                         <span
                           className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${
-                            dayHours ? 'bg-[#FFC928]' : 'bg-slate-200'
+                            dayHours ? 'bg-[#ff6a00]' : 'bg-slate-200'
                           }`}
                         >
                           <span
@@ -320,7 +320,7 @@ export const PartnerWorkingHours = () => {
                         </span>
                         <span
                           className={`text-xs font-bold ${
-                            dayHours ? 'text-[#101F55]' : 'text-slate-400'
+                            dayHours ? 'text-[#0b1c30]' : 'text-slate-400'
                           }`}
                         >
                           {day.short}
@@ -335,7 +335,7 @@ export const PartnerWorkingHours = () => {
                               setDay(day.key, { ...dayHours, start: event.target.value })
                             }
                             aria-label={`${day.long} start time`}
-                            className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-[#FFF3D5] px-1.5 py-1.5 text-xs font-semibold text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                            className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-[#f8f9ff] px-1.5 py-1.5 text-xs font-semibold text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                           >
                             {TIME_OPTIONS.slice(0, -1).map((time) => (
                               <option key={time} value={time}>
@@ -352,7 +352,7 @@ export const PartnerWorkingHours = () => {
                               setDay(day.key, { ...dayHours, end: event.target.value })
                             }
                             aria-label={`${day.long} end time`}
-                            className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-[#FFF3D5] px-1.5 py-1.5 text-xs font-semibold text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                            className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-[#f8f9ff] px-1.5 py-1.5 text-xs font-semibold text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                           >
                             {TIME_OPTIONS.slice(1).map((time) => (
                               <option key={time} value={time}>
@@ -374,8 +374,8 @@ export const PartnerWorkingHours = () => {
               {/* Days off */}
               <div className="flex flex-col gap-2">
                 <div>
-                  <p className="text-xs font-bold text-[#101F55]">Days off</p>
-                  <p className="text-[11px] text-[#4E5C92]">
+                  <p className="text-xs font-bold text-[#0b1c30]">Days off</p>
+                  <p className="text-[11px] text-[#5a4136]">
                     Leave, festivals or any day you can't work
                   </p>
                 </div>
@@ -388,13 +388,13 @@ export const PartnerWorkingHours = () => {
                     max={latestDayOff()}
                     onChange={(event) => setNewDayOff(event.target.value)}
                     aria-label="Day off"
-                    className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-[#FFF3D5] px-2.5 py-2 text-xs font-semibold text-[#101F55] focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+                    className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-[#f8f9ff] px-2.5 py-2 text-xs font-semibold text-[#0b1c30] focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
                   />
                   <button
                     type="button"
                     onClick={addDayOff}
                     disabled={!newDayOff}
-                    className="shrink-0 px-3.5 py-2 rounded-lg bg-[#101F55] text-white text-xs font-bold disabled:opacity-40 active:scale-95"
+                    className="shrink-0 px-3.5 py-2 rounded-lg bg-[#0b1c30] text-white text-xs font-bold disabled:opacity-40 active:scale-95"
                   >
                     Add
                   </button>
@@ -422,7 +422,7 @@ export const PartnerWorkingHours = () => {
                 type="button"
                 onClick={() => save(hours)}
                 disabled={saving || Boolean(problem)}
-                className="w-full py-3 rounded-xl bg-[#FFC928] hover:bg-[#F5B301] disabled:opacity-50 text-[#101F55] text-sm font-bold active:scale-95 transition-all"
+                className="w-full py-3 rounded-xl bg-[#ff6a00] hover:bg-[#a14000] disabled:opacity-50 text-white text-sm font-bold active:scale-95 transition-all"
               >
                 {saving ? 'Saving…' : 'Save working hours'}
               </button>
@@ -432,7 +432,7 @@ export const PartnerWorkingHours = () => {
                   type="button"
                   onClick={() => save(null)}
                   disabled={saving}
-                  className="w-full py-2 text-[11px] font-bold text-slate-500 hover:text-[#101F55] disabled:opacity-50"
+                  className="w-full py-2 text-[11px] font-bold text-slate-500 hover:text-[#a14000] disabled:opacity-50"
                 >
                   Remove fixed hours (bookable any time)
                 </button>

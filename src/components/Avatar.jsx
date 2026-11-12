@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 
-// Colours for initials, from the GigEzee palette; a name always gets the
-// same pair
+// Background colours for initials; a name always gets the same one
 const INITIAL_COLOURS = [
-  'bg-[#101F55] text-[#FFC928]',
-  'bg-[#FFC928] text-[#101F55]',
-  'bg-[#1B3380] text-white',
-  'bg-[#FFE7A8] text-[#101F55]',
-  'bg-[#101F55] text-white',
-  'bg-[#F47B16] text-white'
+  'bg-[#2e7d32]',
+  'bg-[#1b2a5e]',
+  'bg-[#a14000]',
+  'bg-[#006c49]',
+  'bg-[#4e5c92]',
+  'bg-[#7b2f00]'
 ];
 
 const colourFor = (name) => {
@@ -31,9 +30,7 @@ export const Avatar = ({
   src,
   name,
   className = 'w-10 h-10 rounded-full',
-  textClassName = 'text-base',
-  // Fixed colours for the initial, instead of the one picked by name
-  colourClassName = ''
+  textClassName = 'text-base'
 }) => {
   // The GigEzee logo was used as a stand-in photo; treat it as no photo
   const photo = src && src !== '/logo.svg' ? src : null;
@@ -58,7 +55,7 @@ export const Avatar = ({
   return (
     <div
       aria-label={name || 'Profile'}
-      className={`${className} ${colourClassName || colourFor(name)} font-bold flex items-center justify-center shadow-xs ${textClassName}`}
+      className={`${className} ${colourFor(name)} text-white font-bold flex items-center justify-center shadow-xs ${textClassName}`}
     >
       {(String(name || 'K').trim().charAt(0) || 'K').toUpperCase()}
     </div>

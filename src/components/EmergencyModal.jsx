@@ -140,7 +140,7 @@ export const EmergencyModal = () => {
           className="
             shrink-0
             p-5
-            bg-gradient-to-r from-red-600 to-[#F47B16]
+            bg-gradient-to-r from-red-600 to-[#ff6a00]
             text-white
             flex items-start justify-between
             gap-3
@@ -279,7 +279,7 @@ export const EmergencyModal = () => {
             overscroll-contain
             space-y-2.5
             flex-1 min-h-0
-            bg-[#FFF3D5]
+            bg-[#f8f9ff]
           "
         >
           <h4
@@ -339,13 +339,13 @@ export const EmergencyModal = () => {
                   shadow-xs
                   flex items-center justify-between
                   gap-3
-                  hover:border-[#FFD65A]
+                  hover:border-orange-300
                   hover:shadow-sm
                   transition-all
                   active:scale-[0.98]
                   focus-visible:outline-none
                   focus-visible:ring-2
-                  focus-visible:ring-[#F47B16]
+                  focus-visible:ring-orange-500
                 "
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -353,8 +353,8 @@ export const EmergencyModal = () => {
                     className="
                       w-10 h-10
                       rounded-xl
-                      bg-[#FFF7E0]
-                      text-[#F47B16]
+                      bg-orange-50
+                      text-orange-600
                       flex items-center justify-center
                       shrink-0
                     "
@@ -374,7 +374,7 @@ export const EmergencyModal = () => {
                       className="
                         font-bold
                         text-xs
-                        text-[#101F55]
+                        text-[#0b1c30]
                         break-words
                       "
                     >
@@ -384,7 +384,7 @@ export const EmergencyModal = () => {
                     <p
                       className="
                         text-[11px]
-                        text-[#101F55]
+                        text-emerald-700
                         font-medium
                         flex items-center gap-1
                         mt-1

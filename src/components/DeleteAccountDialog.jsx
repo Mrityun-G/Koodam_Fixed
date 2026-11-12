@@ -40,16 +40,16 @@ export const DeleteAccountDialog = ({ onClose }) => {
           </span>
         </div>
 
-        <h2 className="text-center text-base font-extrabold text-[#101F55]">
+        <h2 className="text-center text-base font-extrabold text-[#0b1c30]">
           Delete your account?
         </h2>
 
-        <p className="mt-2 text-center text-xs leading-relaxed text-[#4E5C92]">
+        <p className="mt-2 text-center text-xs leading-relaxed text-[#4e5c92]">
           This cannot be undone.
         </p>
 
         <div className="mt-4 space-y-2 rounded-2xl bg-slate-50 p-3.5">
-          <p className="text-[11px] font-bold text-[#101F55]">What happens</p>
+          <p className="text-[11px] font-bold text-[#0b1c30]">What happens</p>
 
           <ul className="space-y-1.5">
             {[
@@ -60,7 +60,7 @@ export const DeleteAccountDialog = ({ onClose }) => {
               'Past paid bookings stay on record without your details, as the law requires.',
               'You will not be able to log in again with this email.'
             ].map((line) => (
-              <li key={line} className="flex gap-2 text-[11px] leading-relaxed text-[#4E5C92]">
+              <li key={line} className="flex gap-2 text-[11px] leading-relaxed text-[#4e5c92]">
                 <span className="shrink-0 text-slate-300">•</span>
                 <span>{line}</span>
               </li>
@@ -80,7 +80,7 @@ export const DeleteAccountDialog = ({ onClose }) => {
             placeholder={CONFIRM_WORD}
             autoComplete="off"
             autoCapitalize="characters"
-            className="mt-1.5 w-full rounded-full border border-slate-200 bg-[#FFF3D5] px-4 py-2.5 text-center text-sm font-bold tracking-widest text-[#101F55] placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-red-300/50"
+            className="mt-1.5 w-full rounded-full border border-slate-200 bg-[#f8f9ff] px-4 py-2.5 text-center text-sm font-bold tracking-widest text-[#0b1c30] placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-red-300/50"
           />
         </label>
 
@@ -97,7 +97,7 @@ export const DeleteAccountDialog = ({ onClose }) => {
           type="button"
           onClick={onClose}
           disabled={authLoading}
-          className="mt-2 w-full rounded-full border border-slate-200 bg-white py-3.5 text-sm font-bold text-[#101F55] transition-all active:scale-98 disabled:opacity-50"
+          className="mt-2 w-full rounded-full border border-slate-200 bg-white py-3.5 text-sm font-bold text-[#0b1c30] transition-all active:scale-98 disabled:opacity-50"
         >
           Keep my account
         </button>
