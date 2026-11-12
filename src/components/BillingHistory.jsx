@@ -22,14 +22,14 @@ const formatDate = (iso, withTime = false) =>
 // Paid, waiting for payment, or work not finished yet
 const getBillStatus = (bill) => {
   if (bill.payment_status === 'PAID') {
-    return { label: 'Paid', icon: 'check_circle', tone: 'bg-[#FFE7A8] text-[#101F55]' };
+    return { label: 'Paid', icon: 'check_circle', tone: 'bg-[#c8f7e1] text-[#006c49]' };
   }
 
   if (bill.status === 'COMPLETED') {
-    return { label: 'Payment pending', icon: 'schedule', tone: 'bg-[#FFF3D5] text-[#101F55]' };
+    return { label: 'Payment pending', icon: 'schedule', tone: 'bg-amber-100 text-amber-700' };
   }
 
-  return { label: 'Work in progress', icon: 'construction', tone: 'bg-[#FFE7A8] text-[#4E5C92]' };
+  return { label: 'Work in progress', icon: 'construction', tone: 'bg-[#dce1ff] text-[#4e5c92]' };
 };
 
 // Bills shown before "View more"
@@ -119,7 +119,7 @@ export const BillingHistory = ({
   if (loading) {
     return (
       <div className="py-8 flex flex-col items-center text-slate-400">
-        <span className="material-symbols-outlined animate-spin text-[#F47B16] text-2xl">
+        <span className="material-symbols-outlined animate-spin text-[#ff6a00] text-2xl">
           progress_activity
         </span>
         <p className="text-xs mt-2">Loading bills...</p>
@@ -174,14 +174,14 @@ export const BillingHistory = ({
             >
               {/* A service icon, not a face: next to a photo, the service
                   name reads like that person's job title */}
-              <div className="w-10 h-10 rounded-xl shrink-0 bg-[#FFE7A8] text-[#101F55] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl shrink-0 bg-[#ffdbcc] text-[#a14000] flex items-center justify-center">
                 <span className="material-symbols-outlined text-[20px]">
                   home_repair_service
                 </span>
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#101F55] truncate">
+                <p className="text-xs font-bold text-[#0b1c30] truncate">
                   <span>{bill.service_title}</span> <span>service</span>
                 </p>
                 {/* Say who the other person is, so a customer's name under
@@ -207,7 +207,7 @@ export const BillingHistory = ({
                     You get
                   </p>
                 )}
-                <p className={`text-sm font-extrabold ${isPartnerView ? 'text-[#101F55]' : 'text-[#101F55]'}`}>
+                <p className={`text-sm font-extrabold ${isPartnerView ? 'text-[#006c49]' : 'text-[#a14000]'}`}>
                   {formatRupees(isPartnerView ? bill.partner_payout : bill.total_amount)}
                 </p>
                 <span className="material-symbols-outlined text-[18px] text-slate-300">
@@ -221,17 +221,17 @@ export const BillingHistory = ({
               <div className="px-3.5 pb-3.5 pt-3 border-t border-dashed border-slate-200 space-y-1.5 text-xs">
 
                 <div className="flex justify-between gap-3">
-                  <span className="text-[#4E5C92]">
+                  <span className="text-[#5a4136]">
                     {isPartnerView ? 'Job price' : bill.service_title}
                   </span>
-                  <span className="font-bold text-[#101F55] shrink-0">
+                  <span className="font-bold text-[#0b1c30] shrink-0">
                     {formatRupees(bill.service_price)}
                   </span>
                 </div>
 
                 {isPartnerView ? (
                   <div className="flex justify-between gap-3">
-                    <span className="text-[#4E5C92]">
+                    <span className="text-[#5a4136]">
                       {`GigEzee commission (${bill.commission_percent}%)`}
                     </span>
                     <span className="font-bold text-red-500 shrink-0">
@@ -240,8 +240,8 @@ export const BillingHistory = ({
                   </div>
                 ) : (
                   <div className="flex justify-between gap-3">
-                    <span className="text-[#4E5C92]">Trust Shield fee</span>
-                    <span className="font-bold text-[#101F55] shrink-0">
+                    <span className="text-[#5a4136]">Trust Shield fee</span>
+                    <span className="font-bold text-[#0b1c30] shrink-0">
                       {formatRupees(bill.trust_fee)}
                     </span>
                   </div>
@@ -282,13 +282,13 @@ export const BillingHistory = ({
                                 href={charge.photo_url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="material-symbols-outlined text-[14px] text-[#F47B16] align-middle mr-1"
+                                className="material-symbols-outlined text-[14px] text-[#a14000] align-middle mr-1"
                                 aria-label={`Photo of ${charge.item}`}
                               >
                                 image
                               </a>
                             )}
-                            <span className={isApproved ? 'text-[#4E5C92]' : 'text-slate-400 line-through'}>
+                            <span className={isApproved ? 'text-[#5a4136]' : 'text-slate-400 line-through'}>
                               {charge.item}
                             </span>
                             {!isApproved && (
@@ -297,7 +297,7 @@ export const BillingHistory = ({
                               </span>
                             )}
                           </span>
-                          <span className={`shrink-0 ${isApproved ? 'font-bold text-[#101F55]' : 'text-slate-400 line-through'}`}>
+                          <span className={`shrink-0 ${isApproved ? 'font-bold text-[#0b1c30]' : 'text-slate-400 line-through'}`}>
                             {isPartnerView && isApproved
                               ? `+ ${formatRupees(charge.amount)}`
                               : formatRupees(charge.amount)}
@@ -311,8 +311,8 @@ export const BillingHistory = ({
                 {isPartnerView ? (
                   <>
                     <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-slate-100">
-                      <span className="font-bold text-[#101F55]">You receive</span>
-                      <span className="font-extrabold text-[#101F55]">
+                      <span className="font-bold text-[#0b1c30]">You receive</span>
+                      <span className="font-extrabold text-[#006c49]">
                         {formatRupees(bill.partner_payout)}
                       </span>
                     </div>
@@ -326,22 +326,22 @@ export const BillingHistory = ({
                     {tax > 0 && (
                       <>
                         <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-dashed border-slate-200">
-                          <span className="text-[#4E5C92]">Subtotal</span>
-                          <span className="font-bold text-[#101F55] shrink-0">
+                          <span className="text-[#5a4136]">Subtotal</span>
+                          <span className="font-bold text-[#0b1c30] shrink-0">
                             {formatRupees((bill.total_amount || 0) - tax)}
                           </span>
                         </div>
 
                         <div className="flex justify-between gap-3">
-                          <span className="text-[#4E5C92]">{`CGST (${halfRate(bill.gst_percent)}%)`}</span>
-                          <span className="font-bold text-[#101F55] shrink-0">
+                          <span className="text-[#5a4136]">{`CGST (${halfRate(bill.gst_percent)}%)`}</span>
+                          <span className="font-bold text-[#0b1c30] shrink-0">
                             {formatRupees(bill.cgst)}
                           </span>
                         </div>
 
                         <div className="flex justify-between gap-3">
-                          <span className="text-[#4E5C92]">{`SGST (${halfRate(bill.gst_percent)}%)`}</span>
-                          <span className="font-bold text-[#101F55] shrink-0">
+                          <span className="text-[#5a4136]">{`SGST (${halfRate(bill.gst_percent)}%)`}</span>
+                          <span className="font-bold text-[#0b1c30] shrink-0">
                             {formatRupees(bill.sgst)}
                           </span>
                         </div>
@@ -349,8 +349,8 @@ export const BillingHistory = ({
                     )}
 
                     <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-slate-100">
-                      <span className="font-bold text-[#101F55]">Total</span>
-                      <span className="font-extrabold text-[#101F55]">
+                      <span className="font-bold text-[#0b1c30]">Total</span>
+                      <span className="font-extrabold text-[#0b1c30]">
                         {formatRupees(bill.total_amount)}
                       </span>
                     </div>
@@ -360,8 +360,8 @@ export const BillingHistory = ({
                     )}
 
                     <div className="flex justify-between gap-3">
-                      <span className="text-[#4E5C92]">Amount paid</span>
-                      <span className={`font-bold ${isPaid ? 'text-[#101F55]' : 'text-[#101F55]'}`}>
+                      <span className="text-[#5a4136]">Amount paid</span>
+                      <span className={`font-bold ${isPaid ? 'text-[#006c49]' : 'text-[#0b1c30]'}`}>
                         {formatRupees(bill.amount_paid)}
                       </span>
                     </div>
@@ -369,30 +369,30 @@ export const BillingHistory = ({
                 )}
 
                 {isPaid ? (
-                  <div className="mt-2 rounded-xl bg-[#FFE7A8]/50 p-2.5 space-y-0.5">
-                    <p className="text-[11px] font-bold text-[#101F55] flex items-center gap-1">
+                  <div className="mt-2 rounded-xl bg-[#c8f7e1]/50 p-2.5 space-y-0.5">
+                    <p className="text-[11px] font-bold text-[#006c49] flex items-center gap-1">
                       <span className="material-symbols-outlined text-[14px]">verified</span>
                       {isPartnerView ? 'Customer has paid' : 'Payment complete'}
                     </p>
                     {bill.paid_at && (
-                      <p className="text-[10px] text-[#101F55]">
+                      <p className="text-[10px] text-[#006c49]">
                         {`Paid on ${formatDate(bill.paid_at, true)}`}
                       </p>
                     )}
                     {bill.payment_method === 'CASH' && (
-                      <p className="text-[10px] text-[#101F55]">
+                      <p className="text-[10px] text-[#006c49]">
                         Paid in cash (phone booking)
                       </p>
                     )}
                     {bill.razorpay_payment_id && (
-                      <p className="text-[10px] text-[#101F55] break-all">
+                      <p className="text-[10px] text-[#006c49] break-all">
                         {`Payment ID: ${bill.razorpay_payment_id}`}
                       </p>
                     )}
                   </div>
                 ) : (
-                  <div className="mt-2 rounded-xl bg-[#FFF7E0] p-2.5">
-                    <p className="text-[11px] font-bold text-[#101F55]">
+                  <div className="mt-2 rounded-xl bg-amber-50 p-2.5">
+                    <p className="text-[11px] font-bold text-amber-700">
                       {isPartnerView
                         ? "Waiting for the customer's payment"
                         : `Balance due: ${formatRupees(balance)}`}
@@ -415,7 +415,7 @@ export const BillingHistory = ({
         <button
           type="button"
           onClick={() => setShowAll(!showAll)}
-          className="w-full flex items-center justify-center gap-1 text-xs font-bold text-[#101F55] bg-white border border-slate-100 rounded-2xl py-2.5 active:scale-95 transition-all"
+          className="w-full flex items-center justify-center gap-1 text-xs font-bold text-[#a14000] bg-white border border-slate-100 rounded-2xl py-2.5 active:scale-95 transition-all"
         >
           {showAll ? 'Show less' : `View more (${bills.length - RECENT_BILLS})`}
           <span className="material-symbols-outlined text-[16px]">

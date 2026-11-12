@@ -16,7 +16,7 @@ export const MapTiles = () => (
 export const destinationIcon = L.divIcon({
   className: '',
   html:
-    '<div style="width:28px;height:28px;border-radius:9999px;background:#101F55;border:3px solid white;' +
+    '<div style="width:28px;height:28px;border-radius:9999px;background:#0b1c30;border:3px solid white;' +
     'box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">' +
     '<span class="material-symbols-outlined" style="font-size:16px;color:white;">home</span></div>',
   iconSize: [28, 28],
@@ -33,10 +33,10 @@ const partnerIcon = (heading) =>
       (heading != null
         ? `<div style="position:absolute;inset:0;transform:rotate(${heading}deg);">` +
           '<div style="position:absolute;left:50%;top:-2px;margin-left:-6px;width:0;height:0;' +
-          'border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid #FFC928;"></div></div>'
+          'border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid #ff6a00;"></div></div>'
         : '') +
       '<div style="position:absolute;left:8px;top:8px;width:18px;height:18px;border-radius:9999px;' +
-      'background:#FFC928;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div></div>',
+      'background:#ff6a00;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div></div>',
     iconSize: [34, 34],
     iconAnchor: [17, 17]
   });
@@ -166,12 +166,12 @@ export const LiveMap = ({
         route?.length ? (
           <Polyline
             positions={route}
-            pathOptions={{ color: '#101F55', weight: 5, opacity: 0.85 }}
+            pathOptions={{ color: '#ff6a00', weight: 5, opacity: 0.85 }}
           />
         ) : (
           <Polyline
             positions={[partner, destination]}
-            pathOptions={{ color: '#101F55', weight: 3, opacity: 0.8, dashArray: '6 8' }}
+            pathOptions={{ color: '#ff6a00', weight: 3, opacity: 0.8, dashArray: '6 8' }}
           />
         )
       )}

@@ -78,9 +78,9 @@ const BootSplash = () => (
     {/* Rings travel outwards from behind the logo, a second apart, so the
         screen reads as working rather than stuck. */}
     <div className="relative flex items-center justify-center">
-      <span className="absolute w-16 h-16 rounded-2xl bg-[#FFC928]/20 animate-ring-out motion-reduce:hidden" />
+      <span className="absolute w-16 h-16 rounded-2xl bg-[#ff6a00]/20 animate-ring-out motion-reduce:hidden" />
       <span
-        className="absolute w-16 h-16 rounded-2xl bg-[#FFC928]/20 animate-ring-out motion-reduce:hidden"
+        className="absolute w-16 h-16 rounded-2xl bg-[#ff6a00]/20 animate-ring-out motion-reduce:hidden"
         style={{ animationDelay: '1.1s' }}
       />
 
@@ -96,22 +96,22 @@ const BootSplash = () => (
     </div>
 
     <h1
-      className="text-2xl font-extrabold tracking-tight text-[#101F55] animate-fade-up"
+      className="text-2xl font-extrabold tracking-tight text-[#0b1c30] animate-fade-up"
       style={{ animationDelay: '140ms' }}
     >
       GigEzee
-      {PORTAL === 'partner' && <span className="text-[#101F55]"> Partner</span>}
+      {PORTAL === 'partner' && <span className="text-[#1b2a5e]"> Partner</span>}
     </h1>
 
     {/* Indeterminate on purpose: we cannot know how long Firebase will take,
         and a bar that pretends to measure progress would be a lie. */}
     <div
-      className="w-36 h-1 rounded-full bg-[#FFE7A8] overflow-hidden animate-fade-in"
+      className="w-36 h-1 rounded-full bg-[#ffdbcc] overflow-hidden animate-fade-in"
       style={{ animationDelay: '260ms' }}
       role="progressbar"
       aria-label="Loading GigEzee"
     >
-      <span className="block w-1/3 h-full rounded-full bg-[#FFC928] animate-bar-slide" />
+      <span className="block w-1/3 h-full rounded-full bg-[#ff6a00] animate-bar-slide" />
     </div>
   </main>
 );
@@ -120,7 +120,7 @@ const BootSplash = () => (
 // boot splash: the app is already running, only this screen is on its way.
 const ScreenLoading = () => (
   <main className="flex-1 flex items-center justify-center w-full bg-white h-full">
-    <span className="w-6 h-6 rounded-full border-2 border-[#FFE7A8] border-t-[#FFC928] animate-spin"></span>
+    <span className="w-6 h-6 rounded-full border-2 border-[#ffdbcc] border-t-[#ff6a00] animate-spin"></span>
   </main>
 );
 
@@ -164,9 +164,9 @@ const AppContent = () => {
       {/* Global Tactile Toast Notification */}
       {toastMessage && (
         <div className="fixed inset-x-6 top-6 z-50 flex justify-center pointer-events-none animate-in fade-in slide-in-from-top-5 duration-200">
-          <div className="bg-[#101F55] text-[#C9D3F5] text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-slate-700/80 max-w-sm pointer-events-auto">
+          <div className="bg-[#213145] text-[#eaf1ff] text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-slate-700/80 max-w-sm pointer-events-auto">
             <span
-              className="material-symbols-outlined text-[16px] text-[#F47B16] shrink-0"
+              className="material-symbols-outlined text-[16px] text-[#ff6a00] shrink-0"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               info

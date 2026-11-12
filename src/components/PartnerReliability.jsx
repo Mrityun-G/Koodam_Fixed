@@ -14,8 +14,8 @@ const formatDate = (iso) =>
     : '';
 
 const scoreTone = (score) => {
-  if (score >= 90) return 'text-[#101F55] bg-[#FFE7A8]/60';
-  if (score >= 60) return 'text-[#101F55] bg-[#FFF7E0]';
+  if (score >= 90) return 'text-[#006c49] bg-[#c8f7e1]/60';
+  if (score >= 60) return 'text-amber-700 bg-amber-50';
   return 'text-red-600 bg-red-50';
 };
 
@@ -124,7 +124,7 @@ export const PartnerReliability = () => {
           {score}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-[#101F55]">Reliability score</p>
+          <p className="text-xs font-bold text-[#0b1c30]">Reliability score</p>
           <p className="text-[11px] text-slate-500">
             {activeEscalations.length === 0
               ? 'No escalations. Keep it up!'
@@ -150,12 +150,12 @@ export const PartnerReliability = () => {
                 key={escalation.id}
                 className={`rounded-lg p-2 ${escalation.status === 'OVERTURNED' ? 'bg-slate-50 opacity-70' : 'bg-red-50/60'}`}
               >
-                <p className="font-bold text-[#101F55]">
+                <p className="font-bold text-[#0b1c30]">
                   {`${escalation.severity === 'STRIKE' ? 'Strike' : 'Warning'}: ${escalation.source_label}`}
                 </p>
                 <p className="text-slate-500">{`${formatDate(escalation.created_at)} • ${escalation.reason}`}</p>
                 {escalation.status === 'OVERTURNED' && (
-                  <p className="text-[#101F55] font-semibold">
+                  <p className="text-[#006c49] font-semibold">
                     {`Overturned by GigEzee${escalation.overturn_note ? `: ${escalation.overturn_note}` : ''}`}
                   </p>
                 )}

@@ -38,7 +38,7 @@ export const ResetPasswordScreen = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5] min-h-screen">
+    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff] min-h-screen">
       <SubHeader title="Reset Password" />
 
       <main className="flex-1 flex flex-col relative w-full pb-10 px-4 space-y-4 pt-4">
@@ -50,7 +50,7 @@ export const ResetPasswordScreen = () => {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#FFF3D5] p-2.5 text-sm text-[#101F55] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-sm text-[#0b1c30] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
             />
           </label>
 
@@ -61,7 +61,7 @@ export const ResetPasswordScreen = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="At least 8 characters"
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#FFF3D5] p-2.5 text-sm text-[#101F55] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-sm text-[#0b1c30] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
             />
           </label>
 
@@ -72,7 +72,7 @@ export const ResetPasswordScreen = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Re-enter new password"
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#FFF3D5] p-2.5 text-sm text-[#101F55] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FFC928]/40"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-[#f8f9ff] p-2.5 text-sm text-[#0b1c30] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff6a00]/40"
             />
             {mismatch && (
               <span className="mt-1 block text-[10px] font-semibold text-red-500">
@@ -98,7 +98,7 @@ export const ResetPasswordScreen = () => {
             Boolean(strengthProblem) ||
             authLoading
           }
-          className="w-full py-3 rounded-full bg-[#FFC928] hover:bg-[#F5B301] disabled:bg-slate-200 disabled:text-slate-400 text-[#101F55] font-bold text-sm shadow-md active:scale-95 transition-all"
+          className="w-full py-3 rounded-full bg-[#ff6a00] hover:bg-[#a14000] disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm shadow-md active:scale-95 transition-all"
         >
           {authLoading ? 'Updating…' : 'Update Password'}
         </button>

@@ -231,14 +231,14 @@ export const ChatModal = () => {
         className="
           relative z-[10000]
           w-full
-          bg-[#FFF3D5]
+          bg-[#f8f9ff]
           h-[88%]
           max-h-full
           rounded-t-[32px]
           shadow-2xl
           flex flex-col
           overflow-hidden
-          border border-[#E6E9F4]
+          border border-slate-200
           animate-in slide-in-from-bottom-8 duration-200
         "
         onClick={(e) => e.stopPropagation()}
@@ -249,9 +249,9 @@ export const ChatModal = () => {
             relative z-10 shrink-0
             px-4 py-3.5
             bg-white
-            border-b border-[#E6E9F4]
-            flex items-center justify-between gap-2
-            shadow-[0_2px_12px_rgba(16,31,85,0.06)]
+            border-b border-slate-100
+            flex items-center justify-between
+            shadow-xs
           "
         >
           <div className="flex items-center gap-3 min-w-0">
@@ -267,7 +267,7 @@ export const ChatModal = () => {
                 className="
                   absolute bottom-0 right-0
                   w-3 h-3
-                  bg-[#22C55E]
+                  bg-emerald-500
                   rounded-full
                   ring-2 ring-white
                 "
@@ -279,8 +279,8 @@ export const ChatModal = () => {
                   short by the header buttons */}
               <h3
                 className="
-                  font-extrabold text-[15px] leading-tight
-                  text-[#101F55]
+                  font-bold text-sm
+                  text-[#0b1c30]
                   truncate
                 "
                 title={partnerName}
@@ -288,36 +288,43 @@ export const ChatModal = () => {
                 {partnerName}
               </h3>
 
-              <div className="flex flex-wrap items-center gap-1 min-w-0 mt-1">
-                {/* A partner staff have verified, then who the other
-                    person is: partners chat with customers */}
-                {partnerVerified && <VerifiedTag size="sm" />}
-
+              <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
+                {/* Who the other person is: partners chat with customers.
+                    A partner staff have verified shows the tag instead. */}
+                {partnerVerified ? (
+                  <VerifiedTag size="sm" />
+                ) : (
                 <span
-                  className="
-                    text-[9px] font-extrabold uppercase tracking-wider
+                  className={`
+                    text-[9px] font-bold uppercase tracking-wide
                     px-1.5 py-0.5 rounded-full shrink-0
-                    bg-[#101F55] text-[#FFC928]
-                  "
+                    ${myRole === 'partner'
+                      ? 'bg-[#ffdbcc] text-[#a14000]'
+                      : 'bg-[#dce1ff] text-[#4e5c92]'}
+                  `}
                 >
                   {myRole === 'partner' ? 'Customer' : 'Partner'}
                 </span>
-              </div>
+                )}
 
               <p
                 className="
-                  mt-1
                   text-[11px]
-                  text-[#4E5C92]
-                  font-semibold
-                  flex items-center gap-1.5
+                  text-[#006c49]
+                  font-medium
+                  flex items-center gap-1
                   truncate min-w-0
                 "
               >
-                <span className="relative flex w-1.5 h-1.5 shrink-0">
-                  <span className="absolute inset-0 rounded-full bg-[#22C55E] animate-ping" />
-                  <span className="relative w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-                </span>
+                <span
+                  className="
+                    w-1.5 h-1.5
+                    rounded-full
+                    bg-[#00ae78]
+                    animate-ping
+                    shrink-0
+                  "
+                />
 
                 {partnerVehicle
                   ? `Active on ${partnerVehicle}`
@@ -327,6 +334,7 @@ export const ChatModal = () => {
                   ? ` (${partnerDistance})`
                   : ''}
               </p>
+              </div>
             </div>
           </div>
 
@@ -346,8 +354,8 @@ export const ChatModal = () => {
                   flex items-center justify-center
                   transition-colors
                   ${showBills
-                    ? 'bg-[#FFC928] text-[#101F55]'
-                    : 'bg-[#FFF3D5] text-[#F47B16] hover:bg-[#FFE7A8]'}
+                    ? 'bg-[#ff6a00] text-white'
+                    : 'bg-[#eff4ff] text-[#a14000] hover:bg-[#ffdbcc]'}
                 `}
               >
                 <span className="material-symbols-outlined text-[19px]">
@@ -369,12 +377,12 @@ export const ChatModal = () => {
               className={`
                 w-9 h-9
                 rounded-full
-                bg-[#FFF3D5]
-                text-[#F47B16]
+                bg-[#eff4ff]
+                text-[#a14000]
                 flex items-center justify-center
                 transition-colors
                 ${canCall
-                  ? 'hover:bg-[#FFE7A8]'
+                  ? 'hover:bg-[#ffdbcc]'
                   : 'opacity-40 cursor-not-allowed'}
               `}
             >
@@ -395,12 +403,12 @@ export const ChatModal = () => {
               className={`
                 w-9 h-9
                 rounded-full
-                bg-[#FFF3D5]
-                text-[#F47B16]
+                bg-[#eff4ff]
+                text-[#a14000]
                 flex items-center justify-center
                 transition-colors
                 ${partnerPhone
-                  ? 'hover:bg-[#FFE7A8]'
+                  ? 'hover:bg-[#ffdbcc]'
                   : 'opacity-40 cursor-not-allowed'}
               `}
             >
@@ -421,10 +429,10 @@ export const ChatModal = () => {
               className="
                 w-9 h-9
                 rounded-full
-                bg-[#FFF3D5]
-                text-[#101F55]
+                bg-slate-100
+                text-slate-500
                 flex items-center justify-center
-                hover:bg-[#FFE7A8]
+                hover:bg-slate-200
                 transition-colors
               "
             >
@@ -442,15 +450,15 @@ export const ChatModal = () => {
 
         {showBills ? (
           /* Work this partner did for the customer, with each bill */
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 bg-[#FFF3D5]">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 bg-[#f8f9ff]">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <h4 className="text-sm font-bold text-[#101F55] truncate">
+                <h4 className="text-sm font-bold text-[#0b1c30] truncate">
                   {myRole === 'partner'
                     ? `Jobs for ${partnerName}`
                     : `Work by ${partnerName}`}
                 </h4>
-                <p className="text-[11px] text-[#4E5C92]">
+                <p className="text-[11px] text-slate-500">
                   {myRole === 'partner'
                     ? 'What you earned from each job'
                     : 'Bills, extra parts and payments'}
@@ -460,7 +468,7 @@ export const ChatModal = () => {
               <button
                 type="button"
                 onClick={() => setShowBills(false)}
-                className="shrink-0 px-3 py-1.5 rounded-full bg-[#FFF3D5] text-[#101F55] text-xs font-bold flex items-center gap-1 hover:bg-[#FFE7A8] transition-colors"
+                className="shrink-0 px-3 py-1.5 rounded-full bg-[#eff4ff] text-[#a14000] text-xs font-bold flex items-center gap-1 hover:bg-[#ffdbcc] transition-colors"
               >
                 <span className="material-symbols-outlined text-[16px]">chat</span>
                 Back to chat
@@ -485,26 +493,21 @@ export const ChatModal = () => {
             overflow-y-auto
             overscroll-contain
             space-y-3
-            bg-[#FFF3D5]
+            bg-[#f8f9ff]
           "
         >
           <div className="flex justify-center">
             <span
               className="
-                inline-flex items-center gap-1
                 text-[11px]
-                bg-[#FFE7A8]/70
-                border border-[#FFC928]/40
-                text-[#101F55]
+                bg-slate-200/70
+                text-slate-600
                 px-3 py-1
                 rounded-full
-                font-semibold
+                font-medium
                 text-center
               "
             >
-              <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                lock
-              </span>
               {orderNumber
                 ? `Encrypted neighborhood chat for Order #${orderNumber}`
                 : 'Encrypted neighborhood chat'}
@@ -513,10 +516,10 @@ export const ChatModal = () => {
 
           {messages.map((msg) => msg.type === 'call' ? (
             <div key={msg.id} className="flex justify-center">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-white border border-[#E6E9F4] text-[#4E5C92] shadow-sm">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-white border border-slate-100 text-slate-600 shadow-xs">
                 <span
                   className={`material-symbols-outlined text-[16px] ${
-                    msg.callResult === 'completed' ? 'text-[#101F55]' : 'text-[#F47B16]'
+                    msg.callResult === 'completed' ? 'text-[#00ae78]' : 'text-red-500'
                   }`}
                 >
                   {msg.callResult === 'completed' ? 'videocam' : 'missed_video_call'}
@@ -539,14 +542,15 @@ export const ChatModal = () => {
               <div
                 className={`
                   max-w-[80%]
-                  rounded-[20px]
+                  rounded-2xl
                   ${msg.type === 'video' ? 'p-1.5' : 'px-4 py-2.5'}
+                  shadow-xs
                   text-sm
                   break-words
                   ${
                     msg.sender === myRole
-                      ? 'bg-gradient-to-br from-[#1B3380] to-[#101F55] text-white rounded-br-md font-medium shadow-md shadow-[#101F55]/20'
-                      : 'bg-white text-[#101F55] rounded-bl-md border border-[#E6E9F4] shadow-sm shadow-[#101F55]/5'
+                      ? 'bg-[#ff6a00] text-white rounded-br-xs font-medium'
+                      : 'bg-white text-[#0b1c30] rounded-bl-xs border border-slate-100'
                   }
                 `}
               >
@@ -573,8 +577,7 @@ export const ChatModal = () => {
               <span
                 className="
                   text-[10px]
-                  font-medium
-                  text-[#4E5C92]/70
+                  text-slate-400
                   mt-1 px-1
                 "
               >
@@ -586,16 +589,16 @@ export const ChatModal = () => {
           {/* The clip on its way */}
           {videoUpload && (
             <div className="flex flex-col items-end">
-              <div className="w-56 max-w-[80%] rounded-[20px] rounded-br-md bg-gradient-to-br from-[#1B3380] to-[#101F55] text-white p-3 shadow-md shadow-[#101F55]/20">
+              <div className="w-56 max-w-[80%] rounded-2xl rounded-br-xs bg-[#ff6a00] text-white p-3 shadow-xs">
                 <div className="flex items-center gap-2 text-xs font-semibold">
                   <span className="material-symbols-outlined text-[18px] animate-pulse">
                     videocam
                   </span>
                   Sending video… {Math.round(videoUpload.progress * 100)}%
                 </div>
-                <div className="mt-2 h-1.5 rounded-full bg-white/25 overflow-hidden">
+                <div className="mt-2 h-1.5 rounded-full bg-white/30 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-[#FFC928] transition-all"
+                    className="h-full rounded-full bg-white transition-all"
                     style={{ width: `${Math.max(4, Math.round(videoUpload.progress * 100))}%` }}
                   />
                 </div>
@@ -608,9 +611,9 @@ export const ChatModal = () => {
         <div
           className="
             relative z-10 shrink-0
-            px-3 py-2.5
-            bg-white
-            border-t border-[#E6E9F4]
+            px-3 py-2
+            bg-white/95
+            border-t border-slate-100
             flex gap-2
             overflow-x-auto
             overscroll-x-contain
@@ -622,14 +625,12 @@ export const ChatModal = () => {
               type="button"
               onClick={() => handleQuickReply(reply)}
               className="
-                px-3.5 py-1.5
+                px-3 py-1
                 rounded-full
-                bg-[#FFF3D5]
-                border border-[#FFC928]/40
-                hover:bg-[#FFE7A8]
-                active:bg-[#FFC928]
-                text-[#101F55]
-                text-xs font-semibold
+                bg-[#eff4ff]
+                hover:bg-[#dce9ff]
+                text-[#404e83]
+                text-xs font-medium
                 shrink-0
                 transition-colors
                 active:scale-95
@@ -647,7 +648,7 @@ export const ChatModal = () => {
             relative z-10 shrink-0
             p-3
             bg-white
-            border-t border-[#E6E9F4]
+            border-t border-slate-100
             flex items-center gap-2
           "
         >
@@ -661,9 +662,9 @@ export const ChatModal = () => {
               className="
                 w-11 h-11
                 rounded-full
-                bg-[#FFF3D5]
-                text-[#F47B16]
-                hover:bg-[#FFE7A8]
+                bg-[#eff4ff]
+                text-[#a14000]
+                hover:bg-[#ffdbcc]
                 disabled:opacity-50
                 flex items-center justify-center
                 transition-colors
@@ -676,16 +677,16 @@ export const ChatModal = () => {
             </button>
 
             {videoMenuOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-2xl shadow-xl shadow-[#101F55]/15 border border-[#E6E9F4] p-1.5 z-20">
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-1.5 z-20">
                 <button
                   type="button"
                   onClick={() => {
                     setVideoMenuOpen(false);
                     recordVideoRef.current?.click();
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#FFF3D5] text-sm font-semibold text-[#101F55] text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#eff4ff] text-sm font-semibold text-[#0b1c30] text-left"
                 >
-                  <span className="material-symbols-outlined text-[20px] text-[#F47B16]">
+                  <span className="material-symbols-outlined text-[20px] text-[#ff6a00]">
                     videocam
                   </span>
                   Record a video
@@ -697,15 +698,15 @@ export const ChatModal = () => {
                     setVideoMenuOpen(false);
                     pickVideoRef.current?.click();
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#FFF3D5] text-sm font-semibold text-[#101F55] text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#eff4ff] text-sm font-semibold text-[#0b1c30] text-left"
                 >
-                  <span className="material-symbols-outlined text-[20px] text-[#4E5C92]">
+                  <span className="material-symbols-outlined text-[20px] text-[#4e5c92]">
                     video_library
                   </span>
                   Choose a video
                 </button>
 
-                <p className="px-3 pt-1 pb-1.5 text-[10px] text-[#4E5C92]">
+                <p className="px-3 pt-1 pb-1.5 text-[10px] text-slate-400">
                   Up to {MAX_CHAT_VIDEO_MB} MB, about 30 seconds
                 </p>
               </div>
@@ -739,15 +740,13 @@ export const ChatModal = () => {
               flex-1 min-w-0
               h-11 px-4
               rounded-full
-              bg-[#FFF3D5]
-              border border-[#FFC928]/30
+              bg-[#eff4ff]
               text-sm
-              text-[#101F55]
-              placeholder:text-[#101F55]/45
+              text-[#0b1c30]
+              placeholder:text-slate-400
               focus:outline-none
-              focus:bg-white
               focus:ring-2
-              focus:ring-[#F47B16]/30
+              focus:ring-[#ff6a00]/30
             "
           />
 
@@ -758,18 +757,13 @@ export const ChatModal = () => {
             className="
               w-11 h-11
               rounded-full
-              bg-[#FFC928]
-              hover:bg-[#F5B301]
-              active:bg-[#F47B16]
-              active:text-white
-              focus-visible:outline-none
-              focus-visible:ring-2
-              focus-visible:ring-[#F47B16]
+              bg-[#ff6a00]
+              hover:bg-[#a14000]
               disabled:opacity-50
               disabled:cursor-not-allowed
-              text-[#101F55]
+              text-white
               flex items-center justify-center
-              shadow-md shadow-[#FFC928]/40
+              shadow-md
               active:scale-95
               transition-all
               shrink-0

@@ -18,12 +18,12 @@ export const URGENCY = {
   },
   soon: {
     label: 'Book soon',
-    tone: 'bg-[#FFF3D5] text-[#101F55]',
+    tone: 'bg-amber-100 text-amber-700',
     icon: 'schedule'
   },
   routine: {
     label: 'Not urgent',
-    tone: 'bg-[#FFE7A8]/30 text-[#101F55]',
+    tone: 'bg-[#6ffbbe]/30 text-[#006c49]',
     icon: 'check_circle'
   }
 };

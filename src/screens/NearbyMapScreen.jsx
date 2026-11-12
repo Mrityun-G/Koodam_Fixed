@@ -33,7 +33,7 @@ const initials = (name) =>
 const youIcon = L.divIcon({
   className: '',
   html:
-    '<div style="width:18px;height:18px;border-radius:9999px;background:#1B3380;' +
+    '<div style="width:18px;height:18px;border-radius:9999px;background:#1b6ef3;' +
     'border:3px solid white;box-shadow:0 0 0 6px rgba(27,110,243,.2);"></div>',
   iconSize: [18, 18],
   iconAnchor: [9, 9]
@@ -43,10 +43,10 @@ const partnerPin = (name, selected) =>
   L.divIcon({
     className: '',
     html:
-      `<div style="width:38px;height:38px;border-radius:9999px;background:${selected ? '#FFC928' : '#101F55'};` +
+      `<div style="width:38px;height:38px;border-radius:9999px;background:${selected ? '#ff6a00' : '#1b2a5e'};` +
       'border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.35);color:white;font:700 12px/32px sans-serif;' +
       `text-align:center;">${escapeHtml(initials(name))}</div>` +
-      `<div style="width:0;height:0;margin:-3px auto 0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid ${selected ? '#FFC928' : '#101F55'};"></div>`,
+      `<div style="width:0;height:0;margin:-3px auto 0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid ${selected ? '#ff6a00' : '#1b2a5e'};"></div>`,
     iconSize: [38, 46],
     iconAnchor: [19, 46]
   });
@@ -196,7 +196,7 @@ export const NearbyMapScreen = () => {
   const areaName = (location || '').split(',')[0] || 'you';
 
   return (
-    <div className="flex-1 flex flex-col relative w-full bg-[#FFF3D5]">
+    <div className="flex-1 flex flex-col relative w-full bg-[#f8f9ff]">
       <Header subtitle="Live Map" />
 
       {/* Service filter */}
@@ -205,8 +205,8 @@ export const NearbyMapScreen = () => {
           onClick={() => setServiceFilter(null)}
           className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
             !serviceFilter
-              ? 'bg-[#FFC928] text-[#101F55] border-[#FFC928]'
-              : 'bg-white text-[#101F55] border-slate-200'
+              ? 'bg-[#ff6a00] text-white border-[#ff6a00]'
+              : 'bg-white text-[#0b1c30] border-slate-200'
           }`}
         >
           All services
@@ -220,8 +220,8 @@ export const NearbyMapScreen = () => {
             }}
             className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors flex items-center gap-1 ${
               serviceFilter === service.id
-                ? 'bg-[#FFC928] text-[#101F55] border-[#FFC928]'
-                : 'bg-white text-[#101F55] border-slate-200'
+                ? 'bg-[#ff6a00] text-white border-[#ff6a00]'
+                : 'bg-white text-[#0b1c30] border-slate-200'
             }`}
           >
             {service.icon && (
@@ -248,7 +248,7 @@ export const NearbyMapScreen = () => {
                 <Circle
                   center={userCoords}
                   radius={1000}
-                  pathOptions={{ color: '#1B3380', weight: 1, fillOpacity: 0.05 }}
+                  pathOptions={{ color: '#1b6ef3', weight: 1, fillOpacity: 0.05 }}
                 />
                 <Marker position={userCoords} icon={youIcon} />
               </>
@@ -273,8 +273,8 @@ export const NearbyMapScreen = () => {
 
         {/* Status pill */}
         <div className="absolute left-3 top-3 z-10 bg-white/95 rounded-full px-3 py-1.5 shadow-sm flex items-center gap-1.5 pointer-events-none">
-          <span className="w-2 h-2 rounded-full bg-[#101F55] animate-pulse" />
-          <span className="text-[11px] font-bold text-[#101F55]">
+          <span className="w-2 h-2 rounded-full bg-[#00ae78] animate-pulse" />
+          <span className="text-[11px] font-bold text-[#0b1c30]">
             {loading
               ? 'Finding helpers…'
               : `${partners.length} online near ${areaName}`}
@@ -291,14 +291,14 @@ export const NearbyMapScreen = () => {
               showToast('Turn on location to see helpers around you.');
             }
           }}
-          className="absolute right-3 top-3 z-10 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-[#101F55] active:scale-95"
+          className="absolute right-3 top-3 z-10 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-[#1b2a5e] active:scale-95"
         >
           <span className="material-symbols-outlined text-[20px]">my_location</span>
         </button>
 
         {!loading && partners.length === 0 && (
           <div className="absolute inset-x-3 bottom-3 z-10 bg-white rounded-2xl p-4 shadow-md text-center">
-            <p className="text-sm font-bold text-[#101F55]">No helpers online nearby</p>
+            <p className="text-sm font-bold text-[#0b1c30]">No helpers online nearby</p>
             <p className="text-[11px] text-slate-500 mt-0.5">
               Partners appear here live as soon as they go online.
             </p>
@@ -313,10 +313,10 @@ export const NearbyMapScreen = () => {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-bold text-[#101F55] truncate">{selected.name}</p>
+                  <p className="text-sm font-bold text-[#0b1c30] truncate">{selected.name}</p>
                   {selected.isVerified && <VerifiedTag size="sm" />}
                   {selected.policeVerified && (
-                    <span className="material-symbols-outlined text-[16px] text-[#101F55]" title="Police verified">
+                    <span className="material-symbols-outlined text-[16px] text-[#006c49]" title="Police verified">
                       verified_user
                     </span>
                   )}
@@ -345,10 +345,10 @@ export const NearbyMapScreen = () => {
                 <button
                   key={offer.id}
                   onClick={() => handleBookHelper(offer)}
-                  className="w-full flex items-center justify-between gap-2 rounded-xl bg-[#FFF7E0] hover:bg-[#FFE7A8] px-3 py-2 active:scale-[0.99] transition-all"
+                  className="w-full flex items-center justify-between gap-2 rounded-xl bg-[#fff4ee] hover:bg-[#ffe6d8] px-3 py-2 active:scale-[0.99] transition-all"
                 >
-                  <span className="text-xs font-bold text-[#101F55] truncate">{offer.title}</span>
-                  <span className="text-xs font-extrabold text-[#101F55] shrink-0">
+                  <span className="text-xs font-bold text-[#0b1c30] truncate">{offer.title}</span>
+                  <span className="text-xs font-extrabold text-[#a14000] shrink-0">
                     ₹{offer.rate} • Book
                   </span>
                 </button>
@@ -361,7 +361,7 @@ export const NearbyMapScreen = () => {
       <div className="px-4 pb-3">
         <button
           onClick={() => navigateTo('home', 'home')}
-          className="w-full py-2.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-[#101F55] active:scale-95 transition-all"
+          className="w-full py-2.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-[#0b1c30] active:scale-95 transition-all"
         >
           Back to list view
         </button>
