@@ -3,6 +3,12 @@ import { serviceCardImage } from '../lib/serviceImages';
 
 const DEFAULT_ICON = 'home_repair_service';
 
+// The photo's corners. Not rounded-xl: that is 3rem in this app's
+// Tailwind config, which turns a photo this size into an oval and crops
+// off heads and hands. 12px keeps the whole picture, a rectangle with
+// soft corners.
+const PHOTO_CORNERS = 'rounded-[12px]';
+
 // A service as a photo card - the tile in Home's Neighborhood Services
 // grid, and the look every service picker in the app shares: a 4:3
 // photo, then the icon and the name centred on white underneath. Laid
@@ -29,7 +35,7 @@ export const ServiceCard = ({
         selected ? 'border-[#ff6a00] ring-1 ring-[#ff6a00]' : 'border-slate-100'
       }`}
     >
-      <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden">
+      <div className={`relative w-full aspect-[4/3] ${PHOTO_CORNERS} overflow-hidden`}>
         {image ? (
           // The name underneath says what it is
           <img
@@ -90,7 +96,7 @@ export const ServiceCard = ({
 // The card's shape while the services are still loading
 export const ServiceCardSkeleton = () => (
   <div className="rounded-2xl bg-white border border-slate-100 p-1.5 flex flex-col items-center">
-    <div className="w-full aspect-[4/3] rounded-xl bg-slate-100 animate-pulse" />
+    <div className={`w-full aspect-[4/3] ${PHOTO_CORNERS} bg-slate-100 animate-pulse`} />
     <div className="mt-2 w-5 h-5 rounded-full bg-slate-100 animate-pulse" />
     <div className="mt-1.5 mb-1 h-3 w-3/4 rounded bg-slate-100 animate-pulse" />
   </div>
@@ -104,9 +110,7 @@ export const ServiceThumb = ({
   fallbackClassName = 'bg-[#dce1ff] text-[#4e5c92]'
 }) => {
   const image = serviceCardImage(title);
-  // rounded-xl is 3rem in this app's Tailwind config, which turns a
-  // thumbnail this small into an oval
-  const box = 'w-14 aspect-[4/3] rounded-2xl overflow-hidden shrink-0';
+  const box = `w-14 aspect-[4/3] ${PHOTO_CORNERS} overflow-hidden shrink-0`;
 
   if (image) {
     return (
