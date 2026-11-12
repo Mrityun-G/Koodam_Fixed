@@ -25,7 +25,7 @@ export const LiveTrackingScreen = () => {
     liveRoute,
     respondToExtraCharge,
     cancelBookingRequest,
-    finishActiveOrder,
+    closeFinishedBooking,
     trustFee
   } = useApp();
 
@@ -57,12 +57,19 @@ export const LiveTrackingScreen = () => {
   const canCancel = activeOrder.bookingStatus === 'PENDING';
   const [mapExpanded, setMapExpanded] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
 
   const handleCancelRequest = async () => {
     if (!window.confirm(`Cancel your request to ${helperName}?`)) return;
     setIsCancelling(true);
     await cancelBookingRequest();
     setIsCancelling(false);
+  };
+
+  const handleFinishBooking = async () => {
+    setIsFinishing(true);
+    // On success the app has already moved on to Home
+    if (!(await closeFinishedBooking())) setIsFinishing(false);
   };
 
   // Once paid, the last step counts as done too
@@ -465,7 +472,6 @@ export const LiveTrackingScreen = () => {
                   >
                     Submit Rating
                   </button>
-
                   {/* Paid, so nothing else is owed: the member can close the
                       booking without rating it */}
                   <button
@@ -477,6 +483,39 @@ export const LiveTrackingScreen = () => {
                   </button>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Paid, so nothing else is owed: close the booking. It is saved
+              to Billing History and Requests starts fresh (rating optional). */}
+          {activeOrder.currentStep === 5 && isPaid && (
+            <div className="bg-white rounded-2xl p-4 shadow-md shadow-[#101F55]/5 border border-[#E6E9F4] flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD65A] to-[#FFC928] text-[#101F55] flex items-center justify-center shrink-0 shadow-sm shadow-[#FFC928]/40">
+                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>history</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-bold text-[#101F55]">Work is over</h3>
+                  <p className="text-[11px] text-[#4E5C92]">
+                    Finish this booking to save it to your history and start fresh.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleFinishBooking}
+                disabled={isFinishing}
+                className="w-full py-3 rounded-full bg-gradient-to-r from-[#101F55] to-[#1B3380] hover:from-[#13286B] disabled:opacity-60 text-white text-sm font-bold flex items-center justify-center gap-1.5 shadow-md shadow-[#101F55]/25 border border-[#FFC928]/40 active:scale-95 transition-all"
+              >
+                <span
+                  className={`material-symbols-outlined text-[18px] text-[#FFC928] ${isFinishing ? 'animate-spin' : ''}`}
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  {isFinishing ? 'progress_activity' : 'task_alt'}
+                </span>
+                <span>{isFinishing ? 'Saving to history…' : 'Finish booking'}</span>
+              </button>
             </div>
           )}
 

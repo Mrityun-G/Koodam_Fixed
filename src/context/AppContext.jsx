@@ -213,6 +213,35 @@ const EMPTY_ORDER = {
   feedback: ''
 };
 
+// No helper or service picked yet: how a fresh app starts, and what a
+// finished booking goes back to
+const EMPTY_HELPER = {
+  id: null,
+  name: '',
+  title: '',
+  rating: 0,
+  reviewsCount: 0,
+  completionRate: '',
+  distance: '',
+  experience: '',
+  avatar: '',
+  hourlyRate: 0,
+  vehicle: '',
+  phone: ''
+};
+
+const EMPTY_SERVICE = {
+  id: null,
+  title: '',
+  price: 0,
+  duration: '',
+  tag: '',
+  desc: ''
+};
+
+// The booking date a fresh booking starts on: today, with no time picked
+const todayLabel = () => `Today ${new Date().getDate()}`;
+
 // A booking in one of these is over; nothing about it is still actionable.
 // (COMPLETED is deliberately absent: the member still owes a payment and a
 // rating after the work is done, so the request stays open to them.)
@@ -710,35 +739,13 @@ const [notificationsEnabled, setNotificationsEnabled] =
   // Helper & Booking State
   // =========================================================
 
-  const [selectedHelper, setSelectedHelper] = useState({
-  id: null,
-  name: '',
-  title: '',
-  rating: 0,
-  reviewsCount: 0,
-  completionRate: '',
-  distance: '',
-  experience: '',
-  avatar: '',
-  hourlyRate: 0,
-  vehicle: '',
-  phone: ''
-});
+  const [selectedHelper, setSelectedHelper] = useState(EMPTY_HELPER);
 
-
-  const [selectedService, setSelectedService] = useState({
-    id: null,
-    title: '',
-    price: 0,
-    duration: '',
-    tag: '',
-    desc: ''
-  });
+  const [selectedService, setSelectedService] = useState(EMPTY_SERVICE);
 
 
   // Defaults to today with no time, so the customer must pick a free slot
-  const [selectedDate, setSelectedDate] =
-    useState(() => `Today ${new Date().getDate()}`);
+  const [selectedDate, setSelectedDate] = useState(todayLabel);
 
   const [selectedTime, setSelectedTime] =
     useState('');
@@ -841,8 +848,11 @@ useEffect(() => {
 ]);
 
 // Let go of the member's booking, so Requests goes back to its fresh
-// "No active booking" page. Its record stays in Supabase (Billing
+// "No active booking" page: the order, its chat and the partner's live
+// location all leave the screen. Its record stays in Supabase (Billing
 // History); only this device stops following it.
+// (The setters below are declared further down; this only runs after
+// render, by which time they all exist.)
 const finishActiveOrder = () => {
   try {
     loginStorage().removeItem(ACTIVE_ORDER_KEY);
@@ -851,37 +861,34 @@ const finishActiveOrder = () => {
   }
 
   setActiveOrder(EMPTY_ORDER);
+  setPartnerLocation(null);
+  setMessages([]);
+  setIsChatOpen(false);
+  setChatPartner('GigEzee Customer');
 };
 
-// A booking that is over is cleared by itself:
-// - cancelled, declined or never answered: straight away. The member has
-//   already been told why (a toast, and a notification for a decline or
-//   no answer).
-// - paid and rated: after a moment, so the "Thanks for rating" card is
-//   seen first.
-// Either way the order listener has already sent the final status (and
-// the rating) to the backend.
+// A booking that was cancelled, declined or never answered is cleared by
+// itself, straight away: the member has already been told why (a toast,
+// and a notification for a decline or no answer), and the order listener
+// has already sent the final status to the backend.
+// A paid job is not: it stays on Requests until the member taps "Finish
+// booking" (closeFinishedBooking), which saves it to their history first.
 useEffect(() => {
-  if (role !== 'member' || !activeOrder.orderId) {
+  if (
+    role !== 'member' ||
+    !activeOrder.orderId ||
+    !CLOSED_BOOKING_STATUSES.includes(activeOrder.bookingStatus)
+  ) {
     return undefined;
   }
 
-  const closed = CLOSED_BOOKING_STATUSES.includes(activeOrder.bookingStatus);
-  const done = activeOrder.paymentStatus === 'PAID' && Boolean(activeOrder.rating);
-
-  if (!closed && !done) {
-    return undefined;
-  }
-
-  const timer = setTimeout(finishActiveOrder, closed ? 0 : 3000);
+  const timer = setTimeout(finishActiveOrder, 0);
 
   return () => clearTimeout(timer);
 }, [
   role,
   activeOrder.orderId,
-  activeOrder.bookingStatus,
-  activeOrder.paymentStatus,
-  activeOrder.rating
+  activeOrder.bookingStatus
 ]);
 
 // Drives the dot on the Requests tab. activeOrder is always an object (it
@@ -994,6 +1001,7 @@ const hasLiveRequest = Boolean(
 
   // Keep a permanent copy of the order in Supabase (via the backend).
   // Firebase stays the live source; a failed sync never blocks the app.
+  // The promise it returns always resolves, so it can be awaited safely.
   const syncOrderToBackend = (orderId, order) => {
     const payload = {
       firebase_order_id: String(orderId),
@@ -1055,12 +1063,12 @@ const hasLiveRequest = Boolean(
     const serialized = JSON.stringify(payload);
 
     if (lastSyncedOrderRef.current === serialized) {
-      return;
+      return Promise.resolve();
     }
 
     lastSyncedOrderRef.current = serialized;
 
-    authorizedFetch('/bookings/sync', {
+    return authorizedFetch('/bookings/sync', {
       method: 'POST',
       body: serialized
     })
@@ -4682,6 +4690,56 @@ const markPaymentCompleted = (paymentResponse = {}) => {
 
 
   // =========================================================
+  // Finish Booking
+  // The member's "Finish booking" button, once the job is paid for.
+  // Saves the booking's final state (rating included) to their
+  // history, then starts over: nothing from this booking is left on
+  // screen and the next one begins from scratch.
+  // =========================================================
+
+  const closeFinishedBooking = async () => {
+    const order = activeOrderRef.current;
+
+    if (!order.orderId) {
+      return false;
+    }
+
+    // An unpaid bill can't be put away: the server would only hand it
+    // back on the next login (GET /me/open-booking)
+    if (order.paymentStatus !== 'PAID') {
+      showToast('Please complete the payment to finish this booking.');
+      return false;
+    }
+
+    // The bill itself was saved when the payment went through; this
+    // catches a rating given a moment ago. Capped, so a slow connection
+    // never keeps the member waiting here.
+    await Promise.race([
+      syncOrderToBackend(order.orderId, order),
+      new Promise((resolve) => setTimeout(resolve, 5000))
+    ]);
+
+    finishActiveOrder();
+
+    // Back to the beginning: no helper, service, slot or "booking for"
+    // details carried over from this booking
+    setSelectedHelper(EMPTY_HELPER);
+    setSelectedService(EMPTY_SERVICE);
+    setSelectedDate(todayLabel());
+    setSelectedTime('');
+    setBookFor(EMPTY_BOOK_FOR);
+    setCareHours(null);
+    setDiagnosis(null);
+
+    navigateTo('home', 'home');
+
+    showToast('Booking finished. Its bill is saved in Profile → Billing History.');
+
+    return true;
+  };
+
+
+  // =========================================================
   // Partner Duty
   // =========================================================
 
@@ -5269,6 +5327,7 @@ return (
 
       submitRating,
       finishActiveOrder,
+      closeFinishedBooking,
       cancelBookingRequest,
 
       togglePartnerDuty,
