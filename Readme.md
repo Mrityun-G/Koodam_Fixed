@@ -8,3 +8,4 @@ The customer can also refer some other customer similarly The service man can al
 The customer can also book for their child, Parent and Relatives.
 For running frontend - npm install , npm run dev
 For running backend - cd backend ( open backend folder ) , python -m uvicorn app.main:app --port 8000 --reload
+New Features
